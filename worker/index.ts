@@ -50,7 +50,10 @@ async function gateEnabled(env: Env): Promise<boolean> {
 
 async function gatePassed(request: Request, env: Env): Promise<boolean> {
   if (!(await gateEnabled(env))) return true;
-  return verifyGateToken(env.GATE_SIGNING_KEY as string, readCookie(request, GATE_COOKIE));
+  const secret = env.GATE_SIGNING_KEY as string;
+  if (await verifyGateToken(secret, readCookie(request, GATE_COOKIE))) return true;
+  const header = request.headers.get('X-Anilife-Gate') ?? undefined;
+  return verifyGateToken(secret, header);
 }
 
 function clientKey(request: Request): string {
@@ -362,6 +365,7 @@ async function handleDiscordGate(request: Request, env: Env): Promise<Response> 
         id: typeof user.id === 'string' ? user.id : null,
         username: typeof user.username === 'string' ? user.username : null,
       },
+      gate,
     },
     200,
     { 'Set-Cookie': gateCookie(gate, 'None') }

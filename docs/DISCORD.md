@@ -38,7 +38,9 @@ npx wrangler deploy
 The client secret never enters the bundle, a log or Git. `POST /api/discord/token` is rate
 limited and only accepts an authorization code; it returns an access token without storing it.
 `POST /api/gate/discord` verifies that token with `GET /users/@me` and issues the normal signed
-gate cookie, so Activity visitors do not need to solve Turnstile separately inside Discord.
+gate cookie, plus the same short-lived gate token in the JSON response. The Activity keeps that
+token in memory and sends it as `X-Anilife-Gate` on resolver calls, so playback still works if the
+Discord proxy does not persist cookies.
 
 ## What is published
 

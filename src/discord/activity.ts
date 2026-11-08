@@ -1,4 +1,5 @@
 import type { DiscordSDK as DiscordSDKType } from '@discord/embedded-app-sdk';
+import { setGateToken } from '../utils/workerApi';
 
 export type DiscordStatus = 'unavailable' | 'connecting' | 'connected' | 'error';
 
@@ -141,7 +142,12 @@ async function setup(): Promise<DiscordState> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ accessToken: auth.access_token }),
-  }).catch(() => undefined);
+  })
+    .then((response) => response.json())
+    .then((data: { gate?: unknown }) => {
+      if (typeof data.gate === 'string') setGateToken(data.gate);
+    })
+    .catch(() => undefined);
 
   const username = auth.user.global_name || auth.user.username;
   publish({

@@ -26,6 +26,16 @@ export type ResolveResponse =
   | { ok: true; offer: PlaybackOffer; attempts: ResolveAttempt[] }
   | { ok: false; error: string; androidCode?: string; attempts?: ResolveAttempt[] };
 
+let gateToken: string | null = null;
+
+export function setGateToken(token: string | null): void {
+  gateToken = token;
+}
+
+function gateHeaders(): Record<string, string> {
+  return gateToken ? { 'X-Anilife-Gate': gateToken } : {};
+}
+
 function toQuery(params: ResolveParams): string {
   const query = new URLSearchParams({
     aniListId: String(params.aniListId),
@@ -49,7 +59,10 @@ function toQuery(params: ResolveParams): string {
  */
 export async function resolveEpisode(params: ResolveParams, signal?: AbortSignal): Promise<ResolveResponse> {
   try {
-    const response = await fetch(`/api/resolve?${toQuery(params)}`, { signal });
+    const response = await fetch(`/api/resolve?${toQuery(params)}`, {
+      signal,
+      headers: gateHeaders(),
+    });
     const data = (await response.json()) as ResolveResponse;
     if (!response.ok && data.ok !== false) {
       recordDiagnostic('SRC-05', { reason: `http_${response.status}` });
@@ -70,7 +83,7 @@ export async function resolveEpisode(params: ResolveParams, signal?: AbortSignal
 
 export async function getGateStatus(): Promise<boolean> {
   try {
-    const response = await fetch('/api/gate/status');
+    const response = await fetch('/api/gate/status', { headers: gateHeaders() });
     if (!response.ok) return false;
     const data = (await response.json()) as { passed?: boolean };
     return data.passed === true;

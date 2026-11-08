@@ -83,7 +83,7 @@ export const HomeFeed: React.FC = () => {
                   alt=""
                   className="w-4 h-4 rounded-full shadow-sm"
                 />
-                <span>AniLife Spotlight • Live AniList</span>
+                <span>Anilife Spotlight • Live AniList</span>
               </span>
             </div>
 
@@ -426,3 +426,4 @@ export const HomeFeed: React.FC = () => {
     </div>
   );
 };
+

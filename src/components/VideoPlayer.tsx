@@ -508,7 +508,7 @@ export const VideoPlayer: React.FC<Props> = ({
               <div className="w-16 h-16 border-4 border-[#74cf66]/20 border-t-[#74cf66] rounded-full animate-spin" />
               <img
                 src="/assets/images/Anilife-Logo.png"
-                alt="AniLife"
+                alt="Anilife"
                 className="absolute w-8 h-8 rounded-full shadow-lg"
               />
             </div>
@@ -1329,3 +1329,4 @@ export const VideoPlayer: React.FC<Props> = ({
     </div>
   );
 };
+

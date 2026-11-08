@@ -50,7 +50,7 @@ export const AppIntro: React.FC<AppIntroProps> = ({ onFinish }) => {
               
               setImgSrc('/assets/images/Anilife-Logo.png');
             }}
-            alt="AniLife"
+            alt="Anilife"
             className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(116,207,102,0.4)] animate-pulse"
           />
         </div>
@@ -64,10 +64,11 @@ export const AppIntro: React.FC<AppIntroProps> = ({ onFinish }) => {
             />
           </div>
           <div className="text-[11px] font-medium text-zinc-500 tracking-wider">
-            Loading AniLife...
+            Loading Anilife...
           </div>
         </div>
       </div>
     </div>
   );
 };
+

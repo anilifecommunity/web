@@ -161,3 +161,4 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
     </div>
   );
 };
+

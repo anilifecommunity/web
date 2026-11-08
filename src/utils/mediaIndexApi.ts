@@ -115,3 +115,4 @@ export async function fetchBackdrops(): Promise<Record<string, string>> {
   backdropMap = data?.titles || {};
   return backdropMap;
 }
+

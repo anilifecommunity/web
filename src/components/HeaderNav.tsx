@@ -97,16 +97,16 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setActiveTab('home')}
             className="flex items-center gap-3 px-1 py-1 rounded-xl w-full hover:bg-white/5 transition-colors cursor-pointer group"
-            title="AniLife"
+            title="Anilife"
           >
             <img
               src="/assets/images/Anilife-Logo.png"
-              alt="AniLife"
+              alt="Anilife"
               className="w-10 h-10 rounded-full shrink-0 group-hover:scale-105 transition-transform"
             />
             {isExpanded && (
               <span className="font-black text-lg text-white tracking-wide truncate">
-                AniLife
+                Anilife
               </span>
             )}
           </button>
@@ -208,15 +208,15 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setActiveTab('home')}
             className="flex items-center gap-2.5 mr-3 select-none cursor-pointer group shrink-0"
-            title="AniLife Home"
+            title="Anilife Home"
           >
             <img
               src="/assets/images/Anilife-Logo.png"
-              alt="AniLife"
+              alt="Anilife"
               className="w-8 h-8 rounded-full group-hover:scale-105 transition-transform object-cover"
             />
             <span className="hidden sm:inline-block text-lg font-black tracking-wider text-white">
-              AniLife
+              Anilife
             </span>
           </button>
 
@@ -285,3 +285,4 @@ export const HeaderNav: React.FC = () => {
     </header>
   );
 };
+

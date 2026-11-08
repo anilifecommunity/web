@@ -15,6 +15,12 @@ import { CrunchyrollProfileScreen } from './components/CrunchyrollProfileScreen'
 import { AniListAuthModal } from './components/AniListAuthModal';
 import { AppIntro } from './components/AppIntro';
 import { FirstVisitGate } from './components/FirstVisitGate';
+import { useUrlRoute } from './hooks/useUrlRoute';
+
+const UrlRouteSync: React.FC = () => {
+  useUrlRoute();
+  return null;
+};
 
 const AppContent: React.FC = () => {
   const {
@@ -167,8 +173,10 @@ export default function App() {
   return (
     <AppProvider>
       <FirstVisitGate>
+        <UrlRouteSync />
         <AppContent />
       </FirstVisitGate>
     </AppProvider>
   );
 }
+

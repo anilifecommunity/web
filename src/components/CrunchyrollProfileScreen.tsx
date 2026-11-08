@@ -96,11 +96,11 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
       <div className="absolute top-8 left-8 flex items-center gap-3">
         <img
           src="/assets/images/Anilife-Logo.png"
-          alt="AniLife"
+          alt="Anilife"
           className="w-8 h-8 rounded-full"
         />
         <span className="text-xl font-bold tracking-tight text-white">
-          AniLife
+          Anilife
         </span>
       </div>
 
@@ -359,3 +359,4 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
     </div>
   );
 };
+

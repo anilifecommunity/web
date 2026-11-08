@@ -450,7 +450,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
                       <div className="text-sm font-semibold text-white">
-                        Show the AniLife animation when the app opens.
+                        Show the Anilife animation when the app opens.
                       </div>
                     </div>
                     <input
@@ -856,7 +856,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       } else {
                         updateSettings({
                           discordConnected: true,
-                          discordUsername: 'AniLifeUser#0001'
+                          discordUsername: 'AnilifeUser#0001'
                         });
                         showNotice('Discord linked successfully');
                       }
@@ -999,11 +999,11 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 <div className="flex items-center gap-3.5">
                   <img
                     src="/assets/images/Anilife-Logo.png"
-                    alt="AniLife Logo"
+                    alt="Anilife Logo"
                     className="w-12 h-12 rounded-full ring-2 ring-[#74cf66] object-cover"
                   />
                   <div>
-                    <h3 className="text-base font-black text-white tracking-wide">AniLife</h3>
+                    <h3 className="text-base font-black text-white tracking-wide">Anilife</h3>
                     <p className="text-xs text-[#74cf66]">Version 3.0.0 • Community Edition</p>
                   </div>
                 </div>
@@ -1077,3 +1077,4 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     </div>
   );
 };
+

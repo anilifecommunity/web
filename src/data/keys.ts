@@ -12,3 +12,4 @@ export const STORAGE_KEYS = {
   OAUTH_TOKEN: 'anilife_oauth_token',
   LIVE_CATALOG_CACHE: 'anilife_live_catalog_cache_v3',
 } as const;
+

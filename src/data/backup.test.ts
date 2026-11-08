@@ -162,3 +162,4 @@ test('restoring merges history and watchlist without deleting local rows', () =>
     Object.defineProperty(globalThis, 'localStorage', { value: original, configurable: true });
   }
 });
+

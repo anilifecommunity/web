@@ -469,3 +469,4 @@ export function downloadBackup(backup: BackupDocument, filename?: string): void 
   anchor.click();
   URL.revokeObjectURL(url);
 }
+

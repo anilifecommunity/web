@@ -250,6 +250,33 @@ export async function fetchTrendingAnime(page: number = 1, perPage: number = 15)
 
 
 
+export async function fetchAniListMediaById(id: number): Promise<AniListMedia | null> {
+  const query = `
+    query ($id: Int) {
+      Media(id: $id, type: ANIME) {
+        id
+        title { english romaji native }
+        coverImage { extraLarge large medium color }
+        bannerImage
+        description(asHtml: false)
+        averageScore
+        popularity
+        format
+        episodes
+        status
+        seasonYear
+        season
+        genres
+        duration
+        studios(isMain: true) { nodes { name } }
+        nextAiringEpisode { episode airingAt timeUntilAiring }
+      }
+    }
+  `;
+  const data = await queryAniList<{ Media: AniListMedia | null }>(query, { id });
+  return data.Media ?? null;
+}
+
 export async function fetchPopularSeasonAnime(
   page: number = 1,
   perPage: number = 15,
@@ -601,3 +628,4 @@ export function loadCachedAniListData(): any | null {
     return null;
   }
 }
+

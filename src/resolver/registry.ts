@@ -215,3 +215,4 @@ export function providersForWeb(hideAdult = false): ProviderDefinition[] {
     (provider) => isListable(provider) && (!hideAdult || !provider.capabilities.adultOnly)
   );
 }
+

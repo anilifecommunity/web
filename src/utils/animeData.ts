@@ -1,3 +1,4 @@
+import { PROVIDERS } from '../resolver';
 import { Anime, ServerOption } from '../types/anime';
 
 
@@ -8,54 +9,18 @@ const SAMPLE_STREAMS = [
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
 ];
 
-export const SERVERS: ServerOption[] = [
-  
-  { id: 'bee', name: 'Bee', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'anichan', name: 'AniChan', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'anikoto', name: 'Anikoto', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'animepahe', name: 'AnimePahe', speed: 'Fast', supportsDub: false, supportsSub: true, supportsDownload: true },
-  { id: 'sun', name: 'Sun', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'pewe', name: 'Pewe', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'hop', name: 'Hop', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'ally', name: 'Ally', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'kiwi', name: 'Kiwi', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'moo', name: 'Moo', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'bonk', name: 'Bonk', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'knob', name: 'Knob', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'twin', name: 'Twin', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'anipm', name: 'Ani.pm', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
-  { id: 'nun', name: 'Nun', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'bun', name: 'Bun', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'cog', name: 'Cog', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'telli', name: 'Telli', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-
-  
-  { id: 'zoko', name: 'Zoko', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'rareanimes', name: 'RareAnimes', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'anidbapp', name: 'AniDB App', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animeheaven', name: 'AnimeHeaven', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animeonsen', name: 'AnimeOnsen', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'kickassanime', name: 'KickAssAnime', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'allanime', name: 'MKissa (AllAnime)', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animekai', name: 'AnimeKai', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'reanime', name: 'Reanime', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'anizone', name: 'Anizone', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animegg', name: 'Animegg', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'anineko', name: 'Anineko', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-
-  
-  { id: 'twodhive', name: '2Dhive', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animedekho', name: 'AnimeDekho', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'toonhub4u', name: 'ToonHub4u', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'uniquestream', name: 'UniqueStream', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animekhor', name: 'AnimeKhor', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'kartoons', name: 'Kartoons (Hindi)', speed: 'Fast', supportsDub: true, supportsSub: false, supportsDownload: true },
-  { id: 'animeav1', name: 'AnimeAV1 (Español)', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'animerift', name: 'AnimeRift (Arabic)', speed: 'Normal', supportsDub: true, supportsSub: true, supportsDownload: true },
-  { id: 'hanime', name: 'Hanime', speed: 'Fast', supportsDub: false, supportsSub: true, supportsDownload: true },
-  { id: 'hentaihaven', name: 'Hentai Haven', speed: 'Fast', supportsDub: false, supportsSub: true, supportsDownload: true },
-  { id: 'hstream', name: 'HStream', speed: 'Fast', supportsDub: false, supportsSub: true, supportsDownload: true },
-];
+export const SERVERS: ServerOption[] = PROVIDERS.map((provider) => {
+  const audio = provider.capabilities.audio ?? ['sub'];
+  return {
+    id: provider.id,
+    name: provider.displayName,
+    speed: 'Normal',
+    supportsSub: audio.includes('sub') || audio.includes('multi'),
+    supportsDub: audio.includes('dub') || audio.includes('multi'),
+    supportsDownload: false,
+    badge: provider.webStatus === 'browser-direct' ? 'Direct' : undefined,
+  } satisfies ServerOption;
+});
 
 
 

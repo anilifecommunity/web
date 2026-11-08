@@ -116,17 +116,18 @@ export async function queryAniList<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch('/api/anilist/proxy', {
+    response = await fetch(ANILIST_ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ query, variables, token }),
+      body: JSON.stringify({ query, variables }),
     });
 
     if (!response.ok) {
-      throw new Error(`Proxy status ${response.status}`);
+      throw new Error(`AniList status ${response.status}`);
     }
   } catch {
     

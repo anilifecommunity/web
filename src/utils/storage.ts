@@ -105,6 +105,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   serverPriority: [...WEB_PROVIDER_IDS],
   enabledServers: [...WEB_PROVIDER_IDS],
   serverOrderVersion: 2,
+  serverCatalogVersion: 2,
 
   
   hideAdultContent: false,
@@ -151,12 +152,25 @@ function normalizeProviderLists(settings: AppSettings): AppSettings {
   // An absent or empty list means "not configured" and enables every web-capable server.
   // A non-empty list is preserved so an explicit disable is never silently reverted.
   const configuredEnabled = (settings.enabledServers ?? []).filter((id) => known.has(id));
-  const enabled =
+  let enabled =
     settings.enabledServers && settings.enabledServers.length > 0 && configuredEnabled.length > 0
       ? configuredEnabled
       : [...WEB_PROVIDER_IDS];
 
-  return { ...settings, serverPriority: priority, enabledServers: enabled, serverOrderVersion: 2 };
+  // One-time catalogue migration: existing viewers should see newly added fallback servers.
+  // After the version is stored, an explicit disable is preserved.
+  if ((settings.serverCatalogVersion ?? 0) !== 2) {
+    const additions = ['vidsrc', 'vidlink', '2embed'].filter((id) => known.has(id));
+    enabled = [...new Set([...enabled, ...additions])];
+  }
+
+  return {
+    ...settings,
+    serverPriority: priority,
+    enabledServers: enabled,
+    serverOrderVersion: 2,
+    serverCatalogVersion: 2,
+  };
 }
 
 export function loadSettings(): AppSettings {
@@ -171,6 +185,7 @@ export function loadSettings(): AppSettings {
           ...DEFAULT_SETTINGS,
           ...stored,
           serverOrderVersion: stored.serverOrderVersion ?? 0,
+          serverCatalogVersion: stored.serverCatalogVersion ?? 0,
         });
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
         return merged;
@@ -182,6 +197,7 @@ export function loadSettings(): AppSettings {
       ...DEFAULT_SETTINGS,
       ...stored,
       serverOrderVersion: stored.serverOrderVersion ?? 0,
+      serverCatalogVersion: stored.serverCatalogVersion ?? 0,
     });
   } catch {
     return DEFAULT_SETTINGS;

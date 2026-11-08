@@ -4,7 +4,7 @@
  * offline fallback. Hashed build assets are cache-first. API and cross-origin requests are never
  * cached: resolver answers and provider media must always be live.
  */
-const CACHE = 'anilife-shell-v2';
+const CACHE = 'anilife-shell-v3';
 const SHELL = ['/', '/index.html', '/assets/images/Anilife-Logo.png', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

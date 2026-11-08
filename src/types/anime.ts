@@ -153,6 +153,7 @@ export interface AppSettings {
   serverPriority: string[];
   enabledServers: string[];
   serverOrderVersion?: number;
+  serverCatalogVersion?: number;
 
   
   hideAdultContent: boolean;

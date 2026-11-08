@@ -48,7 +48,7 @@ async function bootstrap(): Promise<void> {
         .catch(() => undefined);
 
       navigator.serviceWorker
-        .register('/sw.js?v=2')
+        .register('/sw.js?v=3', { updateViaCache: 'none' })
         .then((registration) => registration.update().catch(() => undefined))
         .catch((error) => {
           console.warn('[pwa] service worker registration failed', error);

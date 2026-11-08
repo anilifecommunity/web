@@ -40,19 +40,43 @@ test('an unversioned server order is migrated to web-capable order', () => {
 
 test('a versioned order is preserved exactly', () => {
   const custom = [...webIds].reverse();
-  withStoredSettings({ serverPriority: custom, enabledServers: custom, serverOrderVersion: 2 });
+  withStoredSettings({
+    serverPriority: custom,
+    enabledServers: custom,
+    serverOrderVersion: 2,
+    serverCatalogVersion: 2,
+  });
   const loaded = loadSettings();
   assert.deepEqual(loaded.serverPriority, custom);
 });
 
 test('an explicit disable survives and is not re-added', () => {
-  withStoredSettings({ enabledServers: [webIds[0]], serverOrderVersion: 2 });
+  withStoredSettings({
+    enabledServers: [webIds[0]],
+    serverOrderVersion: 2,
+    serverCatalogVersion: 2,
+  });
   const loaded = loadSettings();
   assert.deepEqual(loaded.enabledServers, [webIds[0]]);
 });
 
 test('an empty enable list means every web-capable server', () => {
-  withStoredSettings({ enabledServers: [], serverOrderVersion: 2 });
+  withStoredSettings({
+    enabledServers: [],
+    serverOrderVersion: 2,
+    serverCatalogVersion: 2,
+  });
   const loaded = loadSettings();
   assert.deepEqual(loaded.enabledServers, webIds);
+});
+
+test('a legacy enable list gains newly added fallback servers', () => {
+  withStoredSettings({
+    enabledServers: ['reanime', 'vidsrc'],
+    serverOrderVersion: 2,
+  });
+  const loaded = loadSettings();
+  assert.ok(loaded.enabledServers.includes('vidlink'));
+  assert.ok(loaded.enabledServers.includes('2embed'));
+  assert.equal(loaded.serverCatalogVersion, 2);
 });

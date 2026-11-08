@@ -25,7 +25,7 @@ id for the host. The same registry is served read-only at `GET /api/providers` a
 | Host | Role | Status | Observed on 2026-11-08 |
 | --- | --- | --- | --- |
 | Flixcloud | Player host | **IN USE** | Reanime embed loads and plays in Chromium; no `X-Frame-Options` or blocking `frame-ancestors`. |
-| VidSrc | Embed index | Embeddable, unmapped | Homepage 200, no frame blocking. No verified anime title/episode mapping or permitted API. |
+| VidSrc | Embed index | **IN USE (fallback)** | AniZip maps AniList id/episode to TMDB; embed page 200, no frame blocking. Iframe loads; media startup needs a user test. |
 | Vidstream | Player host | Embeddable, unmapped | Homepage 200, no frame blocking. Requires a host-specific id from a source. |
 | VidCloud / VidWish | Player host | Unverified | No current first-party origin confirmed; alias claims were not treated as fact. |
 | MegaCloud | Player host | Iframe blocked | Homepage 200 with `X-Frame-Options: SAMEORIGIN`. |
@@ -34,11 +34,15 @@ id for the host. The same registry is served read-only at `GET /api/providers` a
 | Vidmoly | Player host | Requires auth | Homepage 401. Authentication was not bypassed. |
 | MP4Upload | Player host | Iframe blocked | Homepage 200 with `X-Frame-Options: SAMEORIGIN`. |
 
-## Why no additional adapter was added
+## Why only one additional adapter was added
+
+VidSrc was added because AniZip supplies a real AniList-to-TMDB episode mapping and the embed page
+is reachable without bypassing a challenge. The other hosts above either require a source-specific
+file id, block framing, require authentication, or have no permitted mapping.
 
 The assignment permits a new adapter only where usage is allowed and a real test demonstrates
-successful permitted playback. None of the candidates above produced that evidence without
+successful permitted playback. None of the remaining candidates produced that evidence without
 bypassing a challenge, forging headers or inventing an endpoint. The resolver therefore keeps its
-existing three adapters and marks the rest honestly. Adding an adapter later means updating
+existing adapters and marks the rest honestly. Adding an adapter later means updating
 `worker/adapters/index.ts`, the registry evidence and this table, then proving media startup in a
 browser.

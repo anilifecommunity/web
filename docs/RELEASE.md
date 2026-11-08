@@ -20,6 +20,7 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | Production UI semantics and real URLs | DONE | Deep links, back/forward, keyboard focus ring |
 | Browser player tested with authorised media | PARTIAL | Embed playback verified in Chromium; native HLS/MP4 untested |
 | Automatic source fallback | DONE | Enabled order sent to Worker; failed server falls through; disabled servers are never queried |
+| VidSrc fallback | PARTIAL | AniZip->TMDB mapping and iframe verified; media startup needs a user test; Reanime stays first |
 | Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
 | No per-episode server picker | DONE | Player shows an anonymous status chip, Retry and a Settings pointer only |
 | Source and downstream research | DONE | `SOURCES.md`; `/api/providers` exposes read-only downstream statuses |

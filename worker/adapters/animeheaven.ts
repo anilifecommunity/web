@@ -240,18 +240,53 @@ async function getHtml(url: string, context: AdapterContext, referer?: string, c
 interface Catalogue {
   path: string;
   episodes: HeavenEpisode[];
+  cookie?: string;
+}
+
+async function getHomeCookie(context: AdapterContext): Promise<string | undefined> {
+  try {
+    const response = await safeFetch(
+      `${BASE}/`,
+      {
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'text/html,application/xhtml+xml,*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Upgrade-Insecure-Requests': '1',
+        },
+        signal: context.signal,
+      },
+      { allowedHosts: HOSTS, timeoutMs: context.timeoutMs, maxBytes: MAX_HTML }
+    );
+    if (!response.ok) return undefined;
+    const raw = response.headers.get('set-cookie') ?? '';
+    const cookies = ['__cf_bm', 'PHPSESSID']
+      .map((name) => {
+        const match = raw.match(new RegExp(`${name}=([^;]+)`));
+        return match ? `${name}=${match[1]}` : null;
+      })
+      .filter((value): value is string => Boolean(value));
+    return cookies.length > 0 ? cookies.join('; ') : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function findCatalogue(
   titles: string[],
   context: AdapterContext
 ): Promise<Catalogue | null> {
+  const cookie = await getHomeCookie(context);
   const candidates: HeavenSearchResult[] = [];
   for (const query of searchQueries(titles)) {
     const html = await getHtml(
       `${BASE}/search.php?s=${encodeURIComponent(query).replace(/%20/g, '+')}`,
       context,
-      `${BASE}/`
+      `${BASE}/`,
+      cookie
     );
     candidates.push(...parseSearch(html));
     if (candidates.length > 0) break;
@@ -276,9 +311,9 @@ async function findCatalogue(
     .slice(0, MAX_PROBE_PAGES);
 
   for (const entry of ranked) {
-    const page = await getHtml(`${BASE}/${entry.candidate.path}`, context, `${BASE}/`);
+    const page = await getHtml(`${BASE}/${entry.candidate.path}`, context, `${BASE}/`, cookie);
     const episodes = parseEpisodes(page);
-    if (episodes.length > 0) return { path: entry.candidate.path, episodes };
+    if (episodes.length > 0) return { path: entry.candidate.path, episodes, cookie };
   }
 
   return null;

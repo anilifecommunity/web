@@ -41,11 +41,11 @@ export const DOWNSTREAMS: Downstream[] = [
     name: 'VidSrc',
     role: 'embed-index',
     origins: ['https://vidsrc.to'],
-    status: 'embeddable-unmapped',
+    status: 'in-use',
     iframe: 'allowed',
     terms: 'unreviewed',
     evidenceDate: '2026-11-08',
-    notes: 'Homepage answered 200 with no X-Frame-Options or frame-ancestors. No verified anime title/episode mapping or permitted public API, so it is not selectable.',
+    notes: 'AniZip maps AniList id/episode to a TMDB id and season/episode; the vidsrc.to embed page answered 200 with no X-Frame-Options. Used as an automatic fallback behind Reanime; media startup needs a user test.',
   },
   {
     id: 'vidstream',

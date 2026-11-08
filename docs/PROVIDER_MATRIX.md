@@ -10,11 +10,12 @@ playback evidence.
 | Provider | Catalogue | Web state | Rights | Evidence |
 | --- | --- | --- | --- | --- |
 | anichan | anivexa | worker-metadata-only | unknown | 2026-11-08: `/api/watch/episodes` answers, but `/api/watch/servers` returns `{"servers":[]}` for AniList 21, 154587, 16498 and 52991 with or without a session cookie. Adapter is implemented and reachable; upstream currently yields `no_streams`. |
-| animeheaven | anivexa | worker-metadata-only | unknown | 2026-11-08: `search.php` -> `anime.php` -> `gate.php` returns progressive MP4. `ax.animeheaven.me` answered `206` with `Accept-Ranges: bytes` and no Referer. Sub-only, burned-in subtitles. Adapter implemented; browser `<video>` playback pending a real browser check. |
+| animeheaven | anivexa | unavailable | unknown | 2026-11-08: from a residential client the full chain works, but from Worker/workerd egress the search page is reachable and the gate returns no source URLs. Not offered. |
 | zoko | anivexa | unavailable | unknown | Master, variant and segment all require `Referer: https://zokoanime.video/`; a browser cannot send it. Would need a relay, which is not approved. |
 | bee, sun, pewe, hop, ally, kiwi, moo, bonk, knob | miruro | unavailable | pending | Miruro pipe refuses datacenter IPs (`docs/PIPE_PROTOCOL.md` in the Android repo) and sends no CORS headers. Neither a Worker nor the browser can read it. |
 | nun, bun, cog, twin, telli | miruro | unverified | pending | Iframe embeds. Only worth using if the embed URL can be obtained without the pipe and the iframe actually plays. |
 | reanime | anivexa | worker-metadata-only (iframe) | unknown | 2026-11-08: `/api/flix/{anilistId}/{episode}` names a Flixcloud embed per audio track; the embed loads and plays in Chromium with no X-Frame-Options or frame-ancestors. Working end to end through the Worker. Iframe playback, manual progress. |
+| vidsrc | other | iframe | unknown | 2026-11-08: AniZip maps AniList id/episode to TMDB season/episode; `vidsrc.to/embed/tv/...` answered 200 with no X-Frame-Options and loaded in the app iframe. Automatic fallback behind Reanime; media startup still needs a user test. |
 | animepahe, hanime, hentaihaven, allanime | anivexa | native-only | unknown | WebView resolvers, CAPTCHA/PoW, or both. Not browser-capable without bypassing protections. |
 | anipm, rareanimes, anidbapp, animeonsen, anikoto, kaa, animekai, anizone, animegg, anineko, 2dhive, animedekho, toonhub, uniquestream, animekhor, kartoons, animeav1, rift, hstream, onepace | mixed | unverified | unknown | No dated browser evidence. Do not promote in the picker until measured. |
 

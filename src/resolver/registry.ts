@@ -174,6 +174,23 @@ const ANIVEXA: ProviderDefinition[] = [
 
 const OTHER: ProviderDefinition[] = [
   {
+    id: 'vidsrc',
+    catalogue: 'other',
+    displayName: 'VidSrc',
+    capabilities: { audio: ['sub', 'dub'], formats: ['iframe'], subtitles: [] },
+    webStatus: 'iframe',
+    rightsStatus: 'unknown',
+    implemented: true,
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'AniZip maps AniList id/episode to TheMovieDB season/episode; the vidsrc.to embed page answered 200 with no X-Frame-Options. Media startup still needs a real user test, so it is a fallback behind Reanime.',
+        browser: 'none (embed page probe)',
+        url: 'https://vidsrc.to',
+      },
+    ],
+  },
+  {
     id: 'onepace',
     catalogue: 'other',
     displayName: 'One Pace',

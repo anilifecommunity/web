@@ -163,7 +163,7 @@ export const AniListAuthModal: React.FC<Props> = ({ onClose }) => {
               <span>Sign in with AniList</span>
             </button>
             <p className="text-[11px] text-zinc-500 text-center">
-              Uses official AniList Client 55798.
+              You will be redirected to AniList to authorize Anilife.
             </p>
           </div>
         )}

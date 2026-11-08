@@ -788,7 +788,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         {currentUser?.name ? `@${currentUser.name}` : 'AniList Account'}
                       </h3>
                       <p className="text-xs text-zinc-400">
-                        {oauthToken ? 'Signed in with Client 55798' : 'Not signed in'}
+                        {oauthToken ? 'Signed in with AniList' : 'Not signed in'}
                       </p>
                     </div>
                   </div>

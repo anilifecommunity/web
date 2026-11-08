@@ -167,19 +167,16 @@ export async function queryAniList<T>(
 
 
 
-export function getAniListOAuthUrl(redirectUri?: string): string {
+export function getAniListOAuthUrl(): string {
   if (!ANILIST_CLIENT_ID) {
     throw new Error('AniList sign-in is not configured');
   }
-  const fixedUri =
-    redirectUri ||
-    (typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback.html`
-      : '/auth/callback.html');
+  // AniList's implicit grant uses the redirect URL registered on the application; it does not
+  // take a redirect_uri parameter (docs: /guide/auth/implicit). Sending one can make the
+  // authorize endpoint reject the request.
   const params = new URLSearchParams({
     client_id: ANILIST_CLIENT_ID,
     response_type: 'token',
-    redirect_uri: fixedUri,
   });
   return `https://anilist.co/api/v2/oauth/authorize?${params.toString()}`;
 }

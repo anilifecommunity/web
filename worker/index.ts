@@ -266,6 +266,9 @@ function withSecurityHeaders(response: Response, request: Request): Response {
   if (new URL(request.url).pathname.startsWith('/assets/')) {
     headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   }
+  if (new URL(request.url).pathname.startsWith('/auth/callback')) {
+    headers.set('Cache-Control', 'no-store');
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

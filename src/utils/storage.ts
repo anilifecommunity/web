@@ -1,5 +1,6 @@
 import { AppSettings, ContinueWatchingEntry, UserProfile, WatchlistEntry, ThemePresetName } from '../types/anime';
 import { INITIAL_CONTINUE_WATCHING } from './animeData';
+import { PROVIDER_ORDER } from '../resolver';
 import { STORAGE_KEYS } from '../data/keys';
 import { putRecord } from '../data/idb';
 
@@ -99,28 +100,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   
   activeServer: 'reanime',
-  serverPriority: [
-    'zoko',
-    'bee',
-    'anichan',
-    'anikoto',
-    'animepahe',
-    'sun',
-    'allanime',
-    'kickassanime',
-    'animeheaven'
-  ],
-  enabledServers: [
-    'zoko',
-    'bee',
-    'anichan',
-    'anikoto',
-    'animepahe',
-    'sun',
-    'allanime',
-    'kickassanime',
-    'animeheaven'
-  ],
+  serverPriority: [...PROVIDER_ORDER],
+  enabledServers: [...PROVIDER_ORDER],
 
   
   hideAdultContent: false,
@@ -149,6 +130,19 @@ const LEGACY_STORAGE_KEYS = {
   PROFILES: 'anilife_profiles_v2',
 } as const;
 
+function normalizeProviderLists(settings: AppSettings): AppSettings {
+  const known = new Set(PROVIDER_ORDER);
+  const priority = (settings.serverPriority ?? []).filter((id) => known.has(id));
+  for (const id of PROVIDER_ORDER) {
+    if (!priority.includes(id)) priority.push(id);
+  }
+  const enabled = (settings.enabledServers ?? []).filter((id) => known.has(id));
+  for (const id of PROVIDER_ORDER) {
+    if (!enabled.includes(id)) enabled.push(id);
+  }
+  return { ...settings, serverPriority: priority, enabledServers: enabled };
+}
+
 export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
@@ -156,13 +150,13 @@ export function loadSettings(): AppSettings {
       // One-time upgrade from the v2 key, written forward so the next boot is a plain read.
       const legacy = localStorage.getItem(LEGACY_STORAGE_KEYS.SETTINGS);
       if (legacy) {
-        const merged = { ...DEFAULT_SETTINGS, ...JSON.parse(legacy) };
+        const merged = normalizeProviderLists({ ...DEFAULT_SETTINGS, ...JSON.parse(legacy) });
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
         return merged;
       }
       return DEFAULT_SETTINGS;
     }
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    return normalizeProviderLists({ ...DEFAULT_SETTINGS, ...JSON.parse(raw) });
   } catch {
     return DEFAULT_SETTINGS;
   }

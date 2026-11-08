@@ -27,16 +27,15 @@ export function webServerOptions(hideAdult = false): ServerOption[] {
     (provider) => isAttemptable(provider) && (!hideAdult || !provider.capabilities.adultOnly)
   )
     .sort((a, b) => Number(Boolean(b.implemented)) - Number(Boolean(a.implemented)))
-    .map((provider) => {
+    .map((provider, index) => {
     const audio = provider.capabilities.audio ?? ['sub'];
     return {
       id: provider.id,
-      name: provider.displayName,
+      name: `Server ${index + 1}`,
       speed: 'Normal',
       supportsSub: audio.includes('sub') || audio.includes('multi'),
       supportsDub: audio.includes('dub') || audio.includes('multi'),
       supportsDownload: false,
-      badge: provider.webStatus === 'browser-direct' ? 'Direct' : provider.webStatus === 'iframe' ? 'Embed' : undefined,
     } satisfies ServerOption;
   });
 }

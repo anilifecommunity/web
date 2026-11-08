@@ -70,7 +70,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
 
         {}
         <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
-          {SERVERS.map((server) => {
+          {SERVERS.map((server, index) => {
             const isChecked = enabledList.includes(server.id);
             return (
               <div
@@ -83,16 +83,10 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
                 }`}
               >
                 <span className="text-sm font-semibold text-white tracking-wide">
-                  {server.name}
+                  Server {index + 1}
                 </span>
 
                 <div className="flex items-center gap-3">
-                  {server.badge === 'Fast' && (
-                    <span className="text-xs text-zinc-400 font-medium">
-                      Fast
-                    </span>
-                  )}
-
                   {}
                   <div
                     className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${

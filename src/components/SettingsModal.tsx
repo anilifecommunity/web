@@ -163,7 +163,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             { id: 'appearance', label: 'Appearance', icon: Palette },
             { id: 'player', label: 'Player', icon: PlaySquare },
             { id: 'subtitles', label: 'Subtitles & Audio', icon: Subtitles },
-            { id: 'servers', label: 'Servers & Sources', icon: Server },
+            { id: 'servers', label: 'Servers', icon: Server },
             { id: 'accounts', label: 'Accounts & Sync', icon: UserCheck },
             { id: 'content', label: 'Content', icon: Shield },
             { id: 'data', label: 'Data & Storage', icon: Database },
@@ -669,7 +669,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
               <div className="flex items-center justify-between pt-2">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Provider Priority Order</h3>
+                  <h3 className="text-sm font-bold text-white">Server Priority Order</h3>
                   <p className="text-xs text-zinc-400">Order determines stream lookup and automatic failover</p>
                 </div>
                 <button
@@ -705,22 +705,16 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <span className="w-5 text-center text-xs font-mono text-zinc-500">
-                          {idx + 1}
-                        </span>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-white truncate">{server.name}</span>
-                            {server.badge && (
-                              <span className="px-2 py-0.2 rounded-full bg-[#74cf66]/20 text-[9px] font-bold text-[#74cf66]">
-                                {server.badge}
-                              </span>
-                            )}
+                            <span className="font-bold text-xs text-white truncate">Server {idx + 1}</span>
                             {isDefault && (
                               <span className="text-[10px] text-[#74cf66] font-bold">Active Server</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-zinc-400 line-clamp-1">{server.description}</p>
+                          <p className="text-[10px] text-zinc-400 line-clamp-1">
+                            {server.supportsDub ? 'Sub & Dub' : 'Subtitles only'}
+                          </p>
                         </div>
                       </div>
 
@@ -757,7 +751,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                           className={`p-1.5 rounded-lg cursor-pointer ${
                             isEnabled ? 'bg-[#74cf66]/30 text-[#74cf66]' : 'bg-zinc-800 text-zinc-500'
                           }`}
-                          title={isEnabled ? 'Disable provider' : 'Enable provider'}
+                          title={isEnabled ? 'Disable server' : 'Enable server'}
                         >
                           {isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                         </button>
@@ -1061,7 +1055,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
                 <div className="space-y-3 text-zinc-300 leading-relaxed text-xs pt-2 border-t border-white/10">
                   <p>
-                    Anilife is a community-driven anime platform built to make watching anime simple and enjoyable. It discovers episodes across multiple sources, remembers where you left off, and keeps your anime library synchronised with AniList and MyAnimeList.
+                    Anilife is a community-driven anime platform built to make watching anime simple and enjoyable. It discovers episodes across multiple servers, remembers where you left off, and keeps your anime library synchronised with AniList and MyAnimeList.
                   </p>
                   <p>
                     No unnecessary ads, no account required. Just anime, the way it should be.
@@ -1128,4 +1122,5 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     </div>
   );
 };
+
 

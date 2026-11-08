@@ -9,16 +9,15 @@ const SAMPLE_STREAMS = [
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
 ];
 
-export const SERVERS: ServerOption[] = PROVIDERS.map((provider) => {
+export const SERVERS: ServerOption[] = PROVIDERS.map((provider, index) => {
   const audio = provider.capabilities.audio ?? ['sub'];
   return {
     id: provider.id,
-    name: provider.displayName,
+    name: `Server ${index + 1}`,
     speed: 'Normal',
     supportsSub: audio.includes('sub') || audio.includes('multi'),
     supportsDub: audio.includes('dub') || audio.includes('multi'),
     supportsDownload: false,
-    badge: provider.webStatus === 'browser-direct' ? 'Direct' : undefined,
   } satisfies ServerOption;
 });
 

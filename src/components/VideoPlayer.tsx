@@ -82,6 +82,9 @@ export const VideoPlayer: React.FC<Props> = ({
     };
   });
 
+  const activeServerPosition = serverOptions.findIndex((server) => server.id === activeServer.id);
+  const activeServerLabel = activeServerPosition >= 0 ? `Server ${activeServerPosition + 1}` : 'Server';
+
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -446,103 +449,86 @@ export const VideoPlayer: React.FC<Props> = ({
   const isInOp = Array.isArray(skipData?.op) && skipData.op.length >= 2 && currentTime >= skipData.op[0] && currentTime <= skipData.op[1];
   const isInEd = Array.isArray(skipData?.ed) && skipData.ed.length >= 2 && currentTime >= skipData.ed[0] && currentTime <= skipData.ed[1];
 
+  const nextEpisode = activeEpisodes.find((ep) => ep.number === currentEpisodeNumber + 1);
+
   return (
-    <div className="fixed inset-0 z-[100] bg-black text-white flex flex-col h-full w-full overflow-hidden select-none font-sans">
-      {}
+    <div className="fixed inset-0 z-[100] flex h-full w-full overflow-hidden bg-[#08080a] text-white select-none font-sans">
       {skipToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-black/80 backdrop-blur-xl border border-[#74cf66]/50 shadow-2xl text-xs sm:text-sm font-bold text-white flex items-center gap-2 animate-bounce">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[120] px-5 py-2.5 rounded-full bg-black/80 backdrop-blur-xl border border-[#74cf66]/50 shadow-2xl text-xs sm:text-sm font-bold text-white flex items-center gap-2 animate-bounce">
           <Sparkles className="w-4 h-4 text-[#74cf66]" />
           <span>{skipToast}</span>
         </div>
       )}
 
-      {}
       <div
         ref={containerRef}
         onClick={handleContainerClick}
-        className="relative w-full shrink-0 aspect-video h-[45vh] sm:h-[55vh] lg:h-[65vh] max-h-[70vh] bg-black overflow-hidden flex items-center justify-center cursor-pointer group shadow-2xl"
+        className="relative flex-1 min-w-0 h-full bg-black overflow-hidden group cursor-pointer"
       >
-        {}
         {embedUrl ? (
           <iframe
             src={embedUrl}
             title={`${anime.title} Episode ${currentEpisodeNumber}`}
-            className="w-full h-full bg-black"
+            className="absolute inset-0 h-full w-full bg-black"
             allow="autoplay; fullscreen; picture-in-picture"
             allowFullScreen
             referrerPolicy="no-referrer-when-downgrade"
           />
         ) : (
-        <video
-          ref={videoRef}
-          src={streamUrl && !streamUrl.includes('.m3u8') ? streamUrl : undefined}
-          className={`w-full h-full ${objectFitClass} transition-all duration-300`}
-          onCanPlay={() => setIsLoading(false)}
-          onLoadedData={() => setIsLoading(false)}
-          onTimeUpdate={() => {
-            if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
-          }}
-          onLoadedMetadata={() => {
-            setIsLoading(false);
-            if (videoRef.current) setDuration(videoRef.current.duration || 1440);
-          }}
-          onEnded={() => {
-            setIsPlaying(false);
-            if (settings.autoPlayNext) {
-              const nextNum = currentEpisodeNumber + 1;
-              if (activeEpisodes.some(ep => ep.number === nextNum)) {
-                setCurrentEpisodeNumber(nextNum);
-                showToast(`Auto-playing Episode ${nextNum}...`);
+          <video
+            ref={videoRef}
+            src={streamUrl && !streamUrl.includes('.m3u8') ? streamUrl : undefined}
+            className={`absolute inset-0 h-full w-full ${objectFitClass} transition-all duration-300`}
+            onCanPlay={() => setIsLoading(false)}
+            onLoadedData={() => setIsLoading(false)}
+            onTimeUpdate={() => {
+              if (videoRef.current) setCurrentTime(videoRef.current.currentTime);
+            }}
+            onLoadedMetadata={() => {
+              setIsLoading(false);
+              if (videoRef.current) setDuration(videoRef.current.duration || 1440);
+            }}
+            onEnded={() => {
+              setIsPlaying(false);
+              if (settings.autoPlayNext) {
+                const nextNum = currentEpisodeNumber + 1;
+                if (activeEpisodes.some((ep) => ep.number === nextNum)) {
+                  setCurrentEpisodeNumber(nextNum);
+                  showToast(`Auto-playing Episode ${nextNum}...`);
+                }
               }
-            }
-          }}
-          playsInline
-          onError={() => {
-            setIsLoading(false);
-            recordDiagnostic('PLAY-01', { episode: currentEpisodeNumber });
-            setStreamErrorText(`This browser could not play the stream from ${activeServer.name}.`);
-            setStreamError(true);
-          }}
-        >
-          {subtitles.map((sub, idx) => (
-            <track
-              key={idx}
-              kind="subtitles"
-              src={sub.url}
-              srcLang={sub.language}
-              label={sub.label}
-              default={sub.default || idx === 0}
-            />
-          ))}
-        </video>
+            }}
+            playsInline
+            onError={() => {
+              setIsLoading(false);
+              recordDiagnostic('PLAY-01', { episode: currentEpisodeNumber });
+              setStreamErrorText(`This browser could not play the stream from ${activeServerLabel}.`);
+              setStreamError(true);
+            }}
+          >
+            {subtitles.map((sub, idx) => (
+              <track
+                key={idx}
+                kind="subtitles"
+                src={sub.url}
+                srcLang={sub.language}
+                label={sub.label}
+                default={sub.default || idx === 0}
+              />
+            ))}
+          </video>
         )}
 
-        {}
-        {embedUrl && !isLoading && (
-          <div className="absolute right-3 top-3 z-40 flex items-center gap-2 rounded-xl bg-black/75 px-2.5 py-2 backdrop-blur border border-white/10">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#74cf66]">Embedded</span>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                markEmbedWatched();
-              }}
-              className="rounded-lg bg-[#74cf66] px-2.5 py-1 text-[11px] font-bold text-black hover:bg-[#62b956] cursor-pointer"
-            >
-              Mark watched
-            </button>
-          </div>
-        )}
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/5 to-black/55" />
 
-        {}
         {streamError && !isLoading && (
-          <div className="absolute inset-0 z-35 flex flex-col items-center justify-center bg-black/90 p-6 text-center space-y-4">
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/90 p-6 text-center space-y-4">
             <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 font-bold text-xl">
               !
             </div>
             <div className="space-y-1">
               <h3 className="text-base sm:text-lg font-bold text-white">
-                Stream unavailable from {activeServer.name}
+                Stream unavailable from {activeServerLabel}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
                 {streamErrorText || `Unable to load Episode ${currentEpisodeNumber}. Please switch to another server or retry.`}
@@ -563,7 +549,6 @@ export const VideoPlayer: React.FC<Props> = ({
           </div>
         )}
 
-        {}
         {isLoading && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm space-y-3">
             <div className="relative flex items-center justify-center">
@@ -580,18 +565,16 @@ export const VideoPlayer: React.FC<Props> = ({
           </div>
         )}
 
-        {}
         {!settings.autoSkipIntro && (isInOp || isInEd) && (
           <button
             onClick={handleSkipButton}
-            className="absolute bottom-20 right-6 z-40 px-5 py-2 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-xl shadow-[rgba(116,207,102,0.4)] border border-[#74cf66]/50 flex items-center gap-2 animate-pulse cursor-pointer transition-transform hover:scale-105"
+            className="absolute bottom-28 right-6 z-40 px-5 py-2 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-xl shadow-[rgba(116,207,102,0.4)] border border-[#74cf66]/50 flex items-center gap-2 animate-pulse cursor-pointer transition-transform hover:scale-105"
           >
             <FastForward className="w-4 h-4" />
             <span>{isInOp ? 'Skip Opening' : 'Skip Ending'}</span>
           </button>
         )}
 
-        {}
         {isLocked && (
           <div className="absolute top-4 left-4 z-40">
             <button
@@ -607,170 +590,179 @@ export const VideoPlayer: React.FC<Props> = ({
           </div>
         )}
 
-        {}
         {!isLocked && (
           <div
-            className={`absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-t from-black/85 via-black/25 to-black/80 transition-opacity duration-300 ${
+            className={`absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300 ${
               isControlsVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
             }`}
           >
-            {}
-            <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-3">
+            <div className="flex items-start justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={onClose}
-                  className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors cursor-pointer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-white transition-colors hover:bg-black/70 cursor-pointer shrink-0"
                   title="Back"
                 >
-                  <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="min-w-0">
-                  <h1 className="text-sm sm:text-base font-bold truncate max-w-[200px] sm:max-w-md">
-                    {anime.title}
-                  </h1>
-                  <p className="text-[11px] sm:text-xs text-zinc-300 truncate">
-                    EP {currentEpisode.number} • {currentEpisode.title}
+                  <h1 className="truncate text-sm font-bold text-white sm:text-base">{anime.title}</h1>
+                  <p className="truncate text-[11px] text-zinc-300 sm:text-xs">
+                    EP {currentEpisodeNumber} - {currentEpisode.title}
                   </p>
                 </div>
               </div>
 
-              {}
-              <div className="flex items-center gap-1 sm:gap-2">
-                {}
-                <span className="hidden sm:inline-block text-xs text-zinc-300 font-mono px-2 py-1 rounded bg-black/40 border border-white/10">
+              <div className="flex items-center gap-1">
+                <span className="hidden rounded bg-black/40 px-2 py-1 text-xs font-mono text-zinc-200 border border-white/10 sm:inline-block">
                   {clockString}
                 </span>
-
-                {}
                 <button
                   onClick={() => setIsLocked(true)}
-                  className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title="Lock screen controls"
+                  className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                  title="Lock controls"
                 >
                   <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-
-                {}
-                <button
-                  onClick={() => setActiveDrawer(activeDrawer === 'captions' ? 'none' : 'captions')}
-                  className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title="Subtitles"
-                >
-                  <Subtitles className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-
-                {}
                 <button
                   onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
-                  className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title="Change server"
+                  className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                  title="Servers"
                 >
                   <Server className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-
-                {}
                 <button
                   onClick={() => setShowSettingsSheet(true)}
-                  className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  title="Player Settings"
+                  className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                  title="Player settings"
                 >
                   <SettingsIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
 
-            {}
-            <div
-              className="flex items-center justify-center gap-8 sm:gap-14"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {}
-              <button
-                onClick={() => handleSeek(currentTime - 10)}
-                className="p-3 rounded-full hover:bg-white/10 text-white/90 hover:text-white transition-all transform hover:scale-110 cursor-pointer"
-                title="Rewind 10 seconds"
-              >
-                <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8" />
-              </button>
+            <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="pointer-events-none max-w-xl">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/55 sm:text-[11px]">
+                  You're Watching
+                </p>
+                <h2 className="mt-1 truncate text-2xl font-black leading-tight text-white drop-shadow-lg sm:text-4xl">
+                  {anime.title}
+                </h2>
+                <p className="mt-1 text-xs font-medium text-white/65 sm:text-sm">
+                  Episode {currentEpisodeNumber}
+                </p>
+              </div>
 
-              {}
-              <button
-                onClick={() => {
-                  if (currentEpisodeNumber > 1) {
-                    setCurrentEpisodeNumber(currentEpisodeNumber - 1);
-                  }
-                }}
-                disabled={currentEpisodeNumber <= 1}
-                className="p-2 text-white/80 hover:text-white disabled:opacity-30 cursor-pointer"
-                title="Previous episode"
-              >
-                <SkipBack className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
+              {embedUrl && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-white/60">
+                    Use the player controls.
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+                      className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
+                    >
+                      {activeServerLabel}
+                    </button>
+                    <button
+                      onClick={markEmbedWatched}
+                      className="rounded-full bg-[#74cf66] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+                    >
+                      Mark watched
+                    </button>
+                    <button
+                      onClick={() => setActiveDrawer(activeDrawer === 'captions' ? 'none' : 'captions')}
+                      className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                      title="Subtitles"
+                    >
+                      <Subtitles className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setShowSettingsSheet(true)}
+                      className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
+                    >
+                      {quality}
+                    </button>
+                    <button
+                      onClick={() => setActiveDrawer(activeDrawer === 'episodes' ? 'none' : 'episodes')}
+                      className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                      title="Episodes"
+                    >
+                      <ListOrdered className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              )}
 
-              {}
-              <button
-                onClick={handlePlayPause}
-                className="p-4 sm:p-5 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black shadow-2xl shadow-[rgba(116,207,102,0.4)] transition-all transform hover:scale-110 active:scale-95 cursor-pointer"
-              >
-                {isPlaying ? (
-                  <Pause className="w-8 h-8 sm:w-10 sm:h-10 fill-black" />
-                ) : (
-                  <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-black translate-x-0.5" />
-                )}
-              </button>
-
-              {}
-              <button
-                onClick={() => {
-                  const nextNum = currentEpisodeNumber + 1;
-                  if (activeEpisodes.some(ep => ep.number === nextNum)) {
-                    setCurrentEpisodeNumber(nextNum);
-                  }
-                }}
-                disabled={!activeEpisodes.some(ep => ep.number === currentEpisodeNumber + 1)}
-                className="p-2 text-white/80 hover:text-white disabled:opacity-30 cursor-pointer"
-                title="Next episode"
-              >
-                <SkipForward className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-
-              {}
-              <button
-                onClick={() => handleSeek(currentTime + 10)}
-                className="p-3 rounded-full hover:bg-white/10 text-white/90 hover:text-white transition-all transform hover:scale-110 cursor-pointer"
-                title="Forward 10 seconds"
-              >
-                <FastForward className="w-6 h-6 sm:w-8 sm:h-8" />
-              </button>
-            </div>
-
-            {}
-            <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-              {}
+              <div className={embedUrl ? 'hidden' : 'space-y-4'}>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-mono text-zinc-300 w-11 text-right">
+                <span className="w-11 text-right text-[11px] font-mono text-zinc-200">
                   {formatTime(currentTime)}
                 </span>
-                <div className="relative flex-1 group/slider py-2 flex items-center">
-                  <input
-                    type="range"
-                    min="0"
-                    max={duration || 100}
-                    step="0.5"
-                    value={currentTime}
-                    onChange={(e) => handleSeek(Number(e.target.value))}
-                    className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-[#74cf66] focus:outline-none"
-                  />
-                </div>
-                <span className="text-xs font-mono text-zinc-400 w-11">
+                <input
+                  type="range"
+                  min="0"
+                  max={duration || 100}
+                  step="0.5"
+                  value={currentTime}
+                  onChange={(e) => handleSeek(Number(e.target.value))}
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/25 accent-[#74cf66] focus:outline-none"
+                />
+                <span className="w-11 text-[11px] font-mono text-zinc-400">
                   {formatTime(duration)}
                 </span>
               </div>
 
-              {}
-              <div className="flex items-center justify-between text-xs text-zinc-300">
-                <div className="flex items-center gap-2">
-                  {}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 sm:gap-2.5">
+                  <button
+                    onClick={() => handleSeek(currentTime - 10)}
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title="Rewind 10 seconds"
+                  >
+                    <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                  <button
+                    onClick={handlePlayPause}
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-[#74cf66] text-black shadow-xl shadow-[rgba(116,207,102,0.35)] transition-transform hover:scale-105 active:scale-95 cursor-pointer sm:h-12 sm:w-12"
+                    title={isPlaying ? 'Pause' : 'Play'}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-5 w-5 fill-black sm:h-6 sm:w-6" />
+                    ) : (
+                      <Play className="h-5 w-5 translate-x-0.5 fill-black sm:h-6 sm:w-6" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => handleSeek(0)}
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title="Restart episode"
+                  >
+                    <SkipBack className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (currentEpisodeNumber > 1) setCurrentEpisodeNumber(currentEpisodeNumber - 1);
+                    }}
+                    disabled={currentEpisodeNumber <= 1}
+                    className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 cursor-pointer"
+                    title="Previous episode"
+                  >
+                    <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const nextNum = currentEpisodeNumber + 1;
+                      if (activeEpisodes.some((ep) => ep.number === nextNum)) setCurrentEpisodeNumber(nextNum);
+                    }}
+                    disabled={!nextEpisode}
+                    className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30 cursor-pointer"
+                    title="Next episode"
+                  >
+                    <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
                   <button
                     onClick={() => {
                       if (videoRef.current) {
@@ -778,47 +770,68 @@ export const VideoPlayer: React.FC<Props> = ({
                         setIsMuted(!isMuted);
                       }
                     }}
-                    className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white"
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title={isMuted ? 'Unmute' : 'Mute'}
                   >
-                    {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4" />}
+                    {isMuted ? <VolumeX className="h-5 w-5 text-red-400" /> : <Volume2 className="h-5 w-5" />}
                   </button>
+                  <div className="ml-1 hidden min-w-0 flex-col sm:flex">
+                    <span className="truncate text-xs font-bold text-white">{anime.title}</span>
+                    <span className="truncate text-[10px] text-zinc-400">Episode {currentEpisodeNumber}</span>
+                  </div>
+                </div>
 
-                  {}
+                <div className="flex items-center gap-1 sm:gap-2">
+                  {embedUrl && (
+                    <button
+                      onClick={markEmbedWatched}
+                      className="rounded-full bg-[#74cf66] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+                      title="Mark this episode watched"
+                    >
+                      Mark watched
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setActiveDrawer(activeDrawer === 'captions' ? 'none' : 'captions')}
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title="Subtitles"
+                  >
+                    <Subtitles className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setShowSettingsSheet(true)}
+                    className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
+                    title="Quality"
+                  >
+                    {quality}
+                  </button>
                   <button
                     onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
-                    className="px-2.5 py-0.5 rounded-full bg-black/60 border border-[#74cf66]/40 text-[11px] font-bold text-[#74cf66] cursor-pointer"
+                    className="rounded-full border border-[#74cf66]/40 bg-[#74cf66]/15 px-2.5 py-1 text-[11px] font-bold text-[#74cf66] cursor-pointer"
+                    title="Audio track"
                   >
                     {audioMode}
                   </button>
-
-                  {}
                   <button
-                    onClick={() => setActiveDrawer('servers')}
-                    className="px-2.5 py-0.5 rounded-full bg-white/10 hover:bg-white/15 text-[11px] font-semibold text-zinc-300 cursor-pointer"
+                    onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+                    className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
                   >
-                    {activeServer.name}
+                    {activeServerLabel}
                   </button>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {}
                   <button
                     onClick={() => setShowSettingsSheet(true)}
-                    className="px-2 py-0.5 rounded-md hover:bg-white/10 font-bold text-[11px]"
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title="Player settings"
                   >
-                    {playbackSpeed}x
+                    <SettingsIcon className="h-5 w-5" />
                   </button>
-
-                  {}
                   <button
                     onClick={() => setActiveDrawer(activeDrawer === 'episodes' ? 'none' : 'episodes')}
-                    className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white"
-                    title="Episodes list"
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title="Episodes"
                   >
-                    <ListOrdered className="w-4 h-4" />
+                    <ListOrdered className="h-5 w-5" />
                   </button>
-
-                  {}
                   <button
                     onClick={() => {
                       if (!document.fullscreenElement) {
@@ -827,19 +840,18 @@ export const VideoPlayer: React.FC<Props> = ({
                         document.exitFullscreen?.();
                       }
                     }}
-                    className="p-1.5 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white"
+                    className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    title="Fullscreen"
                   >
-                    <Maximize2 className="w-4 h-4" />
+                    <Maximize2 className="h-5 w-5" />
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           </div>
         )}
 
-        {}
-        {}
-        {}
         {showSettingsSheet && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -997,7 +1009,7 @@ export const VideoPlayer: React.FC<Props> = ({
                   </button>
                 </div>
                 <div className="text-[11px] text-zinc-400 pl-1">
-                  {audioMode === 'DUB' ? `Dub plays from ${activeServer.name}.` : `Japanese audio with ${selectedSubLanguage} subtitles.`}
+                  {audioMode === 'DUB' ? `Dub plays from ${activeServerLabel}.` : `Japanese audio with ${selectedSubLanguage} subtitles.`}
                 </div>
               </div>
 
@@ -1090,8 +1102,8 @@ export const VideoPlayer: React.FC<Props> = ({
           >
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div>
-                <h3 className="font-bold text-sm text-white">Video Sources & Servers</h3>
-                <p className="text-[11px] text-zinc-400">Switch provider without leaving playback</p>
+                <h3 className="font-bold text-sm text-white">Servers</h3>
+                <p className="text-[11px] text-zinc-400">Switch server without leaving playback</p>
               </div>
               <button
                 onClick={() => setActiveDrawer('none')}
@@ -1102,7 +1114,7 @@ export const VideoPlayer: React.FC<Props> = ({
             </div>
 
             <div className="space-y-2">
-              {serverOptions.map((server) => {
+              {serverOptions.map((server, index) => {
                 const isSelected = activeServer.id === server.id;
                 return (
                   <button
@@ -1120,12 +1132,7 @@ export const VideoPlayer: React.FC<Props> = ({
                   >
                     <div className="min-w-0 pr-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm">{server.name}</span>
-                        {server.badge && (
-                          <span className="px-2 py-0.5 rounded-full bg-black/80 border border-[#74cf66]/30 text-[9px] font-bold text-[#74cf66]">
-                            {server.badge}
-                          </span>
-                        )}
+                        <span className="font-bold text-sm">Server {index + 1}</span>
                       </div>
                       <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-1">
                         {server.description || (server.supportsDub ? 'Supports Sub & Dub' : 'Subtitles only')}
@@ -1256,131 +1263,121 @@ export const VideoPlayer: React.FC<Props> = ({
         )}
       </div>
 
-      {}
-      <div className="flex-1 overflow-y-auto max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {}
-        <div className="space-y-1">
-          <h2 className="text-xl sm:text-2xl font-black text-white">{currentEpisode.title}</h2>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-400">
-            <span className="text-[#74cf66] font-bold">{anime.score}% score</span>
-            <span>•</span>
-            <span>Episode {currentEpisode.number}</span>
-            {currentEpisode.airedDate && (
-              <>
-                <span>•</span>
-                <span>{currentEpisode.airedDate}</span>
-              </>
-            )}
-          </div>
-          <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed pt-1">
-            {currentEpisode.synopsis || anime.synopsis}
-          </p>
-        </div>
-
-        {}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10">
-          <div className="flex items-center gap-3">
-            <img
-              src={anime.posterImage}
-              alt={anime.title}
-              className="w-10 h-10 rounded-full object-cover border border-[#74cf66]"
-            />
-            <div>
-              <h3 className="font-bold text-sm text-white">{anime.title}</h3>
-              <p className="text-[11px] text-zinc-400">{(anime.membersCount / 1000).toFixed(1)}K members</p>
+      <aside className="hidden lg:flex w-[380px] xl:w-[420px] shrink-0 flex-col border-l border-white/10 bg-[#0f0f12]">
+        <div className="border-b border-white/10 p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Up Next</p>
+              <h2 className="truncate text-base font-bold text-white">
+                {nextEpisode ? `Episode ${nextEpisode.number}` : 'End of series'}
+              </h2>
+              <p className="mt-0.5 truncate text-[11px] text-zinc-400">
+                Playing - Episode {currentEpisodeNumber} - {anime.title}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveDrawer('episodes')}
+                className="rounded-full p-2 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                title="Episodes"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setActiveDrawer('servers')}
+                className="rounded-full p-2 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                title="Servers"
+              >
+                <Server className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setIsFavorited(!isFavorited)}
+                className={`rounded-full p-2 transition-colors hover:bg-white/10 cursor-pointer ${
+                  isFavorited ? 'text-red-400' : 'text-zinc-300 hover:text-white'
+                }`}
+                title="Favourite"
+              >
+                <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-400' : ''}`} />
+              </button>
             </div>
           </div>
+        </div>
 
+        <div className="flex-1 space-y-2 overflow-y-auto p-3 no-scrollbar">
+          {activeEpisodes.map((ep) => {
+            const isSelected = ep.number === currentEpisodeNumber;
+            const durationLabel = ep.durationSec ? `${Math.round(ep.durationSec / 60)} min` : '24 min';
+            return (
+              <button
+                key={ep.id}
+                onClick={() => setCurrentEpisodeNumber(ep.number)}
+                className={`flex w-full items-center gap-3 rounded-xl border p-2 text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'border-[#74cf66]/40 bg-[#74cf66]/15'
+                    : 'border-transparent hover:bg-white/5'
+                }`}
+              >
+                <div className="relative aspect-video w-[104px] shrink-0 overflow-hidden rounded-md bg-black">
+                  <img
+                    src={ep.thumbnail || anime.posterImage}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = anime.posterImage;
+                    }}
+                  />
+                  <span className="absolute bottom-1 left-1 rounded bg-black/80 px-1 py-0.5 text-[9px] font-bold text-white">
+                    Ep {ep.number}
+                  </span>
+                  <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 py-0.5 text-[9px] text-white/80">
+                    {durationLabel}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate text-xs font-semibold ${isSelected ? 'text-[#74cf66]' : 'text-white'}`}>
+                    {ep.title}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10px] text-zinc-500">
+                    {ep.airedDate || durationLabel}
+                  </p>
+                </div>
+                {isSelected && <Play className="h-3.5 w-3.5 shrink-0 fill-[#74cf66] text-[#74cf66]" />}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-2 border-t border-white/10 p-3">
+          {embedUrl && (
+            <button
+              onClick={markEmbedWatched}
+              className="w-full rounded-xl bg-[#74cf66] px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+            >
+              Mark episode watched
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsFavorited(!isFavorited)}
-              className={`p-2 rounded-full hover:bg-white/10 ${
-                isFavorited ? 'text-red-400' : 'text-zinc-300'
-              }`}
-              title="Favorite"
+              onClick={() => setActiveDrawer('servers')}
+              className="flex-1 truncate rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[11px] font-semibold text-zinc-200 transition-colors hover:bg-white/10 cursor-pointer"
             >
-              <Heart className={`w-4 h-4 ${isFavorited ? 'fill-red-400' : ''}`} />
+              {activeServerLabel}
+            </button>
+            <button
+              onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
+              className="rounded-xl border border-[#74cf66]/40 bg-[#74cf66]/15 px-3 py-2 text-[11px] font-bold text-[#74cf66] cursor-pointer"
+            >
+              {audioMode}
+            </button>
+            <button
+              onClick={() => setShowSettingsSheet(true)}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-zinc-200 transition-colors hover:bg-white/10 cursor-pointer"
+            >
+              Settings
             </button>
           </div>
         </div>
-
-        {}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveDrawer('servers')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/15 text-xs font-semibold text-zinc-200 border border-white/10 cursor-pointer"
-          >
-            <span>{activeServer.name}</span>
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-
-          <button
-            onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
-            className="px-3.5 py-1.5 rounded-full bg-[#74cf66]/20 border border-[#74cf66]/40 text-xs font-bold text-[#74cf66] cursor-pointer"
-          >
-            {audioMode}
-          </button>
-
-          <button
-            onClick={() => setActiveDrawer('servers')}
-            className="text-xs text-[#74cf66] hover:text-[#62b956] ml-1 cursor-pointer font-medium"
-          >
-            More servers...
-          </button>
-        </div>
-
-        {}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-white">Episodes ({activeEpisodes.length})</h3>
-          </div>
-
-          <div className="space-y-2">
-            {activeEpisodes.map((ep) => {
-              const isSelected = ep.number === currentEpisodeNumber;
-              return (
-                <div
-                  key={ep.id}
-                  onClick={() => setCurrentEpisodeNumber(ep.number)}
-                  className={`flex items-center justify-between gap-3 p-3 rounded-2xl transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#74cf66]/10 border border-[#74cf66]/40'
-                      : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative w-24 aspect-video rounded-xl overflow-hidden shrink-0 bg-black/60">
-                      <img
-                        src={ep.thumbnail || anime.posterImage}
-                        alt={ep.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = anime.posterImage;
-                        }}
-                      />
-                      <span className="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-bold text-white">
-                        EP {ep.number}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className={`font-semibold text-sm truncate ${isSelected ? 'text-[#74cf66]' : 'text-white'}`}>
-                        {ep.title}
-                      </h4>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        Episode {ep.number} {ep.durationSec ? `• ${Math.round(ep.durationSec / 60)}m` : ''}
-                      </p>
-                    </div>
-                  </div>
-
-                  {isSelected && (
-                    <Play className="w-4 h-4 fill-[#74cf66] text-[#74cf66] shrink-0" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      </aside>
     </div>
   );
 };

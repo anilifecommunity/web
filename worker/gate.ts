@@ -90,6 +90,6 @@ export function readCookie(request: Request, name: string): string | undefined {
   return undefined;
 }
 
-export function gateCookie(token: string): string {
-  return `${GATE_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${GATE_TTL_SECONDS}`;
+export function gateCookie(token: string, sameSite: 'Lax' | 'None' = 'Lax'): string {
+  return `${GATE_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=${sameSite}; Max-Age=${GATE_TTL_SECONDS}`;
 }

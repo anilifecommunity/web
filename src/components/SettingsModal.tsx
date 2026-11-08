@@ -34,6 +34,7 @@ import {
 import { EnabledServersModal } from './EnabledServersModal';
 import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '../data/backup';
 import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
+import { useDiscordStatus } from '../discord/useDiscordActivity';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const {
@@ -48,6 +49,8 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     isSyncingAniList,
     playIntroAnimation
   } = useApp();
+
+  const discord = useDiscordStatus();
 
   const [activeSection, setActiveSection] = useState<
     'appearance' | 'player' | 'subtitles' | 'servers' | 'accounts' | 'content' | 'data' | 'about'
@@ -836,42 +839,50 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     </div>
                     <div>
                       <h3 className="font-bold text-sm text-white">
-                        {settings.discordConnected && settings.discordUsername
-                          ? settings.discordUsername
-                          : 'Discord Integration'}
+                        {discord.status === 'connected' && discord.username
+                          ? discord.username
+                          : 'Discord Rich Presence'}
                       </h3>
                       <p className="text-xs text-zinc-400">
-                        {settings.discordConnected ? 'Linked' : 'Rich Presence Status'}
+                        {discord.status === 'connected'
+                          ? 'Connected through Discord Activity'
+                          : discord.status === 'connecting'
+                            ? 'Connecting to Discord...'
+                            : 'Available inside a Discord Activity'}
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      if (settings.discordConnected) {
-                        updateSettings({
-                          discordConnected: false,
-                          discordUsername: undefined,
-                          discordAvatar: undefined
-                        });
-                        showNotice('Discord disconnected');
-                      } else {
-                        updateSettings({
-                          discordConnected: true,
-                          discordUsername: 'AnilifeUser#0001'
-                        });
-                        showNotice('Discord linked successfully');
-                      }
-                    }}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      settings.discordConnected
-                        ? 'bg-zinc-800 text-zinc-300 hover:text-white'
-                        : 'bg-[#5865F2] hover:bg-[#4752c4] text-white'
+                  <span
+                    className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+                      discord.status === 'connected'
+                        ? 'bg-[#5865F2]/20 text-[#8b95ff]'
+                        : discord.status === 'error'
+                          ? 'bg-red-500/15 text-red-300'
+                          : 'bg-white/5 text-zinc-400'
                     }`}
                   >
-                    {settings.discordConnected ? 'Disconnect' : 'Link Discord'}
-                  </button>
+                    {discord.status === 'connected'
+                      ? 'Linked'
+                      : discord.status === 'error'
+                        ? 'Error'
+                        : discord.status === 'connecting'
+                          ? 'Linking'
+                          : 'Inactive'}
+                  </span>
                 </div>
+
+                {discord.status === 'error' && discord.error && (
+                  <p className="text-[11px] text-red-300">{discord.error}</p>
+                )}
+
+                {discord.status !== 'connected' && discord.status !== 'connecting' && (
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    Rich Presence is set by the Discord Embedded App SDK. Launch Anilife from
+                    Discord as an Activity to connect; a normal browser tab cannot set Discord
+                    presence.
+                  </p>
+                )}
 
                 <label className="flex items-center justify-between pt-3 border-t border-white/5 cursor-pointer">
                   <div>

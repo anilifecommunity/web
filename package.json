@@ -16,6 +16,7 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@discord/embedded-app-sdk": "^2.5.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "hls.js": "^1.7.4",

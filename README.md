@@ -81,6 +81,8 @@ security headers apply to every response. Preview hosts ending in `.workers.dev`
 - `docs/PRIVACY.md` - what is stored and what leaves the device
 - `docs/ANDROID_PARITY.md` - the Android-to-web parity plan
 - `docs/PROVIDER_MATRIX.md` - dated provider evidence
+- `docs/SOURCES.md` - source and downstream host research
+- `docs/DISCORD.md` - Discord Activity and Rich Presence setup
 
 ## Licence
 

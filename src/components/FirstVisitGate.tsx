@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getGateStatus, verifyGateToken } from '../utils/workerApi';
+import { connectDiscordActivity, isDiscordActivity } from '../discord/activity';
 
 declare global {
   interface Window {
@@ -23,7 +24,7 @@ const SITE_KEY = String((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | und
 const SCRIPT_ID = 'cf-turnstile-script';
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
-type Phase = 'checking' | 'needed' | 'verifying' | 'passed' | 'error';
+type Phase = 'checking' | 'needed' | 'verifying' | 'passed' | 'error' | 'discord';
 
 function loadTurnstile(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
@@ -54,6 +55,7 @@ function loadTurnstile(): Promise<void> {
 export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [phase, setPhase] = useState<Phase>(SITE_KEY ? 'checking' : 'passed');
   const [message, setMessage] = useState('Checking your browser...');
+  const [discordError, setDiscordError] = useState<string | null>(null);
   const widgetRef = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
 
@@ -65,6 +67,8 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
       if (cancelled) return;
       if (passed) {
         setPhase('passed');
+      } else if (isDiscordActivity()) {
+        setPhase('discord');
       } else {
         setPhase('needed');
       }
@@ -74,6 +78,28 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (phase !== 'discord') return;
+    let cancelled = false;
+    setMessage('Connecting to Discord...');
+
+    connectDiscordActivity().then(async (next) => {
+      if (cancelled) return;
+      const passed = await getGateStatus();
+      if (cancelled) return;
+      if (passed) {
+        setPhase('passed');
+        return;
+      }
+      setDiscordError(next?.error ?? 'Discord connected, but the playback gate is not ready.');
+      setPhase('error');
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== 'needed' || !widgetRef.current) return;
@@ -127,6 +153,42 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [phase]);
 
   if (phase === 'passed') return <>{children}</>;
+
+  if ((phase === 'discord' || phase === 'error') && isDiscordActivity()) {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0e0d16] px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-[#121216] p-7 text-center shadow-2xl">
+          <img
+            src="/assets/images/Anilife-Logo.png"
+            alt="Anilife"
+            className="mx-auto mb-5 h-14 w-14 rounded-xl object-contain"
+          />
+          <h1 className="text-lg font-bold text-white">Continue in Discord</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            {phase === 'discord' ? 'Connecting to Discord...' : discordError ?? message}
+          </p>
+
+          {phase === 'error' && (
+            <button
+              type="button"
+              onClick={() => {
+                setDiscordError(null);
+                setMessage('Connecting to Discord...');
+                setPhase('discord');
+              }}
+              className="mt-5 rounded-full bg-[#74cf66] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+            >
+              Try again
+            </button>
+          )}
+
+          <p className="mt-6 text-[11px] leading-relaxed text-zinc-600">
+            Discord verifies your account before playback and Rich Presence.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === 'checking') {
     return (

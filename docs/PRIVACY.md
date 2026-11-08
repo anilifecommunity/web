@@ -24,6 +24,10 @@ from Settings > Data if the data matters to you.
 - **Cloudflare Turnstile** (`challenges.cloudflare.com`): the first-visit bot check.
 - **Reanime / Flixcloud** when you choose that source: the episode page and its player run in a
   cross-origin iframe under their own privacy terms.
+- **Discord** only when you open Anilife as a Discord Activity: the Activity authorization code is
+  exchanged by the Anilife Worker, which returns a short-lived access token. The token stays in
+  memory, is used to verify your Discord account and set Rich Presence, and is never stored or
+  logged. No message, friend or guild data is read.
 - The Anilife Worker: provider-keyed metadata requests. It does not receive your AniList token.
 
 Provider sites and CDNs are third parties with their own terms and privacy policies.

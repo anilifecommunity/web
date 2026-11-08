@@ -33,7 +33,8 @@ started, and **Mark watched** records completion.
 
 `anipm`, `rareanimes`, `anikoto`, `animekai`, `anizone`, `anineko`, `2dhive`, `animedekho`,
 `toonhub`, `uniquestream`, `animekhor`, `kartoons`, `animeav1`, `rift`, `hentaihaven`, `hstream`,
-`onepace`, plus the Miruro embed children (`nun`, `bun`, `cog`, `twin`, `telli`).
+`onepace`, plus the Miruro embed children (`nun`, `bun`, `cog`, `twin`, `telli`). HiAnime is
+documented as an unverified candidate in [SOURCES.md](SOURCES.md) but is not a registered server.
 
 These are registered but not offered for playback. Promoting one requires a dated browser check of
 the manifest, a variant and a segment with seek, not a metadata 200.
@@ -47,6 +48,9 @@ the manifest, a variant and a segment with seek, not a metadata 200.
 - Server identities stay anonymous in the UI (`Server 1`, `Server 2`). Only Settings shows which
   servers are enabled, and it lists just browser-verified entries.
 - Audio is never silently swapped. A dub request that only has a sub is an explicit failure.
+- Downstream player hosts (VidSrc, Vidstream, MegaCloud, Streamtape, Filemoon, Vidmoly, MP4Upload)
+  are not servers. They require a source-specific file/embed id and are tracked in
+  [SOURCES.md](SOURCES.md).
 - Never add a source without updating this file and the registry evidence.
 - A media relay requires a separate ADR covering rights, cost, abuse and takedown handling.
 - Episode downloads are disabled on web by product decision.

@@ -35,7 +35,12 @@ await check('provider catalogue has at least 40 entries', async () => {
   const data = await response.json();
   assert(Array.isArray(data.providers), 'providers missing');
   assert(data.providers.length >= 40, `only ${data.providers.length}`);
-  return `${data.providers.length} providers`;
+  assert(Array.isArray(data.downstreams), 'downstreams missing');
+  assert(
+    data.downstreams.some((item) => item.id === 'flixcloud' && item.status === 'in-use'),
+    'verified downstream missing'
+  );
+  return `${data.providers.length} providers, ${data.downstreams.length} downstreams`;
 });
 
 await check('resolve refuses an arbitrary destination', async () => {

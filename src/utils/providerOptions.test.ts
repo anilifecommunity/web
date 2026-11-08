@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import type { Anime } from '../types/anime';
 import { getAnimeAniListId } from './animeData';
 import { enabledServerIds, orderServerOptions, resolveServerOrder, webServerOptions } from './providerOptions';
+import { DOWNSTREAMS } from '../resolver';
 
 function sample(id: string, aniListId?: number): Anime {
   return { id, anilistId: aniListId } as unknown as Anime;
@@ -48,4 +49,11 @@ test('priority reorders options without dropping any', () => {
   const ordered = orderServerOptions(options, [ids[1], ids[0]]);
   assert.deepEqual(ordered.slice(0, 2).map((option) => option.id), [ids[1], ids[0]]);
   assert.equal(ordered.length, ids.length);
+});
+
+test('downstream registry is unique and only Flixcloud is in use', () => {
+  const ids = DOWNSTREAMS.map((item) => item.id);
+  assert.equal(new Set(ids).size, ids.length);
+  const inUse = DOWNSTREAMS.filter((item) => item.status === 'in-use').map((item) => item.id);
+  assert.deepEqual(inUse, ['flixcloud']);
 });

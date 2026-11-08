@@ -22,6 +22,8 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | Automatic source fallback | DONE | Enabled order sent to Worker; failed server falls through; disabled servers are never queried |
 | Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
 | No per-episode server picker | DONE | Player shows an anonymous status chip, Retry and a Settings pointer only |
+| Source and downstream research | DONE | `SOURCES.md`; `/api/providers` exposes read-only downstream statuses |
+| Discord Rich Presence | PARTIAL | Embedded App SDK, token exchange, activity gate and presence implemented; needs Activity portal setup and a valid secret or Public Client |
 | Privacy correct, diagnostics local, toggles OFF | DONE | `PRIVACY.md`, `SECURITY.md`, no upload endpoint |
 | Preview isolation, noindex, no beta host | DONE | `X-Robots-Tag` on workers.dev; no beta subdomain |
 | Build/deploy/rollback works | DONE | Wrangler deploy; rollback steps in `OPERATIONS.md` |

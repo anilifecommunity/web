@@ -40,6 +40,8 @@ export {
 
 export { planAttempts, statusReason } from './policy';
 export type { Preflight } from './policy';
+export { DOWNSTREAMS } from './downstreams';
+export type { Downstream, DownstreamStatus } from './downstreams';
 export { assertPlaybackOffer, parsePlaybackOffer } from './validate';
 export { resolvePlayback } from './resolve';
 export type { ResolveOptions } from './resolve';

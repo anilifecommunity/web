@@ -36,6 +36,10 @@ open-source project; there is no bug bounty.
   `X-Frame-Options: DENY` are applied to every response. Preview hosts are `noindex`.
 - Provider media plays in a cross-origin iframe. The app does not host, proxy or expose a
   downloadable episode URL, and episode downloads are disabled by product decision.
+- Discord Rich Presence uses the official Embedded App SDK only inside a Discord Activity. The
+  authorization code is exchanged by the Worker with a Wrangler secret when configured, or with a
+  PKCE verifier for a Public Client; the client never receives a secret. `frame-ancestors` allows
+  only Anilife, `discord.com` and `*.discordsays.com`. See [DISCORD.md](DISCORD.md).
 
 ## Secrets
 

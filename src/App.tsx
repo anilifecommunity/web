@@ -15,6 +15,7 @@ import { AniListAuthModal } from './components/AniListAuthModal';
 import { AppIntro } from './components/AppIntro';
 import { FirstVisitGate } from './components/FirstVisitGate';
 import { useUrlRoute } from './hooks/useUrlRoute';
+import { useDiscordActivity } from './discord/useDiscordActivity';
 
 const UrlRouteSync: React.FC = () => {
   useUrlRoute();
@@ -44,6 +45,8 @@ const AppContent: React.FC = () => {
     setRouteError,
     settings,
   } = useApp();
+
+  useDiscordActivity();
 
   const [hasSelectedProfileSession, setHasSelectedProfileSession] = useState<boolean>(() => {
     try {

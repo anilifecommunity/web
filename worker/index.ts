@@ -3,12 +3,13 @@ import {
   planAttempts,
   PROVIDER_ORDER,
   PROVIDERS,
+  DOWNSTREAMS,
   resolvePlayback,
 } from '../src/resolver';
 import type { PlaybackOffer, ResolveRequest, SelectionPolicy } from '../src/resolver';
 import { ADAPTERS } from './adapters';
 import { createGateToken, gateCookie, GATE_COOKIE, readCookie, verifyGateToken, verifyTurnstile } from './gate';
-import { GuardError } from './guards';
+import { GuardError, safeFetch } from './guards';
 import { fail, json, parseInteger } from './http';
 import { hit } from './rateLimit';
 
@@ -19,7 +20,13 @@ export interface Env {
   /** HMAC key for the first-visit gate cookie. Required whenever TURNSTILE_SECRET is set. */
   GATE_SIGNING_KEY?: string;
   APP_ENV?: string;
+  DISCORD_CLIENT_ID?: string;
+  DISCORD_CLIENT_SECRET?: string;
 }
+
+const DISCORD_CLIENT_ID = '1567279187893551185';
+const DISCORD_API = 'https://discord.com/api/v10';
+const DISCORD_HOSTS = new Set(['discord.com']);
 
 const MAX_EPISODE_REF = 64;
 const EPISODE_REF = /^[A-Za-z0-9._-]{1,64}$/;
@@ -172,8 +179,7 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
   }
 }
 
-async function handleGateVerify(request: Request, env: Env): Promise<Response> {
-  if (!(await gateEnabled(env))) {
+async function handleGateVerify(request: Request, env: Env): Promise<Response> {  if (!(await gateEnabled(env))) {
     return json({ ok: true, bypassed: true });
   }
 
@@ -201,6 +207,165 @@ async function handleGateVerify(request: Request, env: Env): Promise<Response> {
 
   const gate = await createGateToken(env.GATE_SIGNING_KEY as string);
   return json({ ok: true }, 200, { 'Set-Cookie': gateCookie(gate) });
+}
+
+async function postDiscordToken(form: URLSearchParams): Promise<{
+  ok: boolean;
+  status: number;
+  data: {
+    access_token?: string;
+    expires_in?: number;
+    scope?: string;
+    token_type?: string;
+    error?: string;
+    error_description?: string;
+  };
+}> {
+  const response = await safeFetch(
+    'https://discord.com/api/oauth2/token',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+    },
+    { allowedHosts: DISCORD_HOSTS, timeoutMs: 8_000, maxBytes: 16_384 }
+  );
+  const data = (await response.json().catch(() => ({}))) as {
+    access_token?: string;
+    expires_in?: number;
+    scope?: string;
+    token_type?: string;
+    error?: string;
+    error_description?: string;
+  };
+  return { ok: response.ok, status: response.status, data };
+}
+
+function discordTokenResponse(data: {
+  access_token?: string;
+  expires_in?: number;
+  scope?: string;
+  token_type?: string;
+}): Response {
+  return json({
+    ok: true,
+    access_token: data.access_token,
+    expires_in: data.expires_in,
+    scope: data.scope,
+    token_type: data.token_type,
+  });
+}
+
+async function handleDiscordToken(request: Request, env: Env): Promise<Response> {
+  const limited = hit(`discord:token:${clientKey(request)}`, 20, 60_000);
+  if (!limited.allowed) {
+    return json(
+      { ok: false, error: 'rate_limited', retryAfterSec: limited.retryAfterSec },
+      429,
+      { 'Retry-After': String(limited.retryAfterSec) }
+    );
+  }
+
+  let body: { code?: unknown; codeVerifier?: unknown };
+  try {
+    body = (await request.json()) as { code?: unknown; codeVerifier?: unknown };
+  } catch {
+    return fail(400, 'invalid_body');
+  }
+  if (typeof body.code !== 'string' || body.code.length === 0 || body.code.length > 512) {
+    return fail(400, 'invalid_code');
+  }
+  const verifier =
+    typeof body.codeVerifier === 'string' &&
+    body.codeVerifier.length >= 43 &&
+    body.codeVerifier.length <= 128 &&
+    /^[A-Za-z0-9._~-]+$/.test(body.codeVerifier)
+      ? body.codeVerifier
+      : null;
+  if (!verifier) return fail(400, 'invalid_verifier');
+
+  const clientId = env.DISCORD_CLIENT_ID ?? DISCORD_CLIENT_ID;
+  const base = new URLSearchParams({
+    client_id: clientId,
+    grant_type: 'authorization_code',
+    code: body.code,
+  });
+
+  let lastError = 'discord_token_failed';
+  if (env.DISCORD_CLIENT_SECRET) {
+    const confidential = new URLSearchParams(base);
+    confidential.set('client_secret', env.DISCORD_CLIENT_SECRET);
+    const first = await postDiscordToken(confidential);
+    if (first.ok && typeof first.data.access_token === 'string') {
+      return discordTokenResponse(first.data);
+    }
+    lastError = first.data.error ?? lastError;
+    if (first.data.error !== 'invalid_client') {
+      return fail(502, 'discord_token_failed', { discordError: lastError.slice(0, 64) });
+    }
+  }
+
+  // Public-client fallback: Discord accepts PKCE without a secret when the application has
+  // Public Client enabled. The verifier never leaves the Worker in a response.
+  const publicClient = new URLSearchParams(base);
+  publicClient.set('code_verifier', verifier);
+  const second = await postDiscordToken(publicClient);
+  if (second.ok && typeof second.data.access_token === 'string') {
+    return discordTokenResponse(second.data);
+  }
+  lastError = second.data.error ?? lastError;
+  return fail(502, 'discord_token_failed', { discordError: lastError.slice(0, 64) });
+}
+
+async function handleDiscordGate(request: Request, env: Env): Promise<Response> {
+  if (!(await gateEnabled(env))) {
+    return json({ ok: true, bypassed: true });
+  }
+
+  const limited = hit(`gate:discord:${clientKey(request)}`, 10, 60_000);
+  if (!limited.allowed) {
+    return json(
+      { ok: false, error: 'rate_limited', retryAfterSec: limited.retryAfterSec },
+      429,
+      { 'Retry-After': String(limited.retryAfterSec) }
+    );
+  }
+
+  let body: { accessToken?: unknown };
+  try {
+    body = (await request.json()) as { accessToken?: unknown };
+  } catch {
+    return fail(400, 'invalid_body');
+  }
+  if (
+    typeof body.accessToken !== 'string' ||
+    body.accessToken.length === 0 ||
+    body.accessToken.length > 4096
+  ) {
+    return fail(400, 'invalid_token');
+  }
+
+  const response = await safeFetch(
+    `${DISCORD_API}/users/@me`,
+    { headers: { Authorization: `Bearer ${body.accessToken}` } },
+    { allowedHosts: DISCORD_HOSTS, timeoutMs: 8_000, maxBytes: 16_384 }
+  );
+
+  if (!response.ok) return fail(401, 'discord_auth_failed');
+
+  const user = (await response.json().catch(() => ({}))) as { id?: string; username?: string };
+  const gate = await createGateToken(env.GATE_SIGNING_KEY as string);
+  return json(
+    {
+      ok: true,
+      user: {
+        id: typeof user.id === 'string' ? user.id : null,
+        username: typeof user.username === 'string' ? user.username : null,
+      },
+    },
+    200,
+    { 'Set-Cookie': gateCookie(gate, 'None') }
+  );
 }
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
@@ -240,8 +405,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return handleGateVerify(request, env);
   }
 
+  if (path === '/api/gate/discord' && request.method === 'POST') {
+    return handleDiscordGate(request, env);
+  }
+
+  if (path === '/api/discord/token' && request.method === 'POST') {
+    return handleDiscordToken(request, env);
+  }
+
   if (path === '/api/providers' && request.method === 'GET') {
-    return json({ ok: true, providers: publicProviders() });
+    return json({ ok: true, providers: publicProviders(), downstreams: DOWNSTREAMS });
   }
 
 
@@ -260,7 +433,7 @@ const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
-  "frame-ancestors 'none'",
+  "frame-ancestors 'self' https://discord.com https://*.discordsays.com",
   "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
@@ -281,7 +454,6 @@ function securityHeaders(request: Request): Record<string, string> {
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
-    'X-Frame-Options': 'DENY',
     ...(preview ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
     ...(url.protocol === 'https:'
       ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' }

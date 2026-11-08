@@ -27,7 +27,8 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | Build/deploy/rollback works | DONE | Wrangler deploy; rollback steps in `OPERATIONS.md` |
 | Accessibility/performance review | DONE | Lighthouse on `anilife.cc`: accessibility 100, best practices 100, SEO 100 |
 | CI, CodeQL and Dependabot | DONE | CI and advanced CodeQL pass on `main`; Dependabot opens update PRs |
-| Dependency review | PARTIAL | Workflow exists; dependency graph is disabled, so the check cannot run yet |
+| Dependency review | DONE | Dependency graph enabled; workflow passes on dependency PRs |
+| Dependabot updates | DONE | Five update PRs reviewed and merged 2026-11-08 (CI, CodeQL, dependency review green) |
 | Secret scanning, push protection, private reporting | DONE | Enabled and verified 2026-11-08 |
 | Manual approval before `anilife.cc` | DONE | Approved 2026-11-08; production hosts attached |
 

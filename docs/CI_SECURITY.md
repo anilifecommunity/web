@@ -35,7 +35,8 @@ Node 24 matches the local toolchain and Vite 8's supported range.
 | CI (lint/test/build/smoke) | Yes | Not applicable | Yes, `main` run passed | None |
 | Advanced CodeQL | Yes | Default setup not configured | Yes, `main` run passed | Keep default setup off |
 | Dependabot config | Yes | Not applicable | Yes, update PRs opened | None |
-| Dependency graph | No file needed | Disabled | Yes (SBOM 404) | Enable |
+| Dependency graph | No file needed | Enabled | Yes, SBOM lists 213 packages | None |
+| Dependency review | Yes (workflow) | Not applicable | Yes, passes when a PR changes dependencies | None |
 | Dependabot alerts | No file needed | Enabled | Yes (204) | None |
 | Dependabot security updates | No file needed | Enabled | Yes | None |
 | Code scanning | Yes (workflow) | Default setup not configured | Yes, 0 open alerts; 5 dismissed with reasons | None |
@@ -50,16 +51,14 @@ Node 24 matches the local toolchain and Vite 8's supported range.
 
 ## Owner actions
 
-Dependency graph is the only blocking setting: dependency review cannot run until it is enabled.
-Open `https://github.com/anilifecommunity/web/settings/security_analysis` and:
+Security settings are complete and verified. Dependency graph is enabled, so Dependency review
+now runs on dependency PRs. Open `https://github.com/anilifecommunity/web/settings/security_analysis`
+only if a future audit needs to confirm:
 
-1. **Dependency graph** - enable. This is a GitHub UI setting with no REST endpoint; the API PATCH
-   does not change it.
-2. **Code scanning** - keep default setup **off**. The advanced workflow owns CodeQL.
-3. Confirm Dependabot alerts, Dependabot security updates, secret scanning, push protection and
-   private vulnerability reporting remain on. They were enabled and verified on 2026-11-08.
-
-After dependency graph is on, re-run the Dependency review check on the open Dependabot PRs.
+1. **Dependency graph** - on. Verified with a 213-package SBOM on 2026-11-08.
+2. **Code scanning** - default setup **off**. The advanced workflow owns CodeQL.
+3. Dependabot alerts, Dependabot security updates, secret scanning, push protection and private
+   vulnerability reporting stay on.
 
 Open `https://github.com/anilifecommunity/web/settings/rules`:
 
@@ -88,8 +87,8 @@ For alerts, use **Watch > Custom > Security alerts**. Do not add a third-party s
 - CI and advanced CodeQL pass on `main`; CodeQL published 16 findings on the first scan, 11 were
   fixed, and 5 were dismissed with written reasons (four image-src false positives after
   `safeImageUrl` validation, one stale randomness location).
-- Dependabot opened grouped minor/patch and separate major PRs. Their CI and CodeQL checks pass.
-  Their Dependency review check fails because dependency graph is off; re-run it after enabling.
+- Dependabot opened grouped minor/patch and separate major PRs. CI, CodeQL and Dependency review
+  pass; all five were reviewed and merged on 2026-11-08.
 
 The GitHub-hosted workflows cannot be executed locally; their first real result appears in the
 Actions tab after the next push.

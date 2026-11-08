@@ -12,7 +12,7 @@ import {
 import type { PlaybackOffer, ProviderAdapter } from './index';
 
 const A = 'anichan';
-const B = 'animeheaven';
+const B = 'toonhub';
 
 function offer(overrides: Partial<PlaybackOffer> = {}): PlaybackOffer {
   return {

@@ -112,7 +112,19 @@ const ANIVEXA: ProviderDefinition[] = [
   anivexa('animepahe', { status: 'native-only' }),
   anivexa('rareanimes'),
   anivexa('anidbapp'),
-  anivexa('animeheaven', { status: 'worker-metadata-only' }),
+  anivexa('animeheaven', {
+    status: 'unavailable',
+    audio: ['sub'],
+    formats: ['mp4'],
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'From a residential Node client the flow works (search -> anime.php -> gate.php -> MP4 206). From worker/workerd egress the same search returns a no-results page, so the catalogue never matches. Kept in the codebase for re-test.',
+        browser: 'none',
+        url: 'https://animeheaven.me',
+      },
+    ],
+  }),
   anivexa('animeonsen'),
   anivexa('anikoto'),
   anivexa('kaa', { name: 'KickAssAnime' }),
@@ -124,7 +136,18 @@ const ANIVEXA: ProviderDefinition[] = [
   anivexa('anineko'),
   anivexa('2dhive'),
   anivexa('animedekho'),
-  anivexa('toonhub', { name: 'ToonHub4u' }),
+  anivexa('toonhub', {
+    name: 'ToonHub4u',
+    status: 'worker-metadata-only',
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'WordPress REST search (wp-json/wp/v2/search) answers from a server client. Post pages expose base64 redirect links to the player host. Adapter not implemented yet; media host and iframe policy still unverified.',
+        browser: 'none',
+        url: 'https://toonhub4u.co',
+      },
+    ],
+  }),
   anivexa('uniquestream'),
   anivexa('animekhor'),
   anivexa('kartoons', { name: 'Kartoons (Hindi)', language: 'Hindi', audio: ['dub'] }),

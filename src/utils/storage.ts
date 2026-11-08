@@ -104,6 +104,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   activeServer: 'reanime',
   serverPriority: [...WEB_PROVIDER_IDS],
   enabledServers: [...WEB_PROVIDER_IDS],
+  serverOrderVersion: 2,
 
   
   hideAdultContent: false,
@@ -135,7 +136,8 @@ const LEGACY_STORAGE_KEYS = {
 function normalizeProviderLists(settings: AppSettings): AppSettings {
   const known = new Set(WEB_PROVIDER_IDS);
   const storedPriority = settings.serverPriority ?? [];
-  const legacyPriority = storedPriority.some((id) => !known.has(id));
+  const legacyPriority =
+    settings.serverOrderVersion !== 2 || storedPriority.some((id) => !known.has(id));
 
   // A legacy list contains native-only and unavailable ids. Replace its order with the current
   // web-capable default (implemented servers first); otherwise keep the viewer's order.
@@ -154,7 +156,7 @@ function normalizeProviderLists(settings: AppSettings): AppSettings {
       ? configuredEnabled
       : [...WEB_PROVIDER_IDS];
 
-  return { ...settings, serverPriority: priority, enabledServers: enabled };
+  return { ...settings, serverPriority: priority, enabledServers: enabled, serverOrderVersion: 2 };
 }
 
 export function loadSettings(): AppSettings {

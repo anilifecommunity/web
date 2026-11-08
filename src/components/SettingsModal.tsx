@@ -32,6 +32,7 @@ import {
   Play
 } from 'lucide-react';
 import { EnabledServersModal } from './EnabledServersModal';
+import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '../data/backup';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const {
@@ -66,21 +67,14 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     { title: 'Attack on Titan', url: 'https://image.tmdb.org/t/p/w1280/1v0d63laCR7iMSGBPREYHTE69IQ.jpg' },
   ];
 
-  const handleExportData = () => {
-    const backup = {
-      settings,
-      timestamp: new Date().toISOString(),
-      app: 'Anilife Web',
-      version: '2.4.0',
-      anilistUser: currentUser?.name || null
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `anilife_backup_${Date.now()}.json`;
-    a.click();
-    showNotice('Backup exported successfully');
+  const handleExportData = async () => {
+    try {
+      const backup = await buildBackupDocument();
+      downloadBackup(backup);
+      showNotice('Backup exported');
+    } catch (error) {
+      showNotice(error instanceof Error ? error.message : 'Could not export backup');
+    }
   };
 
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,13 +83,14 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (parsed.settings) {
-          updateSettings(parsed.settings);
-          showNotice('Settings restored from backup');
-        }
-      } catch {
-        alert('Invalid backup file');
+        const parsed = parseBackup(String(event.target?.result ?? ''));
+        const summary = applyBackup(parsed);
+        showNotice(
+          `Restored ${summary.watchlist} saved, ${summary.history} continue watching, ${summary.settings} settings`
+        );
+        setTimeout(() => window.location.reload(), 1200);
+      } catch (error) {
+        showNotice(error instanceof Error ? error.message : 'Invalid backup file');
       }
     };
     reader.readAsText(file);

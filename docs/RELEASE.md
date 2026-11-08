@@ -23,6 +23,9 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | Preview isolation, noindex, no beta host | DONE | `X-Robots-Tag` on workers.dev; no beta subdomain |
 | Build/deploy/rollback works | DONE | Wrangler deploy; rollback steps in `OPERATIONS.md` |
 | Accessibility/performance review | DONE | Lighthouse on `anilife.cc`: accessibility 100, best practices 100, SEO 100 |
+| CI, CodeQL and Dependabot | DONE | CI and advanced CodeQL pass on `main`; Dependabot opens update PRs |
+| Dependency review | PARTIAL | Workflow exists; dependency graph is disabled, so the check cannot run yet |
+| Secret scanning, push protection, private reporting | DONE | Enabled and verified 2026-11-08 |
 | Manual approval before `anilife.cc` | DONE | Approved 2026-11-08; production hosts attached |
 
 ## Known limitations

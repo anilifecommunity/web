@@ -36,7 +36,7 @@ Node 24 matches the local toolchain and Vite 8's supported range.
 | Dependency graph | No file needed | Disabled | Yes (SBOM 404) | Enable |
 | Dependabot alerts | No file needed | Enabled | Yes (204) | None |
 | Dependabot security updates | No file needed | Enabled | Yes | None |
-| Code scanning | Yes (workflow) | Default setup not configured | Yes, 16 alerts published | Triage alerts |
+| Code scanning | Yes (workflow) | Default setup not configured | Yes, alerts published | Triage alerts |
 | Secret scanning | No file needed | Enabled | Yes | None |
 | Secret scanning push protection | No file needed | Enabled | Yes | None |
 | Private vulnerability reporting | No file needed | Enabled | Yes | None |

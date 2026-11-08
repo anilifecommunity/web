@@ -14,6 +14,7 @@ import { NotificationsModal } from './components/NotificationsModal';
 import { CrunchyrollProfileScreen } from './components/CrunchyrollProfileScreen';
 import { AniListAuthModal } from './components/AniListAuthModal';
 import { AppIntro } from './components/AppIntro';
+import { FirstVisitGate } from './components/FirstVisitGate';
 
 const AppContent: React.FC = () => {
   const {
@@ -165,7 +166,9 @@ const AppContent: React.FC = () => {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <FirstVisitGate>
+        <AppContent />
+      </FirstVisitGate>
     </AppProvider>
   );
 }

@@ -23,6 +23,6 @@
     },
     "noEmit": true
   },
-  "include": ["src"],
+  "include": ["src", "worker/**/*.test.ts"],
   "exclude": ["dist", "node_modules"]
 }

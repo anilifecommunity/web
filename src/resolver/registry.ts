@@ -71,6 +71,7 @@ interface AnivexaOptions {
   language?: string;
   adultOnly?: boolean;
   androidId?: string;
+  evidence?: ProviderDefinition['evidence'];
 }
 
 function anivexa(id: string, options: AnivexaOptions = {}): ProviderDefinition {
@@ -90,12 +91,23 @@ function anivexa(id: string, options: AnivexaOptions = {}): ProviderDefinition {
     webStatus: options.status ?? 'unverified',
     rightsStatus: 'unknown',
     declaredLanguage: options.language,
+    ...(options.evidence ? { evidence: options.evidence } : {}),
   };
 }
 
 const ANIVEXA: ProviderDefinition[] = [
   anivexa('anipm'),
-  anivexa('anichan', { status: 'worker-metadata-only', subtitles: ['soft', 'external'] }),
+  anivexa('anichan', {
+    status: 'worker-metadata-only',
+    subtitles: ['soft', 'external'],
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'GET /api/watch/episodes returns counts; GET /api/watch/servers returns {"servers":[]} for AniList 21, 154587, 16498 and 52991, with and without a session cookie. Adapter mediates; upstream currently offers no streams.',
+        browser: 'none (Worker + node probe)',
+      },
+    ],
+  }),
   anivexa('zoko', { audio: ['sub', 'dub'], subtitles: ['soft', 'external'], status: 'unavailable' }),
   anivexa('animepahe', { status: 'native-only' }),
   anivexa('rareanimes'),

@@ -1,12 +1,12 @@
 import { AppSettings, ContinueWatchingEntry, UserProfile, WatchlistEntry, ThemePresetName } from '../types/anime';
 import { INITIAL_CONTINUE_WATCHING } from './animeData';
-import { PROVIDERS, isAttemptable } from '../resolver';
+import { webServerOptions } from './providerOptions';
 import { STORAGE_KEYS } from '../data/keys';
 import { putRecord } from '../data/idb';
 
 export { STORAGE_KEYS };
 
-const WEB_PROVIDER_IDS = PROVIDERS.filter(isAttemptable).map((provider) => provider.id);
+const WEB_PROVIDER_IDS = webServerOptions().map((server) => server.id);
 
 export const POPULAR_AVATARS = [
   { name: 'Satoru Gojo', url: 'https://s4.anilist.co/file/anilistcdn/character/large/b127691-9zqh1xpIubn7.png' },
@@ -134,11 +134,17 @@ const LEGACY_STORAGE_KEYS = {
 
 function normalizeProviderLists(settings: AppSettings): AppSettings {
   const known = new Set(WEB_PROVIDER_IDS);
+  const storedPriority = settings.serverPriority ?? [];
+  const legacyPriority = storedPriority.some((id) => !known.has(id));
 
-  const priority = (settings.serverPriority ?? []).filter((id) => known.has(id));
-  for (const id of WEB_PROVIDER_IDS) {
-    if (!priority.includes(id)) priority.push(id);
-  }
+  // A legacy list contains native-only and unavailable ids. Replace its order with the current
+  // web-capable default (implemented servers first); otherwise keep the viewer's order.
+  const priority = legacyPriority
+    ? [...WEB_PROVIDER_IDS]
+    : [
+        ...storedPriority.filter((id) => known.has(id)),
+        ...WEB_PROVIDER_IDS.filter((id) => !storedPriority.includes(id)),
+      ];
 
   // An absent or empty list means "not configured" and enables every web-capable server.
   // A non-empty list is preserved so an explicit disable is never silently reverted.

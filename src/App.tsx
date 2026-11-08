@@ -40,6 +40,8 @@ const AppContent: React.FC = () => {
     setShowAuthModal,
     showIntro,
     setShowIntro,
+    routeError,
+    setRouteError,
     settings,
   } = useApp();
 
@@ -125,6 +127,21 @@ const AppContent: React.FC = () => {
             } catch {}
           }}
         />
+      )}
+
+      {routeError && (
+        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#12101e] p-6 text-center shadow-2xl">
+            <h2 className="text-lg font-bold text-white">Title not found</h2>
+            <p className="mt-2 text-sm text-zinc-400">{routeError}</p>
+            <button
+              onClick={() => setRouteError(null)}
+              className="mt-5 rounded-full bg-[#74cf66] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
       )}
 
       {}

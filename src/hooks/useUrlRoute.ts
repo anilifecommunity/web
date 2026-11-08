@@ -64,6 +64,7 @@ export function useUrlRoute(): void {
       suppress.current = true;
       const route = parseRoute(window.location.pathname);
 
+      app.setRouteError(null);
       app.setShowSettingsModal(false);
       app.setShowProfileModal(false);
       app.setSelectedAnime(null);
@@ -87,6 +88,9 @@ export function useUrlRoute(): void {
         }
         if (cancelled) return;
         if (!anime) {
+          app.setRouteError(
+            'That title could not be found. Check the link or search for the anime again.'
+          );
           app.setActiveTab('home');
           window.history.replaceState(null, '', '/');
           return;

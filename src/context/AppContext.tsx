@@ -118,6 +118,8 @@ interface AppContextType {
   setSelectedAnime: (anime: Anime | null) => void;
   activeVideo: VideoPlaybackTarget | null;
   setActiveVideo: (video: VideoPlaybackTarget | null) => void;
+  routeError: string | null;
+  setRouteError: (message: string | null) => void;
   continueWatching: ContinueWatchingEntry[];
   watchlist: WatchlistEntry[];
   settings: AppSettings;
@@ -188,6 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTab, setActiveTab] = useState<'home' | 'search' | 'schedule' | 'mylist'>('home');
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
   const [activeVideo, setActiveVideo] = useState<VideoPlaybackTarget | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
 
   
   const [settings, setSettingsState] = useState<AppSettings>(loadSettings);
@@ -650,6 +653,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedAnime,
         activeVideo,
         setActiveVideo,
+        routeError,
+        setRouteError,
         continueWatching,
         watchlist,
         settings,

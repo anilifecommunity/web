@@ -36,7 +36,7 @@ Node 24 matches the local toolchain and Vite 8's supported range.
 | Dependency graph | No file needed | Disabled | Yes (SBOM 404) | Enable |
 | Dependabot alerts | No file needed | Enabled | Yes (204) | None |
 | Dependabot security updates | No file needed | Enabled | Yes | None |
-| Code scanning | Yes (workflow) | Default setup not configured | Yes, alerts published | Triage alerts |
+| Code scanning | Yes (workflow) | Default setup not configured | Yes, 0 open alerts; 5 dismissed with reasons | None |
 | Secret scanning | No file needed | Enabled | Yes | None |
 | Secret scanning push protection | No file needed | Enabled | Yes | None |
 | Private vulnerability reporting | No file needed | Enabled | Yes | None |
@@ -83,6 +83,11 @@ For alerts, use **Watch > Custom > Security alerts**. Do not add a third-party s
 - Local Wrangler smoke: all checks pass with the gate disabled, using an unavailable provider.
 - Workflow YAML parsed successfully.
 - Action SHAs resolved with `git ls-remote` against each action repository.
+- CI and advanced CodeQL pass on `main`; CodeQL published 16 findings on the first scan, 11 were
+  fixed, and 5 were dismissed with written reasons (four image-src false positives after
+  `safeImageUrl` validation, one stale randomness location).
+- Dependabot opened grouped minor/patch and separate major PRs. Their CI and CodeQL checks pass.
+  Their Dependency review check fails because dependency graph is off; re-run it after enabling.
 
 The GitHub-hosted workflows cannot be executed locally; their first real result appears in the
 Actions tab after the next push.

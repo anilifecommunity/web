@@ -78,6 +78,8 @@ For alerts, use **Watch > Custom > Security alerts**. Do not add a third-party s
 ## Validation performed
 
 - `npm ci` on Node 24: pass.
+- `npm audit --audit-level=high`: 0 vulnerabilities. The Discord SDK's zod range is overridden to
+  patched zod 4.6.7; the SDK module and mock were load-tested with the override.
 - `npm run lint`: pass (app and Worker TypeScript).
 - `npm test`: 71 tests pass.
 - `npm run build`: pass.

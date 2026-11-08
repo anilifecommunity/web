@@ -32,6 +32,11 @@ let setupPromise: Promise<DiscordState | null> | null = null;
 let state: DiscordState = { status: 'unavailable', inActivity: false };
 const listeners = new Set<(next: DiscordState) => void>();
 
+const ACTIVITY_AT_BOOT =
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).has('frame_id') &&
+  new URLSearchParams(window.location.search).has('instance_id');
+
 function publish(patch: Partial<DiscordState>): void {
   state = { ...state, ...patch };
   for (const listener of listeners) listener(state);
@@ -49,6 +54,7 @@ export function subscribeDiscord(listener: (next: DiscordState) => void): () => 
 
 export function isDiscordActivity(): boolean {
   if (typeof window === 'undefined') return false;
+  if (ACTIVITY_AT_BOOT) return true;
   const params = new URLSearchParams(window.location.search);
   return params.has('frame_id') && params.has('instance_id');
 }

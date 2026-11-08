@@ -6,6 +6,7 @@ export type {
   PlaybackOffer,
   PlaybackStream,
   PlaybackSubtitle,
+  PlaybackEmbed,
   ProviderAdapter,
   ProviderCapabilities,
   ProviderDefinition,

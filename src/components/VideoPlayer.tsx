@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import { Anime, Episode, ServerOption } from '../types/anime';
 import { useApp } from '../context/AppContext';
 import { getAnimeAniListId } from '../utils/animeData';
-import { webServerOptions } from '../utils/providerOptions';
+import { webServerOptions, preferredServerOption } from '../utils/providerOptions';
 import { messageFor } from '../resolver';
 import { resolveEpisode } from '../utils/workerApi';
 import { recordDiagnostic } from '../data/diagnostics';
@@ -73,7 +73,7 @@ export const VideoPlayer: React.FC<Props> = ({
 
   const [activeServer, setActiveServer] = useState<ServerOption>(() => {
     const options = webServerOptions(settings.hideAdultContent);
-    return options.find(s => s.id === settings.activeServer) || options[0] || {
+    return preferredServerOption(options, settings.activeServer) || {
       id: 'none',
       name: 'No source',
       speed: 'Normal',
@@ -111,6 +111,7 @@ export const VideoPlayer: React.FC<Props> = ({
 
   
   const [streamUrl, setStreamUrl] = useState<string>('');
+  const [embedUrl, setEmbedUrl] = useState<string>('');
   const [streamError, setStreamError] = useState<boolean>(false);
   const [streamErrorText, setStreamErrorText] = useState('');
 
@@ -160,6 +161,7 @@ export const VideoPlayer: React.FC<Props> = ({
     setIsLoading(true);
     setStreamError(false);
     setStreamErrorText('');
+    setEmbedUrl('');
     const abort = new AbortController();
     let isCancelled = false;
 
@@ -194,6 +196,24 @@ export const VideoPlayer: React.FC<Props> = ({
       }
 
       const offer = result.offer;
+      if (offer.embed) {
+        const episodeSeconds =
+          realEpisodes.find((episode) => episode.number === currentEpisodeNumber)?.durationSec ||
+          (anime.seasons[0]?.episodes || []).find((episode) => episode.number === currentEpisodeNumber)?.durationSec ||
+          (anime.durationMins || 24) * 60;
+        if (settings.activeServer !== activeServer.id) {
+          updateSettings({ activeServer: activeServer.id });
+        }
+        setEmbedUrl(offer.embed.url);
+        setStreamUrl('');
+        setSubtitles([]);
+        // The iframe cannot report time. Record that the episode was started so it appears in
+        // Continue Watching; the player offers an explicit "Mark watched" control.
+        updateWatchProgress(anime.id, currentEpisodeNumber, 1, episodeSeconds);
+        setIsLoading(false);
+        return;
+      }
+
       if (offer.streams.length === 0) {
         setStreamErrorText('No server returned a playable stream for this episode.');
         setStreamError(true);
@@ -201,6 +221,9 @@ export const VideoPlayer: React.FC<Props> = ({
         return;
       }
 
+      if (settings.activeServer !== activeServer.id) {
+        updateSettings({ activeServer: activeServer.id });
+      }
       setStreamUrl(offer.streams[0].url);
       setSubtitles(
         offer.subtitles.map((sub, index) => ({
@@ -332,6 +355,15 @@ export const VideoPlayer: React.FC<Props> = ({
     setTimeout(() => setSkipToast(null), 3000);
   };
 
+  const markEmbedWatched = () => {
+    const episodeSeconds =
+      realEpisodes.find((episode) => episode.number === currentEpisodeNumber)?.durationSec ||
+      (anime.seasons[0]?.episodes || []).find((episode) => episode.number === currentEpisodeNumber)?.durationSec ||
+      (anime.durationMins || 24) * 60;
+    updateWatchProgress(anime.id, currentEpisodeNumber, episodeSeconds, episodeSeconds);
+    showToast(`Marked Episode ${currentEpisodeNumber} watched`);
+  };
+
   
   useEffect(() => {
     const updateClock = () => {
@@ -432,6 +464,16 @@ export const VideoPlayer: React.FC<Props> = ({
         className="relative w-full shrink-0 aspect-video h-[45vh] sm:h-[55vh] lg:h-[65vh] max-h-[70vh] bg-black overflow-hidden flex items-center justify-center cursor-pointer group shadow-2xl"
       >
         {}
+        {embedUrl ? (
+          <iframe
+            src={embedUrl}
+            title={`${anime.title} Episode ${currentEpisodeNumber}`}
+            className="w-full h-full bg-black"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        ) : (
         <video
           ref={videoRef}
           src={streamUrl && !streamUrl.includes('.m3u8') ? streamUrl : undefined}
@@ -474,6 +516,34 @@ export const VideoPlayer: React.FC<Props> = ({
             />
           ))}
         </video>
+        )}
+
+        {}
+        {embedUrl && !isLoading && (
+          <div className="absolute right-3 top-3 z-40 flex items-center gap-2 rounded-xl bg-black/75 px-2.5 py-2 backdrop-blur border border-white/10">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#74cf66]">Embedded</span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                markEmbedWatched();
+              }}
+              className="rounded-lg bg-[#74cf66] px-2.5 py-1 text-[11px] font-bold text-black hover:bg-[#62b956] cursor-pointer"
+            >
+              Mark watched
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                window.open(embedUrl, '_blank', 'noopener,noreferrer');
+              }}
+              className="rounded-lg bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-200 hover:bg-white/20 cursor-pointer"
+            >
+              Open
+            </button>
+          </div>
+        )}
 
         {}
         {streamError && !isLoading && (

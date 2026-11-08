@@ -88,6 +88,7 @@ export function useUrlRoute(): void {
           window.history.replaceState(null, '', '/');
           return;
         }
+        app.rememberAnime(anime);
         if (route.kind === 'anime') {
           app.setSelectedAnime(anime);
         } else {

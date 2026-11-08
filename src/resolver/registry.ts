@@ -71,6 +71,7 @@ interface AnivexaOptions {
   language?: string;
   adultOnly?: boolean;
   androidId?: string;
+  implemented?: boolean;
   evidence?: ProviderDefinition['evidence'];
 }
 
@@ -91,6 +92,7 @@ function anivexa(id: string, options: AnivexaOptions = {}): ProviderDefinition {
     webStatus: options.status ?? 'unverified',
     rightsStatus: 'unknown',
     declaredLanguage: options.language,
+    ...(options.implemented ? { implemented: true } : {}),
     ...(options.evidence ? { evidence: options.evidence } : {}),
   };
 }
@@ -130,7 +132,19 @@ const ANIVEXA: ProviderDefinition[] = [
   anivexa('kaa', { name: 'KickAssAnime' }),
   anivexa('allanime', { name: 'MKissa (AllAnime)', status: 'native-only' }),
   anivexa('animekai'),
-  anivexa('reanime', { status: 'native-only' }),
+  anivexa('reanime', {
+    status: 'worker-metadata-only',
+    implemented: true,
+    formats: ['iframe'],
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'GET /api/flix/{anilistId}/{episode} names a Flixcloud embed per audio track; the embed loads and plays in Chromium with no X-Frame-Options or frame-ancestors. Iframe playback, manual progress.',
+        browser: 'Chromium via the in-app browser',
+        url: 'https://reanime.to',
+      },
+    ],
+  }),
   anivexa('anizone'),
   anivexa('animegg'),
   anivexa('anineko'),
@@ -215,4 +229,6 @@ export function providersForWeb(hideAdult = false): ProviderDefinition[] {
     (provider) => isListable(provider) && (!hideAdult || !provider.capabilities.adultOnly)
   );
 }
+
+
 

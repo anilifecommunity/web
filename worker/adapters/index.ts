@@ -1,6 +1,7 @@
 import type { ProviderAdapter } from '../../src/resolver';
 import { resolveAnichan } from './anichan';
 import { resolveAnimeHeaven } from './animeheaven';
+import { resolveReanime } from './reanime';
 
 /**
  * Adapters implemented in this Worker. Keyed by provider id; a provider absent here is not
@@ -9,4 +10,5 @@ import { resolveAnimeHeaven } from './animeheaven';
 export const ADAPTERS: Record<string, ProviderAdapter> = {
   anichan: resolveAnichan,
   animeheaven: resolveAnimeHeaven,
+  reanime: resolveReanime,
 };

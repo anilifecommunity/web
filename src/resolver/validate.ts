@@ -1,9 +1,9 @@
 import { ResolverError } from './errors';
-import type { PlaybackOffer, PlaybackStream, PlaybackSubtitle, SkipWindow } from './types';
+import type { PlaybackEmbed, PlaybackOffer, PlaybackStream, PlaybackSubtitle, SkipWindow } from './types';
 
 const TOP_KEYS = new Set([
   'schemaVersion', 'aniListId', 'malId', 'episodeRef', 'providerId',
-  'rightsStatus', 'browserSupport', 'streams', 'subtitles', 'skipWindows', 'errorCode',
+  'rightsStatus', 'browserSupport', 'streams', 'subtitles', 'skipWindows', 'errorCode', 'embed',
 ]);
 
 const RIGHTS = new Set(['approved', 'pending', 'denied', 'unknown']);
@@ -73,6 +73,20 @@ function parseSkipWindow(value: unknown): SkipWindow | null {
   };
 }
 
+function parseEmbed(value: unknown): PlaybackEmbed | null {
+  if (!isRecord(value)) return null;
+  if (!isHttpsUrl(value.url)) return null;
+  if (value.providerId != null && typeof value.providerId !== 'string') return null;
+  if (value.kind != null && value.kind !== 'player') return null;
+  if (value.supportsProgress != null && typeof value.supportsProgress !== 'boolean') return null;
+  return {
+    url: value.url,
+    ...(typeof value.providerId === 'string' ? { providerId: value.providerId } : {}),
+    kind: 'player',
+    supportsProgress: value.supportsProgress === true,
+  };
+}
+
 /**
  * Validates an untrusted provider payload before it reaches the player.
  * Returns null on any structural or policy violation; never coerces a value into looking valid.
@@ -89,8 +103,12 @@ export function parsePlaybackOffer(input: unknown): PlaybackOffer | null {
   if (typeof input.providerId !== 'string' || input.providerId.length === 0) return null;
   if (!RIGHTS.has(String(input.rightsStatus))) return null;
   if (!SUPPORT.has(String(input.browserSupport))) return null;
-  if (!Array.isArray(input.streams) || input.streams.length === 0) return null;
+  if (!Array.isArray(input.streams)) return null;
   if (!Array.isArray(input.subtitles)) return null;
+
+  const embed = input.embed == null ? null : parseEmbed(input.embed);
+  if (input.embed != null && !embed) return null;
+  if (input.streams.length === 0 && !embed) return null;
 
   const streams = input.streams.map(parseStream);
   if (streams.some((stream) => stream === null)) return null;
@@ -119,6 +137,7 @@ export function parsePlaybackOffer(input: unknown): PlaybackOffer | null {
     streams: streams as PlaybackStream[],
     subtitles: subtitles as PlaybackSubtitle[],
     ...(skipWindows ? { skipWindows } : {}),
+    ...(embed ? { embed } : {}),
     ...(input.errorCode != null ? { errorCode: input.errorCode as string } : {}),
   };
 }

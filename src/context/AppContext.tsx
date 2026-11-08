@@ -154,6 +154,8 @@ interface AppContextType {
   removeFromContinueWatching: (animeId: string) => void;
   setAnimeWatchStatus: (animeId: string, status: WatchStatus) => Promise<void>;
   playAnimeEpisode: (anime: Anime, episodeNum?: number, audioMode?: 'SUB' | 'DUB') => void;
+  /** Keeps a title available locally so history rows can resolve it later. */
+  rememberAnime: (anime: Anime) => void;
 
   
   currentUser: AniListUserData | null;
@@ -340,6 +342,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         
         ANIME_CATALOG.forEach(item => {
+          if (!uniqueMap.has(item.id)) {
+            uniqueMap.set(item.id, item);
+          }
+        });
+
+        // Keep titles remembered by playback or a deep link even when they are not in this
+        // AniList page: the Continue Watching row resolves against this catalogue.
+        loadCachedCatalog()?.forEach(item => {
           if (!uniqueMap.has(item.id)) {
             uniqueMap.set(item.id, item);
           }
@@ -637,13 +647,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveRecentSearches(activeProfile.id, []);
   };
 
+  const rememberAnime = (anime: Anime) => {
+    setLiveCatalog(prev => {
+      if (prev.some(item => item.id === anime.id)) return prev;
+      const next = [anime, ...prev];
+      saveCachedCatalog(next);
+      return next;
+    });
+  };
+
   const playAnimeEpisode = (anime: Anime, episodeNum: number = 1, audioMode: 'SUB' | 'DUB' = 'SUB') => {
+    rememberAnime(anime);
     setSelectedAnime(null);
     setActiveVideo({
       anime,
       episodeNumber: episodeNum,
       audioMode,
-      serverId: settings.activeServer || 'zoko'
+      serverId: settings.activeServer || 'reanime'
     });
   };
 
@@ -652,6 +672,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         activeTab,
         setActiveTab,
+        rememberAnime,
         selectedAnime,
         setSelectedAnime,
         activeVideo,

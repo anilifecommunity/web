@@ -49,6 +49,8 @@ export interface ProviderDefinition {
   embedParent?: string;
   /** One language a provider serves exclusively, when it is not English. */
   declaredLanguage?: string;
+  /** Whether this Worker ships an adapter. Used to order the picker, not to claim playback. */
+  implemented?: boolean;
   evidence?: ProviderEvidence[];
 }
 
@@ -85,7 +87,21 @@ export interface PlaybackOffer {
   subtitles: PlaybackSubtitle[];
   skipWindows?: SkipWindow[];
   errorCode?: string;
+  /**
+   * A provider player page the browser can frame directly. Used when the source hands back a
+   * hardened embed instead of a manifest; `streams` may be empty in that case.
+   */
+  embed?: PlaybackEmbed | null;
 }
+
+export interface PlaybackEmbed {
+  url: string;
+  providerId?: string;
+  kind?: 'player';
+  /** The iframe cannot report time, so the UI offers manual watched marking. */
+  supportsProgress?: boolean;
+}
+
 
 export interface ResolveRequest {
   aniListId: number;

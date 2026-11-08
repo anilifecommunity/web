@@ -98,7 +98,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   subtitleOffsetSec: 0,
 
   
-  activeServer: 'zoko',
+  activeServer: 'reanime',
   serverPriority: [
     'zoko',
     'bee',

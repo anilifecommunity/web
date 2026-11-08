@@ -135,6 +135,20 @@ test('rejects non-https and empty stream lists', () => {
   assert.equal(parsePlaybackOffer(offer({ streams: [] })), null);
 });
 
+test('accepts an embed offer with no streams', () => {
+  assert.ok(parsePlaybackOffer(offer({
+    streams: [],
+    embed: { url: 'https://flixcloud.cc/e/abc?v=1', providerId: 'reanime', kind: 'player', supportsProgress: false },
+  })));
+});
+
+test('rejects an embed with a non-https url', () => {
+  assert.equal(parsePlaybackOffer(offer({
+    streams: [],
+    embed: { url: 'http://flixcloud.cc/e/abc', kind: 'player' },
+  })), null);
+});
+
 test('rejects unknown keys and malformed skip windows', () => {
   assert.equal(parsePlaybackOffer({ ...offer(), extra: true } as unknown), null);
   assert.equal(parsePlaybackOffer(offer({
@@ -225,6 +239,22 @@ test('rejects an offer that names another provider or episode', async () => {
   });
   assert.equal(result.ok, false);
   assert.equal(result.attempts[0].reason, 'invalid_response');
+});
+
+test('returns an embed offer for a provider player page', async () => {
+  const adapters: Record<string, ProviderAdapter> = {
+    [A]: async () => offer({
+      streams: [],
+      embed: { url: 'https://flixcloud.cc/e/abc?v=1', providerId: A, kind: 'player', supportsProgress: false },
+    }),
+  };
+  const result = await resolvePlayback({
+    request: { ...request, audio: 'dub' },
+    policy: { selectedProvider: A, allowFallback: false },
+    adapters,
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(result.offer.embed?.url, 'https://flixcloud.cc/e/abc?v=1');
 });
 
 test('times out a provider that never answers', async () => {

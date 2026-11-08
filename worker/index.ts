@@ -32,6 +32,7 @@ function publicProviders(): unknown[] {
     webStatus: provider.webStatus,
     rightsStatus: provider.rightsStatus,
     declaredLanguage: provider.declaredLanguage ?? null,
+    implemented: provider.implemented === true,
   }));
 }
 

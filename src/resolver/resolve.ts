@@ -74,7 +74,7 @@ export async function resolvePlayback(options: ResolveOptions): Promise<ResolveR
       if (offer.aniListId !== request.aniListId) throw new ResolverError('invalid_response');
       if (offer.episodeRef !== request.episodeRef) throw new ResolverError('invalid_response');
       if (offer.browserSupport === 'unsupported') throw new ResolverError('browser_codec');
-      if (!audioMatches(request, offer)) throw new ResolverError('audio_unavailable');
+      if (!offer.embed && !audioMatches(request, offer)) throw new ResolverError('audio_unavailable');
 
       attempts.push({ providerId, ok: true });
       return { ok: true, offer, attempts };

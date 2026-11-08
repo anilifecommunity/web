@@ -568,7 +568,7 @@ const USER_DATA_CACHE_KEY = 'anilife_anilist_data_v3';
 
 export function loadOAuthToken(): string | null {
   try {
-    return localStorage.getItem(OAUTH_KEY);
+    return sessionStorage.getItem(OAUTH_KEY);
   } catch {
     return null;
   }
@@ -576,7 +576,7 @@ export function loadOAuthToken(): string | null {
 
 export function saveOAuthToken(token: string): void {
   try {
-    localStorage.setItem(OAUTH_KEY, token);
+    sessionStorage.setItem(OAUTH_KEY, token);
   } catch {
     
   }
@@ -584,7 +584,7 @@ export function saveOAuthToken(token: string): void {
 
 export function clearOAuthToken(): void {
   try {
-    localStorage.removeItem(OAUTH_KEY);
+    sessionStorage.removeItem(OAUTH_KEY);
   } catch {
     
   }
@@ -625,4 +625,5 @@ export function loadCachedAniListData(): any | null {
     return null;
   }
 }
+
 

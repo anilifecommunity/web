@@ -67,11 +67,11 @@ export async function resolveEpisode(params: ResolveParams, signal?: AbortSignal
 export async function getGateStatus(): Promise<boolean> {
   try {
     const response = await fetch('/api/gate/status');
-    if (!response.ok) return true;
+    if (!response.ok) return false;
     const data = (await response.json()) as { passed?: boolean };
     return data.passed === true;
   } catch {
-    return true;
+    return false;
   }
 }
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { safeImageUrl } from '../utils/safeUrl';
 import { useApp } from '../context/AppContext';
 import { WatchStatus } from '../types/anime';
 import {
@@ -65,7 +66,7 @@ export const MyListView: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#74cf66] p-0.5 shrink-0 bg-black/60">
             <img
-              src={currentUser?.avatar?.large || activeProfile.avatar}
+              src={safeImageUrl(currentUser?.avatar?.large || activeProfile.avatar, '/assets/images/Anilife-Logo.png')}
               alt={currentUser?.name || activeProfile.name}
               className="w-full h-full object-cover rounded-full"
             />
@@ -319,3 +320,4 @@ export const MyListView: React.FC = () => {
     </div>
   );
 };
+

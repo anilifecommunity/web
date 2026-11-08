@@ -78,7 +78,7 @@
 
       function finish(tok) {
         try {
-          localStorage.setItem('anilife_oauth_token', tok);
+          sessionStorage.setItem('anilife_oauth_token', tok);
         } catch (e) {}
 
         if (window.opener) {

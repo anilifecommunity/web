@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { htmlToText } from '../utils/text';
 import {
   Anime,
   AppSettings,
@@ -89,7 +90,7 @@ export function convertAniListToAnime(m: AniListMedia): Anime {
     status: m.status === 'FINISHED' ? 'Finished' : 'Releasing',
     durationMins: m.duration || 24,
     genres: m.genres && m.genres.length > 0 ? m.genres : ['Action', 'Fantasy'],
-    synopsis: m.description ? m.description.replace(/<[^>]*>/g, '').replace(/&#039;/g, "'").replace(/&quot;/g, '"') : 'No synopsis available.',
+    synopsis: m.description ? htmlToText(m.description) : 'No synopsis available.',
     studio: m.studios?.nodes?.[0]?.name || 'Animation Studio',
     startDate: m.seasonYear ? `${m.season || 'Fall'} ${m.seasonYear}` : '2024',
     seasonName: m.season || 'Fall',
@@ -252,36 +253,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       document.documentElement.style.setProperty('--anilife-bg', '#0e0d16');
     }
   }, [settings.accentColor, settings.canvasBackground]);
-
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const token = hashParams.get('access_token');
-      if (token) {
-        saveOAuthToken(token);
-        if (window.opener) {
-          try {
-            window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token }, '*');
-            window.close();
-          } catch {}
-        }
-        loginWithToken(token);
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    }
-
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
-        const token = event.data.token || loadOAuthToken();
-        if (token) {
-          loginWithToken(token);
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   
   useEffect(() => {
@@ -739,4 +710,5 @@ export const useApp = () => {
   }
   return context;
 };
+
 

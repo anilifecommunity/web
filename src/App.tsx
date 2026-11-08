@@ -87,6 +87,8 @@ const AppContent: React.FC = () => {
       )}
 
       {}
+      {hasSelectedProfileSession && (
+        <>
       <div
         className={`relative z-10 flex flex-col min-h-screen transition-all ${
           settings.navigationLayout === 'sidebar' ? 'md:pl-16' : ''
@@ -101,10 +103,9 @@ const AppContent: React.FC = () => {
           {activeTab === 'mylist' && <MyListView />}
         </main>
       </div>
+        </>
+      )}
 
-      {}
-
-      {}
       {showIntro && (
         <AppIntro
           onFinish={() => {
@@ -127,6 +128,8 @@ const AppContent: React.FC = () => {
       )}
 
       {}
+      {hasSelectedProfileSession && (
+        <>
       {selectedAnime && (
         <AnimeDetailModal
           anime={selectedAnime}
@@ -162,6 +165,8 @@ const AppContent: React.FC = () => {
       {}
       {showAuthModal && (
         <AniListAuthModal onClose={() => setShowAuthModal(false)} />
+      )}
+        </>
       )}
     </div>
   );

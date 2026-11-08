@@ -32,16 +32,37 @@ const WATCH_NUMBER = /<div\b[^>]*\bwatch2\b[^>]*>\s*(\d+(?:\.\d+)?)\s*<\/div>/i;
 const SOURCE_TAG = /<source\b[^>]*>/gi;
 const HTML_COMMENT = /<!--[\s\S]*?-->/g;
 
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  '#039': "'",
+};
+
+function fromCodePoint(value: number): string | null {
+  try {
+    return Number.isFinite(value) && value >= 0 && value <= 0x10ffff
+      ? String.fromCodePoint(value)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export function decodeEntities(value: string): string {
-  return value
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#0*39;|&apos;/gi, "'")
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)));
+  return value.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]+);/gi, (match, code: string) => {
+    const lower = code.toLowerCase();
+    if (lower.startsWith('#x')) {
+      return fromCodePoint(parseInt(lower.slice(2), 16)) ?? match;
+    }
+    if (lower.startsWith('#')) {
+      return fromCodePoint(Number(lower.slice(1))) ?? match;
+    }
+    return NAMED_ENTITIES[lower] ?? match;
+  });
 }
 
 export function stripTags(value: string): string {
@@ -102,7 +123,12 @@ export function parseEpisodes(html: string): HeavenEpisode[] {
  * clip); comments are stripped, and when the gate key is known only files carrying it are kept.
  */
 export function parseVideoUrls(html: string, gateKey: string): string[] {
-  const cleaned = html.replace(HTML_COMMENT, '');
+  let cleaned = html;
+  let previous = '';
+  while (cleaned !== previous) {
+    previous = cleaned;
+    cleaned = cleaned.replace(HTML_COMMENT, '');
+  }
   const urls = [...cleaned.matchAll(SOURCE_TAG)]
     .map((match) => attr(match[0], 'src')?.trim() ?? '')
     .filter((url) => /\.mp4/i.test(url));

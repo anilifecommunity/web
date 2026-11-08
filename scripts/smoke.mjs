@@ -48,9 +48,9 @@ await check('resolve refuses an arbitrary destination', async () => {
   });
   const response = await fetch(`${base}/api/resolve?${query}`);
   assert([400, 403, 404].includes(response.status), `status ${response.status}`);
-  const text = await response.text();
-  assert(!text.includes('example.org'), 'upstream URL leaked into the response');
-  return `status ${response.status}`;
+  const data = await response.json();
+  assert(data.ok === false, 'expected a JSON failure');
+  return `${response.status} ${data.error}`;
 });
 
 await check('app shell', async () => {

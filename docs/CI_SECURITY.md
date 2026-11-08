@@ -30,39 +30,34 @@ Node 24 matches the local toolchain and Vite 8's supported range.
 
 | Feature | Configured in Git | GitHub setting | Verified live | Owner action |
 | --- | --- | --- | --- | --- |
-| CI (lint/test/build/smoke) | Yes | Not applicable | Pending first run | None |
-| Advanced CodeQL | Yes | Default setup not configured | Pending first run | Keep default setup off |
-| Dependabot config | Yes | Not applicable | Pending first PR | None |
-| Dependency graph | No file needed | Unknown (SBOM 404) | Unverified | Enable if disabled |
+| CI (lint/test/build/smoke) | Yes | Not applicable | Yes, `main` run passed | None |
+| Advanced CodeQL | Yes | Default setup not configured | Yes, `main` run passed | Keep default setup off |
+| Dependabot config | Yes | Not applicable | Yes, update PRs opened | None |
+| Dependency graph | No file needed | Disabled | Yes (SBOM 404) | Enable |
 | Dependabot alerts | No file needed | Enabled | Yes (204) | None |
-| Dependabot security updates | No file needed | Disabled | Yes | Enable |
-| Code scanning | Yes (workflow) | Default setup not configured | No analysis yet | None after first run |
-| Secret scanning | No file needed | Disabled | Yes | Enable |
-| Secret scanning push protection | No file needed | Disabled | Yes | Enable |
-| Private vulnerability reporting | No file needed | Disabled | Yes | Enable |
+| Dependabot security updates | No file needed | Enabled | Yes | None |
+| Code scanning | Yes (workflow) | Default setup not configured | Yes, 16 alerts published | Triage alerts |
+| Secret scanning | No file needed | Enabled | Yes | None |
+| Secret scanning push protection | No file needed | Enabled | Yes | None |
+| Private vulnerability reporting | No file needed | Enabled | Yes | None |
 | Ruleset for `main` | Template only | No rulesets | Yes | Import template |
 | Branch protection | Not used | Not protected | Yes | Use a ruleset |
 | Actions default token | Not applicable | Read-only | Yes | None |
-| Require SHA-pinned actions | Not applicable | Disabled | Yes | Enable |
+| Require SHA-pinned actions | Not applicable | Enabled | Yes | None |
 | Production environment | Not used | No environments | Yes | Optional |
 
 ## Owner actions
 
-Open `https://github.com/anilifecommunity/web/settings/security_analysis` and set:
+Dependency graph is the only blocking setting: dependency review cannot run until it is enabled.
+Open `https://github.com/anilifecommunity/web/settings/security_analysis` and:
 
-1. **Dependency graph** - enable.
-2. **Dependabot alerts** - already enabled; leave on.
-3. **Dependabot security updates** - enable.
-4. **Code scanning** - do **not** enable default setup. The advanced workflow in
-   `.github/workflows/codeql.yml` owns CodeQL. Running both creates duplicate analyses.
-5. **Secret scanning** - enable.
-6. **Push protection** - enable.
-7. **Private vulnerability reporting** - enable.
+1. **Dependency graph** - enable. This is a GitHub UI setting with no REST endpoint; the API PATCH
+   does not change it.
+2. **Code scanning** - keep default setup **off**. The advanced workflow owns CodeQL.
+3. Confirm Dependabot alerts, Dependabot security updates, secret scanning, push protection and
+   private vulnerability reporting remain on. They were enabled and verified on 2026-11-08.
 
-Open `https://github.com/anilifecommunity/web/settings/actions`:
-
-1. Workflow permissions: **Read repository contents** (already verified).
-2. Enable **Require actions to be pinned to a full-length commit SHA**.
+After dependency graph is on, re-run the Dependency review check on the open Dependabot PRs.
 
 Open `https://github.com/anilifecommunity/web/settings/rules`:
 

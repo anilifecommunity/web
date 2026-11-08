@@ -59,7 +59,8 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
 
   const startAdd = () => {
     setNameInput('');
-    setAvatarInput(POPULAR_AVATARS[Math.floor(Math.random() * POPULAR_AVATARS.length)].url);
+    const randomIndex = crypto.getRandomValues(new Uint32Array(1))[0] % POPULAR_AVATARS.length;
+    setAvatarInput(POPULAR_AVATARS[randomIndex].url);
     setPinCode('');
     setMode('add');
   };

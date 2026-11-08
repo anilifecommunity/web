@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile } from '../types/anime';
+import { safeImageUrl } from '../utils/safeUrl';
 import { POPULAR_AVATARS } from '../utils/storage';
 import {
   X,
@@ -357,7 +358,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
             {}
             <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/5">
               <img
-                src={customAvatarUrl.trim() || formAvatar}
+                src={safeImageUrl(customAvatarUrl.trim() || formAvatar, POPULAR_AVATARS[0].url)}
                 alt="Avatar"
                 className="w-16 h-16 rounded-full object-cover border-2 shadow-md shrink-0"
                 style={{ borderColor: formAccent }}
@@ -519,4 +520,5 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
     </div>
   );
 };
+
 

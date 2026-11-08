@@ -126,7 +126,20 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [phase]);
 
-  if (phase === 'passed' || phase === 'checking') return <>{children}</>;
+  if (phase === 'passed') return <>{children}</>;
+
+  if (phase === 'checking') {
+    return (
+      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-[#08080a] text-center">
+        <img
+          src="/assets/images/Anilife-Logo.png"
+          alt="Anilife"
+          className="h-16 w-16 rounded-2xl object-contain opacity-90"
+        />
+        <p className="mt-4 text-xs font-semibold tracking-wide text-zinc-500">Starting Anilife...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0e0d16] px-4">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { safeImageUrl } from '../utils/safeUrl';
 import { useApp } from '../context/AppContext';
 import {
   Home,
@@ -173,7 +174,7 @@ export const HeaderNav: React.FC = () => {
             title={`Profile: ${activeProfile.name}`}
           >
             <img
-              src={activeProfile.avatar}
+              src={safeImageUrl(activeProfile.avatar, '/assets/images/Anilife-Logo.png')}
               alt={activeProfile.name}
               className="w-8 h-8 rounded-full object-cover ring-2 ring-[#74cf66] shrink-0"
             />
@@ -273,7 +274,7 @@ export const HeaderNav: React.FC = () => {
             className="p-1 rounded-full hover:ring-2 hover:ring-[#74cf66] transition-all cursor-pointer ml-1"
           >
             <img
-              src={activeProfile.avatar}
+              src={safeImageUrl(activeProfile.avatar, '/assets/images/Anilife-Logo.png')}
               alt={activeProfile.name}
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover"
             />
@@ -283,4 +284,5 @@ export const HeaderNav: React.FC = () => {
     </header>
   );
 };
+
 

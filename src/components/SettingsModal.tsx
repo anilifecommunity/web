@@ -877,9 +877,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         ? 'Retry'
                         : discord.status === 'connecting'
                           ? 'Connecting...'
-                          : isDiscordActivity()
-                            ? 'Connect Discord'
-                            : 'Open Discord'}
+                          : 'Connect Discord'}
                   </button>
                 </div>
 

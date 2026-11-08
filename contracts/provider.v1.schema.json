@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anilife.cc/contracts/provider.v1.schema.json",
+  "title": "Anilife Provider Registry Entry (proposal)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "catalogue",
+    "displayName",
+    "capabilities",
+    "webStatus",
+    "rightsStatus"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "catalogue": {
+      "enum": [
+        "miruro",
+        "anivexa",
+        "other"
+      ]
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "androidId": {
+      "type": "string"
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "audio": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "sub",
+              "dub",
+              "multi"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "subtitles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "soft",
+              "hard",
+              "external"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "hls",
+              "mp4",
+              "dash",
+              "iframe",
+              "unknown"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "adultOnly": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webStatus": {
+      "enum": [
+        "unverified",
+        "browser-direct",
+        "worker-metadata-only",
+        "native-only",
+        "unavailable",
+        "permission-pending"
+      ]
+    },
+    "rightsStatus": {
+      "enum": [
+        "unknown",
+        "approved",
+        "denied",
+        "pending"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "test": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "test"
+        ]
+      }
+    }
+  }
+}

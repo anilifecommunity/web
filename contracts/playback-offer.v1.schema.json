@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anilife.cc/contracts/playback-offer.v1.schema.json",
+  "title": "Normalized playback offer (proposal)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "aniListId",
+    "episodeRef",
+    "providerId",
+    "rightsStatus",
+    "browserSupport",
+    "streams",
+    "subtitles"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "aniListId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "malId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "episodeRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "providerId": {
+      "type": "string"
+    },
+    "rightsStatus": {
+      "enum": [
+        "approved",
+        "pending",
+        "denied",
+        "unknown"
+      ]
+    },
+    "browserSupport": {
+      "enum": [
+        "supported",
+        "unsupported",
+        "unknown"
+      ]
+    },
+    "streams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "format",
+          "audio",
+          "url"
+        ],
+        "properties": {
+          "format": {
+            "enum": [
+              "hls",
+              "mp4",
+              "dash"
+            ]
+          },
+          "audio": {
+            "enum": [
+              "sub",
+              "dub",
+              "multi",
+              "unknown"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "quality": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "subtitles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "language",
+          "url"
+        ],
+        "properties": {
+          "language": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "vtt",
+              "srt",
+              "unknown"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "skipWindows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "startMs",
+          "endMs"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "intro",
+              "outro",
+              "recap",
+              "filler"
+            ]
+          },
+          "startMs": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "endMs": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "errorCode": {
+      "type": "string"
+    }
+  }
+}

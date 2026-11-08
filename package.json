@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test": "tsx --test src/utils/playerUtils.test.ts src/utils/scraperParsers.test.ts"
+    "test": "tsx --test src/utils/playerUtils.test.ts src/utils/scraperParsers.test.ts src/resolver/resolver.test.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

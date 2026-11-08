@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anilife.cc/contracts/settings-portable.v1.schema.json",
+  "title": "Portable Anilife preferences proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "portable",
+    "platform",
+    "profile"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "portable": {
+      "type": "object",
+      "properties": {
+        "themeId": {
+          "type": "string"
+        },
+        "titleLanguage": {
+          "type": "string"
+        },
+        "audioLanguage": {
+          "type": "string"
+        },
+        "subtitleLanguage": {
+          "type": "string"
+        },
+        "autoplay": {
+          "type": "boolean"
+        },
+        "skipIntro": {
+          "type": "boolean"
+        },
+        "providerOrder": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "disabledProviders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "watchedThresholdPercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": true
+    },
+    "platform": {
+      "type": "object",
+      "description": "Namespaced browser/Android-specific settings; never assume portable."
+    },
+    "profile": {
+      "type": "object",
+      "description": "Profile-specific preferences separated from portable defaults."
+    }
+  }
+}

@@ -20,7 +20,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "hls.js": "^1.7.4",
     "lucide-react": "^1.69.0",
-    "motion": "^12.23.24",
+    "motion": "^14.9.1",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "vite": "^8.3.6"

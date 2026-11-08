@@ -10,9 +10,12 @@ native-only and unavailable entries stay registered but are never offered or que
 | --- | --- | --- | --- |
 | Reanime | Worker reads `/api/flix/{anilistId}/{episode}`, picks the sub/dub face | Flixcloud player in an iframe | 2026-11-08, Chromium: Solo Leveling and Overgeared play; Mark watched writes Continue Watching |
 | VidSrc | AniZip maps AniList id/episode to TMDB season/episode; Worker returns the VidSrc embed | VidSrc player in an iframe | 2026-11-08: mapping and embed URL verified, iframe loaded; media startup still needs a user test |
+| VidLink | AniZip TMDB mapping; Worker returns the VidLink embed | VidLink player in an iframe | 2026-11-08: Chromium loaded a video element with the correct title and timestamps |
+| VidFast | AniZip TMDB mapping; Worker returns the VidFast embed | VidFast player in an iframe | 2026-11-08: Chromium loaded a video element and subtitle controls |
+| 2Embed | AniZip IMDb mapping; Worker returns the 2Embed player | 2Embed iframe | 2026-11-08: player page exposes the embed; user playback test pending |
 
-VidSrc is the automatic fallback after Reanime. It is not preferred, and a failed embed falls back
-to Reanime when the order allows. Both are anonymous `Server N` entries in the player.
+These are automatic fallbacks after Reanime and separate anonymous `Server N` entries in the
+player. Reanime remains the default.
 
 The iframe cannot report elapsed time, so progress is explicit: opening an episode records it as
 started, and **Mark watched** records completion.

@@ -34,6 +34,23 @@ id for the host. The same registry is served read-only at `GET /api/providers` a
 | Vidmoly | Player host | Requires auth | Homepage 401. Authentication was not bypassed. |
 | MP4Upload | Player host | Iframe blocked | Homepage 200 with `X-Frame-Options: SAMEORIGIN`. |
 
+## VidSrc-style embed aggregators
+
+These accept a TMDB or IMDb id. AniZip supplies the mapping. They are separate anonymous fallback
+servers, not defaults.
+
+| Aggregator | Status | Evidence |
+| --- | --- | --- |
+| VidSrc | **ENABLED** | AniZip -> TMDB; embed page 200, no frame blocking; iframe loads. User playback test pending. |
+| VidLink | **ENABLED** | AniZip -> TMDB; Chromium loaded a video element with the correct title and timestamps. |
+| VidFast | **ENABLED** | AniZip -> TMDB; Chromium loaded a video element with fetch/subtitle controls. User playback test pending. |
+| 2Embed | **ENABLED** | AniZip -> IMDb; 2embed.skin exposes the player embed. User playback test pending. |
+| VidNest | **BLOCKED** | Browser tunnel failed with `ERR_TUNNEL_CONNECTION_FAILED`; not added. |
+| VixSrc | **BLOCKED** | Player page opened an ad/popunder redirect in the test browser; not added. |
+| MultiEmbed / SuperEmbed | Unverified | Redirects to `streamingnow.mov` with a generated play token; not added. |
+| SmashyStream, AutoEmbed, MoviesAPI, Embed.su | Unreachable | Plain fetch failed; no adapter. |
+| Frembed | Unverified | API endpoint returned 401/Loading; no adapter. |
+
 ## WCostream
 
 `wcostream.tv` was tested on 2026-11-08. The plain Worker request receives Cloudflare's 403

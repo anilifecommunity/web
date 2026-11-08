@@ -681,7 +681,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               <div className="flex items-center justify-between pt-2">
                 <div>
                   <h3 className="text-sm font-bold text-white">Server Priority Order</h3>
-                  <p className="text-xs text-zinc-400">Only browser-verified servers are listed. Order drives automatic lookup and failover.</p>
+                  <p className="text-xs text-zinc-400">Only browser-capable servers are listed. Order drives automatic lookup and failover.</p>
                 </div>
                 <button
                   onClick={() => {

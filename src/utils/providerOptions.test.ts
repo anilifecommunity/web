@@ -55,5 +55,5 @@ test('downstream registry is unique and only verified hosts are in use', () => {
   const ids = DOWNSTREAMS.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length);
   const inUse = DOWNSTREAMS.filter((item) => item.status === 'in-use').map((item) => item.id);
-  assert.deepEqual(inUse, ['flixcloud', 'vidsrc']);
+  assert.deepEqual(inUse, ['flixcloud', 'vidsrc', 'vidlink', 'vidfast']);
 });

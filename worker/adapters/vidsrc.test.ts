@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildEmbedUrl, findEpisode } from './vidsrc';
+import { findAniZipEpisode } from './anizip';
+import { buildEmbedUrl } from './vidsrc';
 
 test('maps an AniList episode to its TMDB season and episode', () => {
   const mapping = {
@@ -9,7 +10,7 @@ test('maps an AniList episode to its TMDB season and episode', () => {
       '2': { seasonNumber: 3, episodeNumber: 14 },
     },
   };
-  assert.deepEqual(findEpisode(mapping, '2'), { season: 3, episode: 14 });
+  assert.deepEqual(findAniZipEpisode(mapping, '2'), { season: 3, episode: 14 });
 });
 
 test('falls back to an absolute episode number when the key is missing', () => {
@@ -18,7 +19,7 @@ test('falls back to an absolute episode number when the key is missing', () => {
       a: { seasonNumber: 2, episodeNumber: 5, absoluteEpisodeNumber: 17 },
     },
   };
-  assert.deepEqual(findEpisode(mapping, '17'), { season: 2, episode: 5 });
+  assert.deepEqual(findAniZipEpisode(mapping, '17'), { season: 2, episode: 5 });
 });
 
 test('builds TV and movie embed URLs', () => {

@@ -191,6 +191,54 @@ const OTHER: ProviderDefinition[] = [
     ],
   },
   {
+    id: 'vidlink',
+    catalogue: 'other',
+    displayName: 'VidLink',
+    capabilities: { audio: ['sub', 'dub'], formats: ['iframe'], subtitles: [] },
+    webStatus: 'iframe',
+    rightsStatus: 'unknown',
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'AniZip TMDB mapping; vidlink.pro/tv/{tmdb}/{season}/{episode} loaded a video element in Chromium and showed the correct title and timestamps.',
+        browser: 'Chromium',
+        url: 'https://vidlink.pro',
+      },
+    ],
+  },
+  {
+    id: 'vidfast',
+    catalogue: 'other',
+    displayName: 'VidFast',
+    capabilities: { audio: ['sub', 'dub'], formats: ['iframe'], subtitles: [] },
+    webStatus: 'iframe',
+    rightsStatus: 'unknown',
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'AniZip TMDB mapping; vidfast.vc/tv/{tmdb}/{season}/{episode} loaded a video element with fetch/subtitle controls in Chromium. Media startup needs a user test.',
+        browser: 'Chromium',
+        url: 'https://vidfast.vc',
+      },
+    ],
+  },
+  {
+    id: '2embed',
+    catalogue: 'other',
+    displayName: '2Embed',
+    capabilities: { audio: ['sub', 'dub'], formats: ['iframe'], subtitles: [] },
+    webStatus: 'iframe',
+    rightsStatus: 'unknown',
+    evidence: [
+      {
+        date: '2026-11-08',
+        test: 'AniZip TMDB mapping; 2embed.cc returned a player page with an iframe to streamsrcs.2embed.cc and no X-Frame-Options. Browser tunnel test did not complete, so media startup is unverified.',
+        browser: 'none (page probe)',
+        url: 'https://www.2embed.cc',
+      },
+    ],
+  },
+  {
     id: 'onepace',
     catalogue: 'other',
     displayName: 'One Pace',

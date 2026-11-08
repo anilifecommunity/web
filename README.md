@@ -77,6 +77,7 @@ security headers apply to every response. Preview hosts ending in `.workers.dev`
 - `docs/OPERATIONS.md` - secrets, deploy, rollback, OAuth and Turnstile
 - `docs/RELEASE.md` - release gates and known limitations
 - `docs/SECURITY.md` - security model and reporting
+- `docs/CI_SECURITY.md` - CI, CodeQL, Dependabot and GitHub settings
 - `docs/PRIVACY.md` - what is stored and what leaves the device
 - `docs/ANDROID_PARITY.md` - the Android-to-web parity plan
 - `docs/PROVIDER_MATRIX.md` - dated provider evidence

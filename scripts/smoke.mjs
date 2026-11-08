@@ -42,7 +42,7 @@ await check('resolve refuses an arbitrary destination', async () => {
   const query = new URLSearchParams({
     aniListId: '1',
     episode: '1',
-    provider: 'anichan',
+    provider: 'bee',
     url: 'https://example.org/secret',
     referer: 'https://evil.example/',
   });

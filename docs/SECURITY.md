@@ -2,9 +2,23 @@
 
 ## Reporting
 
-Report a vulnerability privately to the maintainers; do not open a public issue with exploit
-details. Include the route, browser, and a minimal reproduction. Never include tokens, cookies or
-personal data in a report.
+Use GitHub's **private vulnerability reporting** on this repository when it is enabled
+(Settings > Code security and analysis). Until then, contact the maintainer privately through
+their GitHub profile; do not open a public issue with exploit details.
+
+Include the affected route or file, browser, impact and a minimal reproduction. Never include
+tokens, cookies, passwords or personal data in a report.
+
+We aim to acknowledge a report within 3 business days, complete an initial assessment within 10
+business days, and coordinate disclosure after a fix or mitigation exists. This is a volunteer
+open-source project; there is no bug bounty.
+
+## Out of scope
+
+- Vulnerabilities in third-party provider sites, players or CDNs. Report those to the provider.
+- Content rights or takedown requests. Contact the maintainer privately.
+- Issues that require modifying the Android app; that repository has its own policy.
+- Reports from scanning a preview deployment that do not reproduce on `anilife.cc`.
 
 ## Model
 
@@ -26,8 +40,9 @@ personal data in a report.
 - No secret belongs in source, the bundle, `VITE_*`, Git history, an issue or a log.
 - AniList uses the public implicit flow; there is no client secret.
 - Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET` and `GATE_SIGNING_KEY`.
-- The historical AniList client secret that shipped in the old web source must be revoked at
-  AniList by the application owner. Removing it from HEAD is not a rotation.
+- The historical AniList client secret that shipped in the old web source was revoked by the
+  application owner on 2026-11-08. Removing a secret from HEAD is not a rotation; revoke it at the
+  provider first, then remove it from history if appropriate.
 
 ## Tokens
 
@@ -39,3 +54,10 @@ files or the Worker.
 
 Local diagnostics are bounded and redacted: URLs, tokens, passwords, cookies, titles and
 identifiers are dropped. Upload toggles default to OFF and no upload endpoint is called.
+
+## Continuous security
+
+CodeQL, dependency review, Dependabot and the repository settings checklist are documented in
+[CI_SECURITY.md](CI_SECURITY.md). Automated scanning does not replace the manual review checklist
+there, especially for the Worker allowlists, Turnstile gate, iframe embeds, OAuth token handling
+and local profile storage.

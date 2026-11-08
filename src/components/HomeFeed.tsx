@@ -246,9 +246,9 @@ export const HomeFeed: React.FC = () => {
 
                   {}
                   <div className="absolute bottom-0 inset-x-0 p-3 space-y-1 z-10">
-                    <h4 className="font-bold text-sm text-white truncate group-hover:text-[#74cf66] transition-colors">
+                    <h3 className="font-bold text-sm text-white truncate group-hover:text-[#74cf66] transition-colors">
                       {anime.title}
-                    </h4>
+                    </h3>
                     <p className="text-xs text-zinc-300 truncate">
                       Episode {entry.episodeNumber} • {entry.audioMode || 'SUB'}
                     </p>

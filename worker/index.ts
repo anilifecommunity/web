@@ -145,6 +145,13 @@ async function handleGateVerify(request: Request, env: Env): Promise<Response> {
     return json({ ok: true, bypassed: true });
   }
 
+  const limited = hit(`gate:${clientKey(request)}`, 10, 60_000);
+  if (!limited.allowed) {
+    return json({ ok: false, error: 'rate_limited' }, 429, {
+      'Retry-After': String(limited.retryAfterSec),
+    });
+  }
+
   let token = '';
   try {
     const body = (await request.json()) as { token?: unknown };
@@ -169,6 +176,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const path = url.pathname;
 
   if (!path.startsWith('/api/')) {
+    // The OAuth return page is a static file, but the extensionless route would otherwise fall
+    // through to the SPA shell and leave the token in the fragment unread.
+    if (path === '/auth/callback' || path === '/auth/callback/') {
+      const asset = new URL('/auth/callback.html', url.origin);
+      return env.ASSETS.fetch(new Request(asset.toString(), request));
+    }
     return env.ASSETS.fetch(request);
   }
 
@@ -216,7 +229,7 @@ const CONTENT_SECURITY_POLICY = [
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https:",
+  "connect-src 'self' https://graphql.anilist.co https://cdn.jsdelivr.net https://raw.githubusercontent.com https://api.aniskip.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
   "frame-src 'self' https:",
   "form-action 'self' https://anilist.co",

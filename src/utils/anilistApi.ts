@@ -174,8 +174,8 @@ export function getAniListOAuthUrl(redirectUri?: string): string {
   const fixedUri =
     redirectUri ||
     (typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback`
-      : '/auth/callback');
+      ? `${window.location.origin}/auth/callback.html`
+      : '/auth/callback.html');
   const params = new URLSearchParams({
     client_id: ANILIST_CLIENT_ID,
     response_type: 'token',

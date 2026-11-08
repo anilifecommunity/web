@@ -100,7 +100,7 @@ export const HeaderNav: React.FC = () => {
             <img
               src="/assets/images/Anilife-Logo.png"
               alt="Anilife"
-              className="w-10 h-10 rounded-full shrink-0 group-hover:scale-105 transition-transform"
+              className="w-10 h-10 rounded-full shrink-0 object-contain group-hover:scale-105 transition-transform"
             />
             {isExpanded && (
               <span className="font-black text-lg text-white tracking-wide truncate">

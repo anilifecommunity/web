@@ -483,7 +483,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const initiateAniListOAuth = () => {
-    const redirectUri = `${window.location.origin}/auth/callback`;
+    const redirectUri = `${window.location.origin}/auth/callback.html`;
     const authUrl = getAniListOAuthUrl(redirectUri);
     window.location.href = authUrl;
   };

@@ -87,6 +87,14 @@ await check('service worker', async () => {
   return `status ${response.status}`;
 });
 
+await check('OAuth callback page', async () => {
+  const response = await fetch(`${base}/auth/callback.html`);
+  assert(response.ok, `status ${response.status}`);
+  const html = await response.text();
+  assert(html.includes('Connecting to AniList'), 'callback page not served');
+  return `status ${response.status}`;
+});
+
 await check('API 404 is JSON, not the SPA', async () => {
   const response = await fetch(`${base}/api/does-not-exist`);
   assert(response.status === 404, `status ${response.status}`);

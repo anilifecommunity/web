@@ -11,3 +11,7 @@ coverage/
 .private/
 .wrangler/
 .dev.vars
+
+# The repo keeps its documentation in docs/; override the global **/docs/ ignore.
+!docs/
+!docs/**

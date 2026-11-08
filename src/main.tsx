@@ -30,9 +30,29 @@ async function bootstrap(): Promise<void> {
 
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch((error) => {
-        console.warn('[pwa] service worker registration failed', error);
-      });
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) =>
+          registrations.forEach((registration) => {
+            const script =
+              registration.active?.scriptURL ||
+              registration.waiting?.scriptURL ||
+              registration.installing?.scriptURL ||
+              '';
+            // Drop a worker left behind by an older deployment with a different script path.
+            if (script && !script.includes('/sw.js')) {
+              void registration.unregister();
+            }
+          })
+        )
+        .catch(() => undefined);
+
+      navigator.serviceWorker
+        .register('/sw.js?v=2')
+        .then((registration) => registration.update().catch(() => undefined))
+        .catch((error) => {
+          console.warn('[pwa] service worker registration failed', error);
+        });
     });
   }
 }

@@ -73,11 +73,13 @@ security headers apply to every response. Preview hosts ending in `.workers.dev`
 
 ## Documentation
 
-- `PROVIDERS.md` - the 42 provider entries and their real web status
-- `OPERATIONS.md` - secrets, deploy, rollback, OAuth and Turnstile
-- `RELEASE.md` - release gates and known limitations
-- `SECURITY.md` - security model and reporting
-- `PRIVACY.md` - what is stored and what leaves the device
+- `docs/PROVIDERS.md` - the 42 provider entries and their real web status
+- `docs/OPERATIONS.md` - secrets, deploy, rollback, OAuth and Turnstile
+- `docs/RELEASE.md` - release gates and known limitations
+- `docs/SECURITY.md` - security model and reporting
+- `docs/PRIVACY.md` - what is stored and what leaves the device
+- `docs/ANDROID_PARITY.md` - the Android-to-web parity plan
+- `docs/PROVIDER_MATRIX.md` - dated provider evidence
 
 ## Licence
 

@@ -1,10 +1,12 @@
 import { AppSettings, ContinueWatchingEntry, UserProfile, WatchlistEntry, ThemePresetName } from '../types/anime';
 import { INITIAL_CONTINUE_WATCHING } from './animeData';
-import { PROVIDER_ORDER } from '../resolver';
+import { PROVIDERS, isAttemptable } from '../resolver';
 import { STORAGE_KEYS } from '../data/keys';
 import { putRecord } from '../data/idb';
 
 export { STORAGE_KEYS };
+
+const WEB_PROVIDER_IDS = PROVIDERS.filter(isAttemptable).map((provider) => provider.id);
 
 export const POPULAR_AVATARS = [
   { name: 'Satoru Gojo', url: 'https://s4.anilist.co/file/anilistcdn/character/large/b127691-9zqh1xpIubn7.png' },
@@ -100,8 +102,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
   
   activeServer: 'reanime',
-  serverPriority: [...PROVIDER_ORDER],
-  enabledServers: [...PROVIDER_ORDER],
+  serverPriority: [...WEB_PROVIDER_IDS],
+  enabledServers: [...WEB_PROVIDER_IDS],
 
   
   hideAdultContent: false,
@@ -131,15 +133,21 @@ const LEGACY_STORAGE_KEYS = {
 } as const;
 
 function normalizeProviderLists(settings: AppSettings): AppSettings {
-  const known = new Set(PROVIDER_ORDER);
+  const known = new Set(WEB_PROVIDER_IDS);
+
   const priority = (settings.serverPriority ?? []).filter((id) => known.has(id));
-  for (const id of PROVIDER_ORDER) {
+  for (const id of WEB_PROVIDER_IDS) {
     if (!priority.includes(id)) priority.push(id);
   }
-  const enabled = (settings.enabledServers ?? []).filter((id) => known.has(id));
-  for (const id of PROVIDER_ORDER) {
-    if (!enabled.includes(id)) enabled.push(id);
-  }
+
+  // An absent or empty list means "not configured" and enables every web-capable server.
+  // A non-empty list is preserved so an explicit disable is never silently reverted.
+  const configuredEnabled = (settings.enabledServers ?? []).filter((id) => known.has(id));
+  const enabled =
+    settings.enabledServers && settings.enabledServers.length > 0 && configuredEnabled.length > 0
+      ? configuredEnabled
+      : [...WEB_PROVIDER_IDS];
+
   return { ...settings, serverPriority: priority, enabledServers: enabled };
 }
 

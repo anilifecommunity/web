@@ -3,7 +3,12 @@ import Hls from 'hls.js';
 import { Anime, Episode, ServerOption } from '../types/anime';
 import { useApp } from '../context/AppContext';
 import { getAnimeAniListId } from '../utils/animeData';
-import { webServerOptions, preferredServerOption } from '../utils/providerOptions';
+import {
+  webServerOptions,
+  preferredServerOption,
+  enabledServerIds,
+  resolveServerOrder,
+} from '../utils/providerOptions';
 import { messageFor } from '../resolver';
 import { resolveEpisode } from '../utils/workerApi';
 import { recordDiagnostic } from '../data/diagnostics';
@@ -38,8 +43,7 @@ import {
   ChevronDown,
   Heart,
   Search,
-  Sparkles,
-  Server
+  Sparkles
 } from 'lucide-react';
 
 interface Props {
@@ -72,7 +76,11 @@ export const VideoPlayer: React.FC<Props> = ({
 
   const [activeServer, setActiveServer] = useState<ServerOption>(() => {
     const options = webServerOptions(settings.hideAdultContent);
-    return preferredServerOption(options, settings.activeServer) || {
+    return preferredServerOption(
+      options,
+      settings.activeServer,
+      enabledServerIds(settings.enabledServers, settings.hideAdultContent)
+    ) || {
       id: 'none',
       name: 'No source',
       speed: 'Normal',
@@ -84,6 +92,7 @@ export const VideoPlayer: React.FC<Props> = ({
 
   const activeServerPosition = serverOptions.findIndex((server) => server.id === activeServer.id);
   const activeServerLabel = activeServerPosition >= 0 ? `Server ${activeServerPosition + 1}` : 'Server';
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -100,7 +109,7 @@ export const VideoPlayer: React.FC<Props> = ({
 
   
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
-  const [activeDrawer, setActiveDrawer] = useState<'none' | 'servers' | 'episodes' | 'captions'>('none');
+  const [activeDrawer, setActiveDrawer] = useState<'none' | 'episodes' | 'captions'>('none');
 
   
   const [skipData, setSkipData] = useState<MediaIndexSkipData | null>(null);
@@ -176,14 +185,17 @@ export const VideoPlayer: React.FC<Props> = ({
         return;
       }
 
+      const enabled = enabledServerIds(settings.enabledServers, settings.hideAdultContent);
+      const order = resolveServerOrder(serverOptions, activeServer.id, enabled);
       const result = await resolveEpisode(
         {
-          provider: activeServer.id,
           aniListId: numericAniListId,
           episode: currentEpisodeNumber,
           audio: audioMode === 'DUB' ? 'dub' : 'sub',
           lang: selectedSubLanguage,
-          fallback: false,
+          order,
+          enabled,
+          fallback: true,
         },
         abort.signal
       );
@@ -198,14 +210,18 @@ export const VideoPlayer: React.FC<Props> = ({
       }
 
       const offer = result.offer;
+      const matchedServer = serverOptions.find((server) => server.id === offer.providerId);
+      if (matchedServer && matchedServer.id !== activeServer.id) {
+        setActiveServer(matchedServer);
+      }
+      if (settings.activeServer !== offer.providerId) {
+        updateSettings({ activeServer: offer.providerId });
+      }
       if (offer.embed) {
         const episodeSeconds =
           realEpisodes.find((episode) => episode.number === currentEpisodeNumber)?.durationSec ||
           (anime.seasons[0]?.episodes || []).find((episode) => episode.number === currentEpisodeNumber)?.durationSec ||
           (anime.durationMins || 24) * 60;
-        if (settings.activeServer !== activeServer.id) {
-          updateSettings({ activeServer: activeServer.id });
-        }
         setEmbedUrl(offer.embed.url);
         setStreamUrl('');
         setSubtitles([]);
@@ -223,9 +239,6 @@ export const VideoPlayer: React.FC<Props> = ({
         return;
       }
 
-      if (settings.activeServer !== activeServer.id) {
-        updateSettings({ activeServer: activeServer.id });
-      }
       setStreamUrl(offer.streams[0].url);
       setSubtitles(
         offer.subtitles.map((sub, index) => ({
@@ -254,7 +267,7 @@ export const VideoPlayer: React.FC<Props> = ({
       isCancelled = true;
       abort.abort();
     };
-  }, [numericAniListId, currentEpisodeNumber, activeServer.id, audioMode, selectedSubLanguage]);
+  }, [numericAniListId, currentEpisodeNumber, audioMode, selectedSubLanguage, retryNonce]);
 
   
   useEffect(() => {
@@ -297,7 +310,7 @@ export const VideoPlayer: React.FC<Props> = ({
             default:
               hls.destroy();
               recordDiagnostic('PLAY-02', { episode: currentEpisodeNumber });
-              setStreamErrorText('This browser could not play the selected stream. Try another server.');
+              setStreamErrorText('This browser could not play the selected stream. Retry or review enabled servers in Settings.');
               setStreamError(true);
               setIsLoading(false);
               break;
@@ -531,7 +544,10 @@ export const VideoPlayer: React.FC<Props> = ({
                 Stream unavailable from {activeServerLabel}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
-                {streamErrorText || `Unable to load Episode ${currentEpisodeNumber}. Please switch to another server or retry.`}
+                {streamErrorText || `Unable to load Episode ${currentEpisodeNumber}. Every enabled server was tried.`}
+              </p>
+              <p className="text-[11px] text-zinc-500 max-w-sm">
+                Retry, or review enabled servers in Settings.
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -539,11 +555,11 @@ export const VideoPlayer: React.FC<Props> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setActiveDrawer('servers');
+                  setRetryNonce((value) => value + 1);
                 }}
                 className="px-5 py-2.5 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[rgba(116,207,102,0.3)] transition-transform hover:scale-105 cursor-pointer"
               >
-                Switch Server
+                Retry
               </button>
             </div>
           </div>
@@ -560,7 +576,7 @@ export const VideoPlayer: React.FC<Props> = ({
               />
             </div>
             <p className="text-xs font-semibold text-[#74cf66]">
-              Looking for the fastest source to play this episode
+              Finding a server for this episode
             </p>
           </div>
         )}
@@ -625,13 +641,6 @@ export const VideoPlayer: React.FC<Props> = ({
                   <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
-                  onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
-                  className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
-                  title="Servers"
-                >
-                  <Server className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-                <button
                   onClick={() => setShowSettingsSheet(true)}
                   className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
                   title="Player settings"
@@ -660,12 +669,9 @@ export const VideoPlayer: React.FC<Props> = ({
                     Use the player controls.
                   </span>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
-                      className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
-                    >
+                    <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white">
                       {activeServerLabel}
-                    </button>
+                    </span>
                     <button
                       onClick={markEmbedWatched}
                       className="rounded-full bg-[#74cf66] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
@@ -812,12 +818,9 @@ export const VideoPlayer: React.FC<Props> = ({
                   >
                     {audioMode}
                   </button>
-                  <button
-                    onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
-                    className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
-                  >
+                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white">
                     {activeServerLabel}
-                  </button>
+                  </span>
                   <button
                     onClick={() => setShowSettingsSheet(true)}
                     className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
@@ -1093,66 +1096,6 @@ export const VideoPlayer: React.FC<Props> = ({
         )}
 
         {}
-        {}
-        {}
-        {activeDrawer === 'servers' && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="absolute inset-y-0 right-0 w-full sm:w-96 bg-[#0e0c18]/95 border-l border-[#74cf66]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-4 animate-fadeIn text-xs"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <div>
-                <h3 className="font-bold text-sm text-white">Servers</h3>
-                <p className="text-[11px] text-zinc-400">Switch server without leaving playback</p>
-              </div>
-              <button
-                onClick={() => setActiveDrawer('none')}
-                className="p-1 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {serverOptions.map((server, index) => {
-                const isSelected = activeServer.id === server.id;
-                return (
-                  <button
-                    key={server.id}
-                    onClick={() => {
-                      setActiveServer(server);
-                      updateSettings({ activeServer: server.id });
-                      setActiveDrawer('none');
-                    }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#74cf66]/20 border border-[#74cf66] text-white'
-                        : 'bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-300'
-                    }`}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm">Server {index + 1}</span>
-                      </div>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-1">
-                        {server.description || (server.supportsDub ? 'Supports Sub & Dub' : 'Subtitles only')}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-[10px] font-bold ${server.speed === 'Ultra' ? 'text-emerald-400' : 'text-blue-400'}`}>
-                        {server.speed}
-                      </span>
-                      {isSelected && <Check className="w-4 h-4 text-[#74cf66]" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {}
         {activeDrawer === 'captions' && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -1284,13 +1227,6 @@ export const VideoPlayer: React.FC<Props> = ({
                 <ListOrdered className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setActiveDrawer('servers')}
-                className="rounded-full p-2 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
-                title="Servers"
-              >
-                <Server className="h-4 w-4" />
-              </button>
-              <button
                 onClick={() => setIsFavorited(!isFavorited)}
                 className={`rounded-full p-2 transition-colors hover:bg-white/10 cursor-pointer ${
                   isFavorited ? 'text-red-400' : 'text-zinc-300 hover:text-white'
@@ -1357,12 +1293,9 @@ export const VideoPlayer: React.FC<Props> = ({
             </button>
           )}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setActiveDrawer('servers')}
-              className="flex-1 truncate rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[11px] font-semibold text-zinc-200 transition-colors hover:bg-white/10 cursor-pointer"
-            >
+            <span className="flex-1 truncate rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[11px] font-semibold text-zinc-200">
               {activeServerLabel}
-            </button>
+            </span>
             <button
               onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
               className="rounded-xl border border-[#74cf66]/40 bg-[#74cf66]/15 px-3 py-2 text-[11px] font-bold text-[#74cf66] cursor-pointer"

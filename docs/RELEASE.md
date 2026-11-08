@@ -19,6 +19,9 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | AniList auth safe, exact callback | DONE | Implicit flow; `https://anilife.cc/auth/callback.html` registered |
 | Production UI semantics and real URLs | DONE | Deep links, back/forward, keyboard focus ring |
 | Browser player tested with authorised media | PARTIAL | Embed playback verified in Chromium; native HLS/MP4 untested |
+| Automatic source fallback | DONE | Enabled order sent to Worker; failed server falls through; disabled servers are never queried |
+| Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
+| No per-episode server picker | DONE | Player shows an anonymous status chip, Retry and a Settings pointer only |
 | Privacy correct, diagnostics local, toggles OFF | DONE | `PRIVACY.md`, `SECURITY.md`, no upload endpoint |
 | Preview isolation, noindex, no beta host | DONE | `X-Robots-Tag` on workers.dev; no beta subdomain |
 | Build/deploy/rollback works | DONE | Wrangler deploy; rollback steps in `OPERATIONS.md` |

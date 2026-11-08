@@ -73,6 +73,13 @@ function parseResolveRequest(url: URL): { request: ResolveRequest; policy: Selec
   const provider = (url.searchParams.get('provider') ?? '').trim();
   if (provider && !getProvider(provider)) return { error: 'unknown_provider' };
 
+  const order = parseProviderList(url.searchParams.get('order'));
+  if (order === null) return { error: 'invalid_order' };
+
+  const enabledRaw = url.searchParams.get('enabled');
+  const enabled = enabledRaw === null ? null : parseProviderList(enabledRaw);
+  if (enabledRaw !== null && enabled === null) return { error: 'invalid_enabled' };
+
   const allowFallback = url.searchParams.get('fallback') === '1';
   const hideAdult = url.searchParams.get('hideAdult') !== '0';
 
@@ -87,17 +94,42 @@ function parseResolveRequest(url: URL): { request: ResolveRequest; policy: Selec
   };
 
   const policy: SelectionPolicy = provider
-    ? { selectedProvider: provider, allowFallback, hideAdult }
-    : { allowFallback: true, hideAdult, preferredOrder: PROVIDER_ORDER };
+    ? {
+        selectedProvider: provider,
+        allowFallback,
+        hideAdult,
+        ...(enabled ? { enabled } : {}),
+        ...(order && order.length > 0 ? { preferredOrder: order } : {}),
+      }
+    : {
+        allowFallback: true,
+        hideAdult,
+        ...(enabled ? { enabled } : {}),
+        preferredOrder: order && order.length > 0 ? order : PROVIDER_ORDER,
+      };
 
   return { request, policy };
 }
 
+function parseProviderList(raw: string | null): string[] | null {
+  if (raw === null) return null;
+  const ids = raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (ids.length > 64) return null;
+  if (ids.some((id) => !getProvider(id))) return null;
+  return [...new Set(ids)];
+}
+
 async function handleResolve(request: Request, env: Env, url: URL): Promise<Response> {
+  const productionHost = url.hostname === 'anilife.cc' || url.hostname === 'www.anilife.cc';
+  if (productionHost && !(await gateEnabled(env))) {
+    return fail(503, 'gate_not_configured');
+  }
   if (!(await gatePassed(request, env))) {
     return fail(403, 'gate_required');
   }
-
   const limited = hit(`resolve:${clientKey(request)}`, 30, 60_000);
   if (!limited.allowed) {
     return json(
@@ -236,7 +268,7 @@ const CONTENT_SECURITY_POLICY = [
   "font-src 'self' data:",
   "connect-src 'self' https://graphql.anilist.co https://cdn.jsdelivr.net https://raw.githubusercontent.com https://api.aniskip.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
-  "frame-src 'self' https:",
+  "frame-src 'self' https://flixcloud.cc https://*.flixcloud.cc https://challenges.cloudflare.com",
   "form-action 'self' https://anilist.co",
   "manifest-src 'self'",
 ].join('; ');

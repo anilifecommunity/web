@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp, convertAniListToAnime } from '../context/AppContext';
 import { Anime } from '../types/anime';
 import { searchAniList } from '../utils/anilistApi';
@@ -12,6 +12,17 @@ import {
   Loader2
 } from 'lucide-react';
 
+type SortKey = 'Popularity' | 'Score' | 'Title' | 'Newest';
+
+const SORT_OPTIONS: SortKey[] = ['Popularity', 'Score', 'Title', 'Newest'];
+const FORMATS = ['All', 'TV', 'Movie', 'OVA', 'ONA', 'Special'];
+const YEARS = ['All', '2026', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018'];
+
+function initialParam(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  return new URLSearchParams(window.location.search).get(name) ?? fallback;
+}
+
 export const BrowseSearch: React.FC = () => {
   const {
     setSelectedAnime,
@@ -22,10 +33,20 @@ export const BrowseSearch: React.FC = () => {
     liveCatalog
   } = useApp();
 
-  const [query, setQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [query, setQuery] = useState(() => initialParam('q', ''));
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => initialParam('cat', 'All'));
   const [liveSearchResults, setLiveSearchResults] = useState<Anime[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [formatFilter, setFormatFilter] = useState(() => initialParam('format', 'All'));
+  const [yearFilter, setYearFilter] = useState(() => initialParam('year', 'All'));
+  const [minScore, setMinScore] = useState(() => Number(initialParam('score', '0')) || 0);
+  const [sortBy, setSortBy] = useState<SortKey>(() => {
+    const value = initialParam('sort', 'Popularity');
+    return SORT_OPTIONS.includes(value as SortKey) ? (value as SortKey) : 'Popularity';
+  });
+
+  const requestRef = useRef(0);
 
   const categories = [
     'All',
@@ -41,9 +62,11 @@ export const BrowseSearch: React.FC = () => {
     'Supernatural'
   ];
 
-  
   useEffect(() => {
     const trimmed = query.trim();
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
+
     if (trimmed.length < 2) {
       setLiveSearchResults([]);
       setIsSearching(false);
@@ -59,23 +82,39 @@ export const BrowseSearch: React.FC = () => {
             ? selectedCategory
             : undefined
         );
-        const mapped = results.map(convertAniListToAnime);
-        setLiveSearchResults(mapped);
-      } catch (err) {
-        console.error('AniList search failed:', err);
+        if (requestRef.current !== requestId) return;
+        setLiveSearchResults(results.map(convertAniListToAnime));
+      } catch {
+        if (requestRef.current !== requestId) return;
+        setLiveSearchResults([]);
       } finally {
-        setIsSearching(false);
+        if (requestRef.current === requestId) setIsSearching(false);
       }
     }, 350);
 
     return () => clearTimeout(timeout);
   }, [query, selectedCategory]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const setOrDelete = (key: string, value: string, fallback: string) => {
+      if (value && value !== fallback) params.set(key, value);
+      else params.delete(key);
+    };
+    setOrDelete('q', query.trim(), '');
+    setOrDelete('cat', selectedCategory, 'All');
+    setOrDelete('format', formatFilter, 'All');
+    setOrDelete('year', yearFilter, 'All');
+    setOrDelete('score', minScore > 0 ? String(minScore) : '', '');
+    setOrDelete('sort', sortBy, 'Popularity');
+    const search = params.toString();
+    const next = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+    window.history.replaceState(null, '', next);
+  }, [query, selectedCategory, formatFilter, yearFilter, minScore, sortBy]);
+
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (query.trim()) {
-      addRecentSearch(query.trim());
-    }
+    if (query.trim()) addRecentSearch(query.trim());
   };
 
   const handleChipClick = (term: string) => {
@@ -86,35 +125,75 @@ export const BrowseSearch: React.FC = () => {
   const handleReset = () => {
     setQuery('');
     setSelectedCategory('All');
+    setFormatFilter('All');
+    setYearFilter('All');
+    setMinScore(0);
+    setSortBy('Popularity');
     setLiveSearchResults([]);
   };
 
-  
+  const activeFilterCount =
+    (formatFilter !== 'All' ? 1 : 0) +
+    (yearFilter !== 'All' ? 1 : 0) +
+    (minScore > 0 ? 1 : 0) +
+    (sortBy !== 'Popularity' ? 1 : 0);
+
   const filteredAnime = useMemo(() => {
-    if (query.trim().length >= 2 && liveSearchResults.length > 0) {
-      
-      return liveSearchResults;
-    }
+    const base =
+      query.trim().length >= 2 && liveSearchResults.length > 0
+        ? liveSearchResults
+        : liveCatalog.filter((anime) => {
+            const lower = query.toLowerCase();
+            const matchQuery =
+              !query.trim() ||
+              anime.title.toLowerCase().includes(lower) ||
+              (anime.romajiTitle && anime.romajiTitle.toLowerCase().includes(lower)) ||
+              anime.genres.some((genre) => genre.toLowerCase().includes(lower));
 
-    return liveCatalog.filter((anime) => {
-      const matchQuery =
-        !query.trim() ||
-        anime.title.toLowerCase().includes(query.toLowerCase()) ||
-        (anime.romajiTitle && anime.romajiTitle.toLowerCase().includes(query.toLowerCase())) ||
-        anime.genres.some(g => g.toLowerCase().includes(query.toLowerCase()));
+            let matchCategory = true;
+            if (selectedCategory === 'Season') {
+              matchCategory = anime.status === 'Releasing';
+            } else if (selectedCategory === 'Movies') {
+              matchCategory = anime.format === 'Movie';
+            } else if (selectedCategory !== 'All') {
+              matchCategory = anime.genres.includes(selectedCategory);
+            }
 
-      let matchCategory = true;
-      if (selectedCategory === 'Season') {
-        matchCategory = anime.status === 'Releasing';
-      } else if (selectedCategory === 'Movies') {
-        matchCategory = anime.format === 'Movie';
-      } else if (selectedCategory !== 'All') {
-        matchCategory = anime.genres.includes(selectedCategory);
-      }
+            return matchQuery && matchCategory;
+          });
 
-      return matchQuery && matchCategory;
+    const filtered = base.filter((anime) => {
+      if (selectedCategory === 'Season' && anime.status !== 'Releasing') return false;
+      if (selectedCategory === 'Movies' && anime.format !== 'Movie') return false;
+      if (formatFilter !== 'All' && anime.format !== formatFilter) return false;
+      if (yearFilter !== 'All' && String(anime.year) !== yearFilter) return false;
+      if (minScore > 0 && anime.score < minScore) return false;
+      return true;
     });
-  }, [query, selectedCategory, liveSearchResults, liveCatalog]);
+
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'Score':
+          return b.score - a.score;
+        case 'Title':
+          return a.title.localeCompare(b.title);
+        case 'Newest':
+          return b.year - a.year;
+        case 'Popularity':
+        default:
+          return b.membersCount - a.membersCount;
+      }
+    });
+  }, [
+    query,
+    selectedCategory,
+    liveSearchResults,
+    liveCatalog,
+    formatFilter,
+    yearFilter,
+    minScore,
+    sortBy
+  ]);
 
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
@@ -156,13 +235,79 @@ export const BrowseSearch: React.FC = () => {
         </button>
 
         <button
-          onClick={() => alert('Filter options: sort by score, format, popularity, year.')}
-          className="w-12 h-12 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black flex items-center justify-center shadow-lg shadow-[rgba(116,207,102,0.3)] transition-all cursor-pointer shrink-0"
+          onClick={() => setShowFilters((value) => !value)}
+          className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all cursor-pointer shrink-0 ${
+            showFilters || activeFilterCount > 0
+              ? 'bg-[#74cf66] text-black shadow-[rgba(116,207,102,0.3)]'
+              : 'bg-white/10 text-zinc-200 hover:bg-white/20'
+          }`}
           title="Filter and Sort"
+          aria-expanded={showFilters}
         >
           <SlidersHorizontal className="w-5 h-5" />
+          {activeFilterCount > 0 && (
+            <span className="absolute -mt-6 -mr-6 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-bold text-[#74cf66]">
+              {activeFilterCount}
+            </span>
+          )}
         </button>
       </div>
+
+      {showFilters && (
+        <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:grid-cols-4">
+          <label className="space-y-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Format
+            <select
+              value={formatFilter}
+              onChange={(e) => setFormatFilter(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-medium normal-case tracking-normal text-white focus:border-[#74cf66] focus:outline-none"
+            >
+              {FORMATS.map((format) => (
+                <option key={format} value={format}>{format}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Year
+            <select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-medium normal-case tracking-normal text-white focus:border-[#74cf66] focus:outline-none"
+            >
+              {YEARS.map((year) => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Min score
+            <select
+              value={String(minScore)}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+              className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-medium normal-case tracking-normal text-white focus:border-[#74cf66] focus:outline-none"
+            >
+              {[0, 60, 70, 75, 80, 85, 90].map((score) => (
+                <option key={score} value={score}>{score === 0 ? 'Any' : `${score}%+`}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Sort by
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              className="w-full rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-xs font-medium normal-case tracking-normal text-white focus:border-[#74cf66] focus:outline-none"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       {}
       {recentSearches.length > 0 && (

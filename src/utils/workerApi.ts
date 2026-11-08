@@ -11,6 +11,8 @@ export interface ResolveParams {
   lang?: string;
   quality?: string;
   fallback?: boolean;
+  order?: string[];
+  enabled?: string[];
 }
 
 export interface ResolveAttempt {
@@ -36,6 +38,8 @@ function toQuery(params: ResolveParams): string {
   if (params.lang) query.set('lang', params.lang);
   if (params.quality) query.set('quality', params.quality);
   if (params.fallback) query.set('fallback', '1');
+  if (params.order && params.order.length > 0) query.set('order', params.order.join(','));
+  if (params.enabled) query.set('enabled', params.enabled.join(','));
   return query.toString();
 }
 

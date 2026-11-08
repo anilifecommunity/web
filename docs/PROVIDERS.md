@@ -1,8 +1,8 @@
 # Providers
 
 The registry mirrors the 42 Android servers (the historical `xfdm`/lili entry is intentionally
-removed). A provider appears in Settings regardless of status, but only `browser-direct`,
-`worker-metadata-only` and `iframe` entries are attempted.
+removed). Settings lists only servers that are verified for browser playback; unverified,
+native-only and unavailable entries stay registered but are never offered or queried.
 
 ## Working
 
@@ -40,7 +40,12 @@ the manifest, a variant and a segment with seek, not a metadata 200.
 
 ## Rules
 
-- The viewer's explicit provider is attempted first; fallback happens only when allowed.
+- Playback is automatic. The player sends the enabled server order and never shows a per-episode
+  server picker. A failed server falls through to the next enabled server within one bounded request.
+- The viewer's enabled set and priority are the only source controls. Empty or absent settings mean
+  "all web-capable servers enabled"; an explicit disable is never reverted.
+- Server identities stay anonymous in the UI (`Server 1`, `Server 2`). Only Settings shows which
+  servers are enabled, and it lists just browser-verified entries.
 - Audio is never silently swapped. A dub request that only has a sub is an explicit failure.
 - Never add a source without updating this file and the registry evidence.
 - A media relay requires a separate ADR covering rights, cost, abuse and takedown handling.

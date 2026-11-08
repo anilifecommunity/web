@@ -1,4 +1,4 @@
-import { PROVIDERS } from '../resolver';
+import { webServerOptions } from './providerOptions';
 import { Anime, ServerOption } from '../types/anime';
 
 
@@ -9,17 +9,7 @@ const SAMPLE_STREAMS = [
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
 ];
 
-export const SERVERS: ServerOption[] = PROVIDERS.map((provider, index) => {
-  const audio = provider.capabilities.audio ?? ['sub'];
-  return {
-    id: provider.id,
-    name: `Server ${index + 1}`,
-    speed: 'Normal',
-    supportsSub: audio.includes('sub') || audio.includes('multi'),
-    supportsDub: audio.includes('dub') || audio.includes('multi'),
-    supportsDownload: false,
-  } satisfies ServerOption;
-});
+export const SERVERS: ServerOption[] = webServerOptions();
 
 
 
@@ -53,7 +43,7 @@ export function getAnimeAniListId(anime: Anime): number {
     'one-piece': 21,
   };
 
-  return SLUG_MAP[anime.id] || 162780;
+  return SLUG_MAP[anime.id] ?? NaN;
 }
 
 export const ANIME_CATALOG: Anime[] = [

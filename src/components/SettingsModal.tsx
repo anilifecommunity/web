@@ -58,6 +58,13 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const [showEnabledServersModal, setShowEnabledServersModal] = useState(false);
 
   const presetsList = Object.keys(THEME_PRESETS) as ThemePresetName[];
+  const serverIds = SERVERS.map((server) => server.id);
+  const configuredPriority = (settings.serverPriority ?? []).filter((id) => serverIds.includes(id));
+  const priorityIds = configuredPriority.length > 0 ? configuredPriority : serverIds;
+  const enabledIds =
+    settings.enabledServers && settings.enabledServers.length > 0
+      ? settings.enabledServers.filter((id) => serverIds.includes(id))
+      : serverIds;
 
   const popularAnimeBackdrops = [
     { title: 'The Apothecary Diaries', url: 'https://image.tmdb.org/t/p/w1280/tka5fcGkFclwf3brgUZunXHIwAg.jpg' },
@@ -104,7 +111,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
   
   const moveServer = (index: number, direction: 'up' | 'down') => {
-    const currentPriority = settings.serverPriority || SERVERS.map(s => s.id);
+    const currentPriority = priorityIds;
     const newIdx = direction === 'up' ? index - 1 : index + 1;
     if (newIdx < 0 || newIdx >= currentPriority.length) return;
     const copy = [...currentPriority];
@@ -115,10 +122,10 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   };
 
   const toggleServerEnabled = (serverId: string) => {
-    const enabled = settings.enabledServers || SERVERS.map(s => s.id);
+    const enabled = enabledIds;
     if (enabled.includes(serverId)) {
-      if (enabled.length <= 1) return; 
-      updateSettings({ enabledServers: enabled.filter(id => id !== serverId) });
+      if (enabled.length <= 1) return;
+      updateSettings({ enabledServers: enabled.filter((id) => id !== serverId) });
     } else {
       updateSettings({ enabledServers: [...enabled, serverId] });
     }
@@ -658,7 +665,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </div>
                   <div className="text-base font-bold text-white mt-0.5">Enabled servers</div>
                   <div className="text-xs text-zinc-400 mt-0.5">
-                    {(settings.enabledServers && settings.enabledServers.length > 0 ? settings.enabledServers : SERVERS.map(s => s.id)).length} of {SERVERS.length} on
+                    {enabledIds.length} of {SERVERS.length} on
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -670,13 +677,13 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               <div className="flex items-center justify-between pt-2">
                 <div>
                   <h3 className="text-sm font-bold text-white">Server Priority Order</h3>
-                  <p className="text-xs text-zinc-400">Order determines stream lookup and automatic failover</p>
+                  <p className="text-xs text-zinc-400">Only browser-verified servers are listed. Order drives automatic lookup and failover.</p>
                 </div>
                 <button
                   onClick={() => {
                     updateSettings({
-                      serverPriority: SERVERS.map(s => s.id),
-                      enabledServers: SERVERS.map(s => s.id)
+                      serverPriority: serverIds,
+                      enabledServers: serverIds
                     });
                     showNotice('Reset server order to defaults');
                   }}
@@ -687,10 +694,10 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </div>
 
               <div className="space-y-2">
-                {(settings.serverPriority || SERVERS.map(s => s.id)).map((serverId, idx) => {
+                {priorityIds.map((serverId, idx) => {
                   const server = SERVERS.find(s => s.id === serverId);
                   if (!server) return null;
-                  const isEnabled = (settings.enabledServers || []).includes(serverId);
+                  const isEnabled = enabledIds.includes(serverId);
                   const isDefault = settings.activeServer === serverId;
 
                   return (

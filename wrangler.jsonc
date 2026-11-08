@@ -3,6 +3,9 @@
   "name": "anilife-web",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
+  "vars": {
+    "APP_ENV": "production"
+  },
   "workers_dev": true,
   "preview_urls": true,
   "routes": [

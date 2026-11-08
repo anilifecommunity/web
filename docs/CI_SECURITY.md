@@ -13,7 +13,9 @@ means a repository setting outside Git. "Verified" means checked through the Git
 
 CI runs `npm ci`, `npm run lint`, `npm test`, `npm run build`, validates the build output and starts
 a local Wrangler instance for a deterministic smoke test. The smoke request uses an unavailable
-provider id, so CI never depends on provider networks, public production or secrets.
+provider id, so CI never depends on provider networks, public production or secrets. The local
+instance is started with `APP_ENV:test`; deployed Workers carry `APP_ENV=production` from
+`wrangler.jsonc`, so a production build without both gate secrets refuses `/api/resolve` with 503.
 
 Pinned actions:
 

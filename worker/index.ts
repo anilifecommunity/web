@@ -18,6 +18,7 @@ export interface Env {
   TURNSTILE_SECRET?: string;
   /** HMAC key for the first-visit gate cookie. Required whenever TURNSTILE_SECRET is set. */
   GATE_SIGNING_KEY?: string;
+  APP_ENV?: string;
 }
 
 const MAX_EPISODE_REF = 64;
@@ -111,8 +112,8 @@ function parseResolveRequest(url: URL): { request: ResolveRequest; policy: Selec
   return { request, policy };
 }
 
-function parseProviderList(raw: string | null): string[] | null {
-  if (raw === null) return null;
+function parseProviderList(raw: string | null): string[] | null | undefined {
+  if (raw === null) return undefined;
   const ids = raw
     .split(',')
     .map((id) => id.trim())
@@ -123,8 +124,7 @@ function parseProviderList(raw: string | null): string[] | null {
 }
 
 async function handleResolve(request: Request, env: Env, url: URL): Promise<Response> {
-  const productionHost = url.hostname === 'anilife.cc' || url.hostname === 'www.anilife.cc';
-  if (productionHost && !(await gateEnabled(env))) {
+  if (env.APP_ENV === 'production' && !(await gateEnabled(env))) {
     return fail(503, 'gate_not_configured');
   }
   if (!(await gatePassed(request, env))) {

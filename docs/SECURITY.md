@@ -29,7 +29,9 @@ open-source project; there is no bug bounty.
 - Resolver responses are validated against the playback contract before the player sees them.
   Stream and subtitle URLs must be HTTPS; unknown fields are rejected.
 - The first-visit gate uses Cloudflare Turnstile, a signed HttpOnly cookie and a per-IP limit.
-  `/api/resolve` requires the cookie when the gate is configured.
+  `/api/resolve` requires the cookie when the gate is configured. Deployments carry
+  `APP_ENV=production`; without both gate secrets the resolve API fails closed with 503 instead of
+  serving unprotected. Local and CI runs override `APP_ENV=test`.
 - CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` and
   `X-Frame-Options: DENY` are applied to every response. Preview hosts are `noindex`.
 - Provider media plays in a cross-origin iframe. The app does not host, proxy or expose a

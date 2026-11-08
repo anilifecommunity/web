@@ -43,7 +43,7 @@ servers, not defaults.
 | --- | --- | --- |
 | VidSrc | **ENABLED** | AniZip -> TMDB; embed page 200, no frame blocking; iframe loads. User playback test pending. |
 | VidLink | **ENABLED** | AniZip -> TMDB; Chromium loaded a video element with the correct title and timestamps. |
-| VidFast | **ENABLED** | AniZip -> TMDB; Chromium loaded a video element with fetch/subtitle controls. User playback test pending. |
+| VidFast | **REMOVED** | Stayed on "FETCHING, ONE MOMENT..." in Chromium and never started media; not offered. |
 | 2Embed | **ENABLED** | AniZip -> IMDb; 2embed.skin exposes the player embed. User playback test pending. |
 | VidNest | **BLOCKED** | Browser tunnel failed with `ERR_TUNNEL_CONNECTION_FAILED`; not added. |
 | VixSrc | **BLOCKED** | Player page opened an ad/popunder redirect in the test browser; not added. |

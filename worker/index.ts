@@ -445,7 +445,7 @@ const CONTENT_SECURITY_POLICY = [
   "font-src 'self' data:",
   "connect-src 'self' https://graphql.anilist.co https://cdn.jsdelivr.net https://raw.githubusercontent.com https://api.aniskip.com https://challenges.cloudflare.com",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://flixcloud.cc https://*.flixcloud.cc https://vidsrc.to https://*.vidsrc.to https://vidsrc.sh https://*.vidsrc.sh https://vidlink.pro https://*.vidlink.pro https://vidfast.vc https://*.vidfast.vc https://www.2embed.cc https://*.2embed.cc https://www.2embed.skin https://*.2embed.skin https://challenges.cloudflare.com",
+  "frame-src 'self' https://flixcloud.cc https://*.flixcloud.cc https://vidsrc.to https://*.vidsrc.to https://vidsrc.sh https://*.vidsrc.sh https://vidlink.pro https://*.vidlink.pro https://www.2embed.cc https://*.2embed.cc https://www.2embed.skin https://*.2embed.skin https://challenges.cloudflare.com",
   "form-action 'self' https://anilist.co",
   "manifest-src 'self'",
 ].join('; ');

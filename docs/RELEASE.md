@@ -21,6 +21,7 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | Browser player tested with authorised media | PARTIAL | Embed playback verified in Chromium; native HLS/MP4 untested |
 | Automatic source fallback | DONE | Enabled order sent to Worker; failed server falls through; disabled servers are never queried |
 | VidSrc fallback | PARTIAL | AniZip->TMDB mapping and iframe verified; media startup needs a user test; Reanime stays first |
+| VidLink and 2Embed servers | PARTIAL | Separate switchable servers; VidLink loaded a video element, 2Embed exposes the player embed; user playback test pending |
 | Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
 | Manual server switch | DONE | Automatic fallback stays default; the player's Servers drawer switches among enabled anonymous servers |
 | Source and downstream research | DONE | `SOURCES.md`; `/api/providers` exposes read-only downstream statuses |

@@ -211,12 +211,12 @@ const OTHER: ProviderDefinition[] = [
     catalogue: 'other',
     displayName: 'VidFast',
     capabilities: { audio: ['sub', 'dub'], formats: ['iframe'], subtitles: [] },
-    webStatus: 'iframe',
+    webStatus: 'unverified',
     rightsStatus: 'unknown',
     evidence: [
       {
         date: '2026-11-08',
-        test: 'AniZip TMDB mapping; vidfast.vc/tv/{tmdb}/{season}/{episode} loaded a video element with fetch/subtitle controls in Chromium. Media startup needs a user test.',
+        test: 'AniZip TMDB mapping; vidfast.vc/tv/{tmdb}/{season}/{episode} stayed on "FETCHING, ONE MOMENT..." in Chromium and never started media. Not offered until re-tested.',
         browser: 'Chromium',
         url: 'https://vidfast.vc',
       },

@@ -17,7 +17,7 @@ playback evidence.
 | reanime | anivexa | worker-metadata-only (iframe) | unknown | 2026-11-08: `/api/flix/{anilistId}/{episode}` names a Flixcloud embed per audio track; the embed loads and plays in Chromium with no X-Frame-Options or frame-ancestors. Working end to end through the Worker. Iframe playback, manual progress. |
 | vidsrc | other | iframe | unknown | 2026-11-08: AniZip maps AniList id/episode to TMDB season/episode; `vidsrc.to/embed/tv/...` answered 200 with no X-Frame-Options and loaded in the app iframe. Automatic fallback behind Reanime; media startup still needs a user test. |
 | vidlink | other | iframe | unknown | 2026-11-08: AniZip TMDB mapping; `vidlink.pro/tv/...` loaded a video element with the correct title and timestamps in Chromium. Separate fallback server. |
-| vidfast | other | iframe | unknown | 2026-11-08: AniZip TMDB mapping; `vidfast.vc/tv/...` loaded a video element with fetch/subtitle controls. Separate fallback server. |
+| vidfast | other | unverified | unknown | 2026-11-08: AniZip TMDB mapping; `vidfast.vc/tv/...` stayed on "FETCHING, ONE MOMENT..." and never started media. Removed from the server list. |
 | 2embed | other | iframe | unknown | 2026-11-08: AniZip IMDb mapping; `2embed.skin/embedtv/...` exposes the player embed. Separate fallback server; startup needs a user test. |
 | vidnest | other | unavailable | unknown | 2026-11-08: browser tunnel failed with `ERR_TUNNEL_CONNECTION_FAILED`; not added as a server. |
 | animepahe, hanime, hentaihaven, allanime | anivexa | native-only | unknown | WebView resolvers, CAPTCHA/PoW, or both. Not browser-capable without bypassing protections. |

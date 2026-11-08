@@ -532,16 +532,6 @@ export const VideoPlayer: React.FC<Props> = ({
             >
               Mark watched
             </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                window.open(embedUrl, '_blank', 'noopener,noreferrer');
-              }}
-              className="rounded-lg bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-zinc-200 hover:bg-white/20 cursor-pointer"
-            >
-              Open
-            </button>
           </div>
         )}
 

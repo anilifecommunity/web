@@ -166,13 +166,23 @@ export function loadSettings(): AppSettings {
       // One-time upgrade from the v2 key, written forward so the next boot is a plain read.
       const legacy = localStorage.getItem(LEGACY_STORAGE_KEYS.SETTINGS);
       if (legacy) {
-        const merged = normalizeProviderLists({ ...DEFAULT_SETTINGS, ...JSON.parse(legacy) });
+        const stored = JSON.parse(legacy) as Partial<AppSettings>;
+        const merged = normalizeProviderLists({
+          ...DEFAULT_SETTINGS,
+          ...stored,
+          serverOrderVersion: stored.serverOrderVersion ?? 0,
+        });
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
         return merged;
       }
       return DEFAULT_SETTINGS;
     }
-    return normalizeProviderLists({ ...DEFAULT_SETTINGS, ...JSON.parse(raw) });
+    const stored = JSON.parse(raw) as Partial<AppSettings>;
+    return normalizeProviderLists({
+      ...DEFAULT_SETTINGS,
+      ...stored,
+      serverOrderVersion: stored.serverOrderVersion ?? 0,
+    });
   } catch {
     return DEFAULT_SETTINGS;
   }

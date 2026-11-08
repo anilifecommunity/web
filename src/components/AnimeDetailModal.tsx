@@ -50,6 +50,8 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
 
   
   const isEpisodeUnreleased = (ep: Episode): boolean => {
+    if (anime.status === 'Not Yet Aired') return true;
+    if (anime.nextEpisode && ep.number >= anime.nextEpisode.number) return true;
     if ('isUnreleased' in ep && ep.isUnreleased) return true;
     if (ep.airedDate) {
       const airDate = new Date(ep.airedDate);
@@ -392,8 +394,14 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
             {}
             <div className="space-y-3">
               <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">
-                {allEpisodes.length} episodes
+                {allEpisodes.length === 0 ? 'Not yet aired' : `${allEpisodes.length} episodes`}
               </div>
+
+              {allEpisodes.length === 0 && (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-zinc-400">
+                  This anime has not aired yet, so there are no episodes to play.
+                </div>
+              )}
 
               <div className={isGridView ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : 'space-y-2'}>
                 {filteredEpisodes.map((ep) => {

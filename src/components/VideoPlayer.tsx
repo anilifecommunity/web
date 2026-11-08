@@ -129,6 +129,7 @@ export const VideoPlayer: React.FC<Props> = ({
   const [embedUrl, setEmbedUrl] = useState<string>('');
   const [streamError, setStreamError] = useState<boolean>(false);
   const [streamErrorText, setStreamErrorText] = useState('');
+  const notAiredError = /has not aired/i.test(streamErrorText);
 
   
   const [clockString, setClockString] = useState('');
@@ -185,6 +186,29 @@ export const VideoPlayer: React.FC<Props> = ({
       if (isNaN(numericAniListId)) {
         if (isCancelled) return;
         setStreamErrorText('This title has no AniList id, so no source can be resolved.');
+        setStreamError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (anime.status === 'Not Yet Aired') {
+        if (isCancelled) return;
+        setStreamErrorText('This anime has not aired yet, so there is no episode to play.');
+        setStreamError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      if (anime.nextEpisode && currentEpisodeNumber >= anime.nextEpisode.number) {
+        if (isCancelled) return;
+        const airs = new Date(anime.nextEpisode.airingAt * 1000).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+        setStreamErrorText(
+          `Episode ${currentEpisodeNumber} has not aired yet. It is scheduled for ${airs}.`
+        );
         setStreamError(true);
         setIsLoading(false);
         return;
@@ -564,27 +588,31 @@ export const VideoPlayer: React.FC<Props> = ({
             </div>
             <div className="space-y-1">
               <h3 className="text-base sm:text-lg font-bold text-white">
-                Stream unavailable from {activeServerLabel}
+                {notAiredError ? 'Not aired yet' : `Stream unavailable from ${activeServerLabel}`}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
                 {streamErrorText || `Unable to load Episode ${currentEpisodeNumber}. Every enabled server was tried.`}
               </p>
-              <p className="text-[11px] text-zinc-500 max-w-sm">
-                Retry, or review enabled servers in Settings.
-              </p>
+              {!notAiredError && (
+                <p className="text-[11px] text-zinc-500 max-w-sm">
+                  Retry, or review enabled servers in Settings.
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRetryNonce((value) => value + 1);
-                }}
-                className="px-5 py-2.5 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[rgba(116,207,102,0.3)] transition-transform hover:scale-105 cursor-pointer"
-              >
-                Retry
-              </button>
-            </div>
+            {!notAiredError && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRetryNonce((value) => value + 1);
+                  }}
+                  className="px-5 py-2.5 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[rgba(116,207,102,0.3)] transition-transform hover:scale-105 cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
         )}
 

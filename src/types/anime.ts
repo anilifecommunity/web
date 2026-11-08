@@ -41,6 +41,7 @@ export interface Anime {
   format: 'TV' | 'Movie' | 'ONA' | 'OVA' | 'Special';
   year: number;
   status: 'Finished' | 'Releasing' | 'Not Yet Aired';
+  nextEpisode?: { number: number; airingAt: number };
   durationMins: number;
   genres: string[];
   synopsis: string;

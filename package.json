@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit && tsc -p worker/tsconfig.json --noEmit",
-    "test": "tsx --test src/utils/playerUtils.test.ts src/utils/scraperParsers.test.ts src/utils/providerOptions.test.ts src/utils/storage.test.ts src/resolver/resolver.test.ts src/data/backup.test.ts src/data/idb.test.ts worker/guards.test.ts worker/gate.test.ts worker/adapters/animeheaven.test.ts",
+    "test": "tsx --test src/utils/playerUtils.test.ts src/utils/scraperParsers.test.ts src/utils/providerOptions.test.ts src/utils/storage.test.ts src/context/animeConversion.test.ts src/resolver/resolver.test.ts src/data/backup.test.ts src/data/idb.test.ts worker/guards.test.ts worker/gate.test.ts worker/adapters/animeheaven.test.ts",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {

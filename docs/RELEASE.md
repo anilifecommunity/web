@@ -40,7 +40,8 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 
 - Episode downloads are disabled by product decision.
 - Embedded sources cannot report playback time; progress is manual.
-- Only one provider is verified; most Android sources are blocked by headers, bot checks or
-  datacenter-IP filtering.
+- Reanime is the only end-to-end verified player. VidSrc, VidLink and 2Embed are separate
+  page-level verified embeds; their actual media startup still needs a user test. Most Android
+  sources are blocked by headers, bot checks or datacenter-IP filtering.
 - Native HLS/MP4 playback is implemented but has no verified source yet.
 - AniList does not issue refresh tokens; reauthentication is expected.

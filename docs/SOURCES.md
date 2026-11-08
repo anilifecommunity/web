@@ -9,7 +9,7 @@ a permitted stream starting.
 | Candidate | Role | Status | Dated evidence |
 | --- | --- | --- | --- |
 | Reanime | Catalogue + Flixcloud embed | **ENABLED** | `/api/flix/{aniListId}/{episode}` returns a per-audio embed; Chromium playback and Mark watched verified. |
-| AniChan | Worker metadata | **METADATA ONLY** | `/api/watch/servers` returns an empty list for every tested title; it is attempted only as a fallback and never presented as working. |
+| AniChan | Worker metadata | **INACTIVE** | `/api/watch/servers` returns an empty list for every tested title; adapter kept for re-test but not offered. |
 | AnimePahe | Catalogue + native player | **BLOCKED** | Homepage returned 403 from Cloudflare with `X-Frame-Options: SAMEORIGIN`; its resolver is WebView-only. No bypass attempted. |
 | KickAssAnime | Catalogue + CDN | **UNAVAILABLE** | `kickassanime.am` returned 410 Gone; the CDN needs `Referer` and `Origin`, which a browser cannot forge. |
 | AllAnime | Catalogue + native player | **BLOCKED** | CAPTCHA and proof-of-work gates; registered as native-only. No bypass attempted. |

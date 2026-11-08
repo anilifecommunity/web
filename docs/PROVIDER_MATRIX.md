@@ -9,7 +9,7 @@ playback evidence.
 
 | Provider | Catalogue | Web state | Rights | Evidence |
 | --- | --- | --- | --- | --- |
-| anichan | anivexa | worker-metadata-only | unknown | 2026-11-08: `/api/watch/episodes` answers, but `/api/watch/servers` returns `{"servers":[]}` for AniList 21, 154587, 16498 and 52991 with or without a session cookie. Adapter is implemented and reachable; upstream currently yields `no_streams`. |
+| anichan | anivexa | unavailable | unknown | 2026-11-08: `/api/watch/episodes` answers, but `/api/watch/servers` returns `{"servers":[]}` for AniList 21, 154587, 16498 and 52991 with or without a session cookie. Adapter remains for re-test but is not offered. |
 | animeheaven | anivexa | unavailable | unknown | 2026-11-08: from a residential client the full chain works, but from Worker/workerd egress the search page is reachable and the gate returns no source URLs. Not offered. |
 | zoko | anivexa | unavailable | unknown | Master, variant and segment all require `Referer: https://zokoanime.video/`; a browser cannot send it. Would need a relay, which is not approved. |
 | bee, sun, pewe, hop, ally, kiwi, moo, bonk, knob | miruro | unavailable | pending | Miruro pipe refuses datacenter IPs (`docs/PIPE_PROTOCOL.md` in the Android repo) and sends no CORS headers. Neither a Worker nor the browser can read it. |

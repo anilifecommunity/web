@@ -100,7 +100,7 @@ function anivexa(id: string, options: AnivexaOptions = {}): ProviderDefinition {
 const ANIVEXA: ProviderDefinition[] = [
   anivexa('anipm'),
   anivexa('anichan', {
-    status: 'worker-metadata-only',
+    status: 'unavailable',
     subtitles: ['soft', 'external'],
     evidence: [
       {

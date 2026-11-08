@@ -11,8 +11,8 @@ import {
 } from './index';
 import type { PlaybackOffer, ProviderAdapter } from './index';
 
-const A = 'anichan';
-const B = 'reanime';
+const A = 'reanime';
+const B = 'vidsrc';
 
 function offer(overrides: Partial<PlaybackOffer> = {}): PlaybackOffer {
   return {
@@ -63,7 +63,7 @@ test('web picker hides providers that cannot work in a browser', () => {
   const ids = providersForWeb(true).map((provider) => provider.id);
   assert.ok(!ids.includes('animepahe'));
   assert.ok(!ids.includes('bee'));
-  assert.ok(ids.includes('anichan'));
+  assert.ok(ids.includes('reanime'));
 });
 
 // ---------------------------------------------------------------- policy

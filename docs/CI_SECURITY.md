@@ -79,7 +79,7 @@ For alerts, use **Watch > Custom > Security alerts**. Do not add a third-party s
 
 - `npm ci` on Node 24: pass.
 - `npm run lint`: pass (app and Worker TypeScript).
-- `npm test`: 59 tests pass.
+- `npm test`: 70 tests pass.
 - `npm run build`: pass.
 - Local Wrangler smoke: all checks pass with the gate disabled, using an unavailable provider.
 - Workflow YAML parsed successfully.

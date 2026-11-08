@@ -33,8 +33,10 @@ Local development reads the same names from gitignored `.dev.vars`.
   preview host.
 - The public site key is a build value: `VITE_TURNSTILE_SITE_KEY`.
 - The secret is a Worker secret: `TURNSTILE_SECRET`.
-- With no secret configured the gate steps aside (local development only); `/api/resolve` is then
-  open, so never leave a public deployment unconfigured.
+- With no secrets configured the gate steps aside only when `APP_ENV` is not `production`.
+  Deployed Workers carry `APP_ENV=production` from `wrangler.jsonc`; in that mode a missing secret
+  makes `/api/resolve` fail closed with 503. Local development and CI start Wrangler with
+  `--var APP_ENV:test`.
 
 ## AniList OAuth
 

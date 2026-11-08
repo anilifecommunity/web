@@ -44,7 +44,8 @@ import {
   ChevronDown,
   Heart,
   Search,
-  Sparkles
+  Sparkles,
+  Server
 } from 'lucide-react';
 
 interface Props {
@@ -74,6 +75,14 @@ export const VideoPlayer: React.FC<Props> = ({
     () => orderServerOptions(webServerOptions(settings.hideAdultContent), settings.serverPriority),
     [settings.hideAdultContent, settings.serverPriority]
   );
+  const enabledIds = useMemo(
+    () => enabledServerIds(settings.enabledServers, settings.hideAdultContent),
+    [settings.enabledServers, settings.hideAdultContent]
+  );
+  const switchableServers = useMemo(
+    () => serverOptions.filter((server) => enabledIds.includes(server.id)),
+    [serverOptions, enabledIds]
+  );
 
   const [activeServer, setActiveServer] = useState<ServerOption>(() => {
     const options = orderServerOptions(
@@ -97,6 +106,7 @@ export const VideoPlayer: React.FC<Props> = ({
   const activeServerPosition = serverOptions.findIndex((server) => server.id === activeServer.id);
   const activeServerLabel = activeServerPosition >= 0 ? `Server ${activeServerPosition + 1}` : 'Server';
   const [retryNonce, setRetryNonce] = useState(0);
+  const [serverNonce, setServerNonce] = useState(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -113,7 +123,7 @@ export const VideoPlayer: React.FC<Props> = ({
 
   
   const [showSettingsSheet, setShowSettingsSheet] = useState(false);
-  const [activeDrawer, setActiveDrawer] = useState<'none' | 'episodes' | 'captions'>('none');
+  const [activeDrawer, setActiveDrawer] = useState<'none' | 'servers' | 'episodes' | 'captions'>('none');
 
   
   const [skipData, setSkipData] = useState<MediaIndexSkipData | null>(null);
@@ -214,7 +224,7 @@ export const VideoPlayer: React.FC<Props> = ({
         return;
       }
 
-      const enabled = enabledServerIds(settings.enabledServers, settings.hideAdultContent);
+      const enabled = enabledIds;
       const order = resolveServerOrder(serverOptions, activeServer.id, enabled);
       const result = await resolveEpisode(
         {
@@ -296,7 +306,7 @@ export const VideoPlayer: React.FC<Props> = ({
       isCancelled = true;
       abort.abort();
     };
-  }, [numericAniListId, currentEpisodeNumber, audioMode, selectedSubLanguage, retryNonce]);
+  }, [numericAniListId, currentEpisodeNumber, audioMode, selectedSubLanguage, retryNonce, serverNonce]);
 
   
   useEffect(() => {
@@ -511,6 +521,15 @@ export const VideoPlayer: React.FC<Props> = ({
 
   const nextEpisode = activeEpisodes.find((ep) => ep.number === currentEpisodeNumber + 1);
 
+  const selectServer = (server: ServerOption) => {
+    setActiveServer(server);
+    updateSettings({ activeServer: server.id });
+    setActiveDrawer('none');
+    setStreamError(false);
+    setStreamErrorText('');
+    setServerNonce((value) => value + 1);
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex h-full w-full overflow-hidden bg-[#08080a] text-white select-none font-sans">
       {skipToast && (
@@ -611,6 +630,18 @@ export const VideoPlayer: React.FC<Props> = ({
                 >
                   Retry
                 </button>
+                {switchableServers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveDrawer('servers');
+                    }}
+                    className="px-5 py-2.5 rounded-full border border-white/15 bg-white/10 text-white font-bold text-xs sm:text-sm transition-colors hover:bg-white/20 cursor-pointer"
+                  >
+                    Switch Server
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -692,6 +723,13 @@ export const VideoPlayer: React.FC<Props> = ({
                   <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
                 <button
+                  onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+                  className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                  title="Servers"
+                >
+                  <Server className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+                <button
                   onClick={() => setShowSettingsSheet(true)}
                   className="rounded-full p-2 text-zinc-200 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
                   title="Player settings"
@@ -720,9 +758,12 @@ export const VideoPlayer: React.FC<Props> = ({
                     Use the player controls.
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white">
+                    <button
+                      onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+                      className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
+                    >
                       {activeServerLabel}
-                    </span>
+                    </button>
                     <button
                       onClick={markEmbedWatched}
                       className="rounded-full bg-[#74cf66] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
@@ -869,9 +910,12 @@ export const VideoPlayer: React.FC<Props> = ({
                   >
                     {audioMode}
                   </button>
-                  <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white">
+                  <button
+                    onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+                    className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"
+                  >
                     {activeServerLabel}
-                  </span>
+                  </button>
                   <button
                     onClick={() => setShowSettingsSheet(true)}
                     className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
@@ -1147,6 +1191,58 @@ export const VideoPlayer: React.FC<Props> = ({
         )}
 
         {}
+        {activeDrawer === 'servers' && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute inset-y-0 right-0 w-full sm:w-96 bg-[#0e0c18]/95 border-l border-[#74cf66]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-4 animate-fadeIn text-xs"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div>
+                <h3 className="font-bold text-sm text-white">Servers</h3>
+                <p className="text-[11px] text-zinc-400">Switch server without leaving playback</p>
+              </div>
+              <button
+                onClick={() => setActiveDrawer('none')}
+                className="p-1 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {switchableServers.length === 0 ? (
+              <p className="text-[11px] text-zinc-400">
+                No enabled servers. Turn one on in Settings &gt; Servers.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {switchableServers.map((server) => {
+                  const position = serverOptions.findIndex((item) => item.id === server.id);
+                  const isSelected = activeServer.id === server.id;
+                  return (
+                    <button
+                      key={server.id}
+                      onClick={() => selectServer(server)}
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#74cf66]/20 border border-[#74cf66] text-white'
+                          : 'bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-300'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <span className="font-bold text-sm">Server {position + 1}</span>
+                        <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-1">
+                          {server.supportsDub ? 'Supports Sub & Dub' : 'Subtitles only'}
+                        </p>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 text-[#74cf66]" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeDrawer === 'captions' && (
           <div
             onClick={(e) => e.stopPropagation()}
@@ -1278,6 +1374,13 @@ export const VideoPlayer: React.FC<Props> = ({
                 <ListOrdered className="h-4 w-4" />
               </button>
               <button
+                onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+                className="rounded-full p-2 text-zinc-300 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                title="Servers"
+              >
+                <Server className="h-4 w-4" />
+              </button>
+              <button
                 onClick={() => setIsFavorited(!isFavorited)}
                 className={`rounded-full p-2 transition-colors hover:bg-white/10 cursor-pointer ${
                   isFavorited ? 'text-red-400' : 'text-zinc-300 hover:text-white'
@@ -1344,9 +1447,12 @@ export const VideoPlayer: React.FC<Props> = ({
             </button>
           )}
           <div className="flex items-center gap-2">
-            <span className="flex-1 truncate rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[11px] font-semibold text-zinc-200">
+            <button
+              onClick={() => setActiveDrawer(activeDrawer === 'servers' ? 'none' : 'servers')}
+              className="flex-1 truncate rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[11px] font-semibold text-zinc-200 transition-colors hover:bg-white/10 cursor-pointer"
+            >
               {activeServerLabel}
-            </span>
+            </button>
             <button
               onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
               className="rounded-xl border border-[#74cf66]/40 bg-[#74cf66]/15 px-3 py-2 text-[11px] font-bold text-[#74cf66] cursor-pointer"

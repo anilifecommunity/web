@@ -139,6 +139,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   
   navigationLayout: 'sidebar',
   autoHideNav: false,
+
+  diagnosticUpload: false,
+  performanceUpload: false,
 };
 
 const LEGACY_STORAGE_KEYS = {

@@ -1,4 +1,5 @@
 import type { PlaybackOffer } from '../resolver';
+import { recordDiagnostic } from '../data/diagnostics';
 
 export interface ResolveParams {
   provider?: string;
@@ -47,13 +48,18 @@ export async function resolveEpisode(params: ResolveParams, signal?: AbortSignal
     const response = await fetch(`/api/resolve?${toQuery(params)}`, { signal });
     const data = (await response.json()) as ResolveResponse;
     if (!response.ok && data.ok !== false) {
+      recordDiagnostic('SRC-05', { reason: `http_${response.status}` });
       return { ok: false, error: `http_${response.status}` };
+    }
+    if (data.ok === false) {
+      recordDiagnostic(data.androidCode ?? 'SRC-05', { reason: data.error });
     }
     return data;
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return { ok: false, error: 'aborted' };
     }
+    recordDiagnostic('NET-03', { reason: 'resolve_network' });
     return { ok: false, error: 'network' };
   }
 }

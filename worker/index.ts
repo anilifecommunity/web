@@ -2,7 +2,7 @@ import {
   getProvider,
   planAttempts,
   PROVIDER_ORDER,
-  providersForWeb,
+  PROVIDERS,
   resolvePlayback,
 } from '../src/resolver';
 import type { PlaybackOffer, ResolveRequest, SelectionPolicy } from '../src/resolver';
@@ -24,7 +24,7 @@ const MAX_EPISODE_REF = 64;
 const EPISODE_REF = /^[A-Za-z0-9._-]{1,64}$/;
 
 function publicProviders(): unknown[] {
-  return providersForWeb(false).map((provider) => ({
+  return PROVIDERS.map((provider) => ({
     id: provider.id,
     displayName: provider.displayName,
     catalogue: provider.catalogue,
@@ -193,6 +193,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json({ ok: true, providers: publicProviders() });
   }
 
+
   if (path === '/api/resolve' && request.method === 'GET') {
     return handleResolve(request, env, url);
   }
@@ -204,13 +205,62 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   return env.ASSETS.fetch(request);
 }
 
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' blob: https:",
+  "font-src 'self' data:",
+  "connect-src 'self' https:",
+  "worker-src 'self' blob:",
+  "frame-src 'self' https:",
+  "form-action 'self' https://anilist.co",
+  "manifest-src 'self'",
+].join('; ');
+
+function securityHeaders(request: Request): Record<string, string> {
+  const url = new URL(request.url);
+  const preview = url.hostname.endsWith('.workers.dev');
+  return {
+    'Content-Security-Policy': CONTENT_SECURITY_POLICY,
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+    'X-Frame-Options': 'DENY',
+    ...(preview ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
+    ...(url.protocol === 'https:'
+      ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' }
+      : {}),
+  };
+}
+
+/** Applies the security policy to every response, including static assets. */
+function withSecurityHeaders(response: Response, request: Request): Response {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(securityHeaders(request))) {
+    headers.set(name, value);
+  }
+  if (new URL(request.url).pathname.startsWith('/assets/')) {
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
-      return await handleRequest(request, env);
+      return withSecurityHeaders(await handleRequest(request, env), request);
     } catch {
       // Never leak stack traces, upstream URLs or credentials to the caller.
-      return fail(500, 'internal_error');
+      return withSecurityHeaders(fail(500, 'internal_error'), request);
     }
   },
 };

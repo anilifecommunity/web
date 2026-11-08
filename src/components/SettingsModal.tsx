@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { EnabledServersModal } from './EnabledServersModal';
 import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '../data/backup';
+import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const {
@@ -968,6 +969,56 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <span>Import Backup JSON</span>
                   <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                 </label>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+                <div className="text-sm font-semibold text-white">Local diagnostics</div>
+                <div className="text-xs text-zinc-400">
+                  Redacted error codes are kept on this device. Uploads are opt-in and off by default.
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-zinc-300">Automatic diagnostic upload</span>
+                  <button
+                    onClick={() => updateSettings({ diagnosticUpload: !settings.diagnosticUpload })}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                      settings.diagnosticUpload
+                        ? 'bg-[#74cf66] text-black'
+                        : 'bg-white/10 text-zinc-400'
+                    }`}
+                  >
+                    {settings.diagnosticUpload ? 'On' : 'Off'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-zinc-300">Performance telemetry upload</span>
+                  <button
+                    onClick={() => updateSettings({ performanceUpload: !settings.performanceUpload })}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
+                      settings.performanceUpload
+                        ? 'bg-[#74cf66] text-black'
+                        : 'bg-white/10 text-zinc-400'
+                    }`}
+                  >
+                    {settings.performanceUpload ? 'On' : 'Off'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => void downloadDiagnostics()}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white cursor-pointer"
+                  >
+                    Download diagnostics
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await clearDiagnostics();
+                      showNotice('Local diagnostics cleared');
+                    }}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white cursor-pointer"
+                  >
+                    Clear diagnostics
+                  </button>
+                </div>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">

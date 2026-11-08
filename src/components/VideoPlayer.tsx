@@ -6,6 +6,7 @@ import { getAnimeAniListId } from '../utils/animeData';
 import { webServerOptions } from '../utils/providerOptions';
 import { messageFor } from '../resolver';
 import { resolveEpisode } from '../utils/workerApi';
+import { recordDiagnostic } from '../data/diagnostics';
 import { formatPlayerClock, formatTime, calculateProgressPercent } from '../utils/playerUtils';
 import {
   fetchMediaIndexEpisodes,
@@ -270,6 +271,7 @@ export const VideoPlayer: React.FC<Props> = ({
               break;
             default:
               hls.destroy();
+              recordDiagnostic('PLAY-02', { episode: currentEpisodeNumber });
               setStreamErrorText('This browser could not play the selected stream. Try another server.');
               setStreamError(true);
               setIsLoading(false);
@@ -456,6 +458,7 @@ export const VideoPlayer: React.FC<Props> = ({
           playsInline
           onError={() => {
             setIsLoading(false);
+            recordDiagnostic('PLAY-01', { episode: currentEpisodeNumber });
             setStreamErrorText(`This browser could not play the stream from ${activeServer.name}.`);
             setStreamError(true);
           }}

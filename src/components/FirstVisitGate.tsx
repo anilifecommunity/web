@@ -126,7 +126,7 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [phase]);
 
-  if (phase === 'passed') return <>{children}</>;
+  if (phase === 'passed' || phase === 'checking') return <>{children}</>;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0e0d16] px-4">

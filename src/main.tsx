@@ -6,6 +6,7 @@ import {
   migrateLocalStorageToIdb,
   requestPersistentStorage,
 } from './data/idb';
+import { recordDiagnostic } from './data/diagnostics';
 
 /**
  * Restore a missing localStorage from IndexedDB before React reads it, then mirror the current
@@ -22,6 +23,7 @@ async function bootstrap(): Promise<void> {
     void requestPersistentStorage();
   } catch (error) {
     console.warn('[storage] local store bootstrap failed', error);
+    recordDiagnostic('DIAG-01', { stage: 'storage_bootstrap' });
   }
 
   createRoot(document.getElementById('root')!).render(<App />);

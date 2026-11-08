@@ -563,7 +563,7 @@ export async function deleteUserMediaListEntry(token: string, id: number): Promi
 
 
 const OAUTH_KEY = 'anilife_oauth_token';
-const CATALOG_CACHE_KEY = 'anilife_live_catalog_cache_v3';
+const CATALOG_CACHE_KEY = 'anilife_live_catalog_cache_v4';
 const USER_DATA_CACHE_KEY = 'anilife_anilist_data_v3';
 
 export function loadOAuthToken(): string | null {

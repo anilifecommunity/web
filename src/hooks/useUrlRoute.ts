@@ -82,6 +82,10 @@ export function useUrlRoute(): void {
         app.setShowProfileModal(true);
       } else if (route.kind === 'anime' || route.kind === 'watch') {
         let anime = findLocalAnime(route.id, app.liveCatalog);
+        if (/^\d+$/.test(route.id)) {
+          const media = await fetchAniListMediaById(Number(route.id)).catch(() => null);
+          if (media) anime = convertAniListToAnime(media);
+        }
         if (!anime) {
           const media = await fetchAniListMediaById(Number(route.id)).catch(() => null);
           if (media) anime = convertAniListToAnime(media);

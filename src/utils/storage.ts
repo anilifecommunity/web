@@ -101,7 +101,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     'anichan',
     'anikoto',
     'animepahe',
-    'lili',
     'sun',
     'allanime',
     'kickassanime',
@@ -113,7 +112,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     'anichan',
     'anikoto',
     'animepahe',
-    'lili',
     'sun',
     'allanime',
     'kickassanime',
@@ -266,3 +264,4 @@ export function saveRecentSearches(profileId: string, searches: string[]): void 
     console.error('Failed to save recent searches:', err);
   }
 }
+

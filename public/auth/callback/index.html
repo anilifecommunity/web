@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AniLife - AniList Login</title>
+  <title>Anilife - AniList Login</title>
   <style>
     body {
       background: #000000;
@@ -51,67 +51,31 @@
   </div>
   <script>
     (function() {
-      var token = null;
-      var code = null;
-
-      if (window.location.hash) {
-        var hashStr = window.location.hash.substring(1);
-        var hashParams = new URLSearchParams(hashStr);
-        token = hashParams.get('access_token');
-      }
-
-      if (window.location.search) {
-        var searchParams = new URLSearchParams(window.location.search);
-        code = searchParams.get('code');
-      }
+      var params = new URLSearchParams(window.location.hash.substring(1));
+      var token = params.get('access_token');
+      var error = new URLSearchParams(window.location.search).get('error');
 
       function finish(tok) {
-        if (tok) {
-          try {
-            localStorage.setItem('anilife_oauth_token', tok);
-          } catch(e) {}
-        }
+        try {
+          localStorage.setItem('anilife_oauth_token', tok);
+        } catch (e) {}
+
         if (window.opener) {
-          window.opener.postMessage({
-            type: 'OAUTH_AUTH_SUCCESS',
-            token: tok
-          }, '*');
-          document.getElementById('msg').textContent = 'Success! Closing window...';
-          setTimeout(function() {
-            window.close();
-          }, 500);
+          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: tok }, window.location.origin);
+          document.getElementById('msg').textContent = 'Success. Closing window...';
+          setTimeout(function() { window.close(); }, 500);
         } else {
-          document.getElementById('msg').textContent = 'Success! Redirecting back to AniLife...';
-          setTimeout(function() {
-            window.location.href = '/';
-          }, 800);
+          document.getElementById('msg').textContent = 'Success. Redirecting back to Anilife...';
+          setTimeout(function() { window.location.href = '/'; }, 800);
         }
       }
 
       if (token) {
         finish(token);
-      } else if (code) {
-        fetch('/api/anilist/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            code: code,
-            redirect_uri: window.location.origin + '/auth/callback'
-          })
-        })
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.access_token) {
-            finish(data.access_token);
-          } else {
-            document.getElementById('msg').textContent = data.message || data.hint || 'Authorization error';
-          }
-        })
-        .catch(function(err) {
-          document.getElementById('msg').textContent = 'Exchange error: ' + err.message;
-        });
+      } else if (error) {
+        document.getElementById('msg').textContent = 'AniList returned: ' + error;
       } else {
-        document.getElementById('msg').textContent = 'No token or code returned.';
+        document.getElementById('msg').textContent = 'No token was returned.';
       }
     })();
   </script>

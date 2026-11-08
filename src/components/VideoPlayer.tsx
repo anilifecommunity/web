@@ -6,7 +6,6 @@ import { SERVERS, getAnimeAniListId } from '../utils/animeData';
 import { formatPlayerClock, formatTime, calculateProgressPercent } from '../utils/playerUtils';
 import {
   fetchMediaIndexEpisodes,
-  fetchMediaIndexLiliStream,
   fetchMediaIndexSkip,
   MediaIndexSkipData
 } from '../utils/mediaIndexApi';
@@ -205,25 +204,8 @@ export const VideoPlayer: React.FC<Props> = ({
         }
       }
 
-      
-      if (!isNaN(numericAniListId) && !isCancelled) {
-        try {
-          const lili = await fetchMediaIndexLiliStream(numericAniListId);
-          if (lili && lili.episodes?.[String(currentEpisodeNumber)]) {
-            const direct = lili.base + lili.episodes[String(currentEpisodeNumber)];
-            const proxiedUrl = `/api/proxy-stream?url=${encodeURIComponent(direct)}&referer=${encodeURIComponent('https://play.xfvod.pro:8088/')}`;
-            setStreamUrl(proxiedUrl);
-            setIsLoading(false);
-            return;
-          }
-        } catch (err) {
-          console.warn('[VideoPlayer] Lili archive stream query error:', err);
-        }
-      }
-
-      
       if (!isCancelled) {
-        setStreamUrl('https://test-streams.mux.dev/big_buck_bunny/bbb_720p.m3u8');
+        setStreamError(true);
         setIsLoading(false);
       }
     }

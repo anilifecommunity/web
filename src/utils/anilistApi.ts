@@ -4,8 +4,18 @@
 
 
 export const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
-export const ANILIST_CLIENT_ID = '55798';
-export const ANILIST_CLIENT_SECRET = 'wZ5WFRWClRvdjVRhGDxWac7NR12HrYA6bJRZ0FX3';
+
+/**
+ * Public AniList application id, supplied at build time.
+ *
+ * The web client uses AniList's implicit grant: the token arrives in the redirect
+ * fragment, so no client secret exists anywhere in this repository, the bundle or a
+ * server. An empty value disables AniList sign-in instead of falling back to a
+ * historical shared client.
+ */
+export const ANILIST_CLIENT_ID = String(
+  (import.meta.env.VITE_ANILIST_CLIENT_ID as string | undefined) ?? ''
+).trim();
 
 export interface AniListMedia {
   id: number;
@@ -157,39 +167,20 @@ export async function queryAniList<T>(
 
 
 export function getAniListOAuthUrl(redirectUri?: string): string {
-  const fixedUri = 'https://anilife-web.vercel.app/auth/callback';
+  if (!ANILIST_CLIENT_ID) {
+    throw new Error('AniList sign-in is not configured');
+  }
+  const fixedUri =
+    redirectUri ||
+    (typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : '/auth/callback');
   const params = new URLSearchParams({
     client_id: ANILIST_CLIENT_ID,
-    response_type: 'code',
-    redirect_uri: redirectUri || fixedUri,
+    response_type: 'token',
+    redirect_uri: fixedUri,
   });
   return `https://anilist.co/api/v2/oauth/authorize?${params.toString()}`;
-}
-
-
-
-
-export async function exchangeCodeForToken(code: string, redirectUri?: string): Promise<string> {
-  const fixedUri = 'https://anilife-web.vercel.app/auth/callback';
-  const res = await fetch('/api/anilist/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      code,
-      redirect_uri: redirectUri || fixedUri,
-    }),
-  });
-
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.message || errData.error || `Failed to exchange AniList code: ${res.statusText}`);
-  }
-
-  const data = await res.json();
-  return data.access_token;
 }
 
 

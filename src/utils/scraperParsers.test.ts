@@ -5,8 +5,7 @@ import {
   parseZokoHtml,
   sanitizeAniChanSubtitleUrl,
   calculateMediaIndexShard,
-  resolveUrl,
-  rewriteM3u8Content
+  resolveUrl
 } from './scraperParsers';
 
 test('calculateMediaIndexShard handles standard AniList IDs', () => {
@@ -71,23 +70,4 @@ test('parseZokoHtml extracts and parses window.__P from HTML document', () => {
   const payload = parseZokoHtml(html);
   assert.ok(payload);
   assert.equal(payload.src, 'https://hls.testcdn.com/stream.m3u8');
-});
-
-test('rewriteM3u8Content replaces segment and key URLs with proxy endpoints', () => {
-  const sampleM3u8 = `#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:10
-#EXT-X-KEY:METHOD=AES-128,URI="enc.key"
-#EXTINF:9.009,
-segment1.ts
-#EXTINF:9.009,
-segment2.ts
-#EXT-X-ENDLIST`;
-
-  const baseUrl = 'https://stream.server.net/video/master.m3u8';
-  const referer = 'https://zokoanime.video/';
-  const rewritten = rewriteM3u8Content(sampleM3u8, baseUrl, '/api/proxy-stream', referer);
-
-  assert.ok(rewritten.includes('/api/proxy-stream?url=https%3A%2F%2Fstream.server.net%2Fvideo%2Fsegment1.ts&referer=https%3A%2F%2Fzokoanime.video%2F'));
-  assert.ok(rewritten.includes('/api/proxy-stream?url=https%3A%2F%2Fstream.server.net%2Fvideo%2Fenc.key&referer=https%3A%2F%2Fzokoanime.video%2F'));
 });

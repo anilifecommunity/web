@@ -1,0 +1,13 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Local-only: credentials, reference checkouts, handoff packs, scratch work.
+.private/
+.wrangler/
+.dev.vars

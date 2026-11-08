@@ -14,7 +14,6 @@ export const SERVERS: ServerOption[] = [
   { id: 'anichan', name: 'AniChan', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true },
   { id: 'anikoto', name: 'Anikoto', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
   { id: 'animepahe', name: 'AnimePahe', speed: 'Fast', supportsDub: false, supportsSub: true, supportsDownload: true },
-  { id: 'lili', name: 'Lili', speed: 'Ultra', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Direct CDN' },
   { id: 'sun', name: 'Sun', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
   { id: 'pewe', name: 'Pewe', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },
   { id: 'hop', name: 'Hop', speed: 'Fast', supportsDub: true, supportsSub: true, supportsDownload: true, badge: 'Fast' },

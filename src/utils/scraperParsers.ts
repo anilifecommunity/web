@@ -1,8 +1,3 @@
-
-
-
-
-
 export interface ZokoSubtitle {
   lang: string;
   label: string;
@@ -42,29 +37,38 @@ export interface ResolvedStreamSource {
 
 const ZOKO_XOR_KEY = 'otaku-embed-v1';
 
-
-
-
-
-export function decodeZokoPayload(base64Payload: string): ZokoPayload | null {
+function base64ToBytes(base64Payload: string): Uint8Array | null {
   try {
-    const raw = Buffer.from(base64Payload, 'base64');
-    const key = Buffer.from(ZOKO_XOR_KEY, 'ascii');
-    const decoded = Buffer.alloc(raw.length);
-
-    for (let i = 0; i < raw.length; i++) {
-      decoded[i] = raw[i] ^ key[i % key.length];
+    const binary = atob(base64Payload);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
     }
-
-    const jsonStr = decoded.toString('utf-8');
-    return JSON.parse(jsonStr) as ZokoPayload;
+    return bytes;
   } catch {
     return null;
   }
 }
 
-
-
+/**
+ * Decodes Zoko's `window.__P` player configuration: base64 over UTF-8 JSON
+ * XOR'd with a fixed key. Runs in Node, the browser and Workers alike.
+ */
+export function decodeZokoPayload(base64Payload: string): ZokoPayload | null {
+  const raw = base64ToBytes(base64Payload);
+  if (!raw) return null;
+  try {
+    const key = new TextEncoder().encode(ZOKO_XOR_KEY);
+    const decoded = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i += 1) {
+      decoded[i] = raw[i] ^ key[i % key.length];
+    }
+    const jsonStr = new TextDecoder().decode(decoded);
+    return JSON.parse(jsonStr) as ZokoPayload;
+  } catch {
+    return null;
+  }
+}
 
 export function parseZokoHtml(html: string): ZokoPayload | null {
   const match = html.match(/window\.__P\s*=\s*["']([A-Za-z0-9+/=]+)["']/);
@@ -73,24 +77,18 @@ export function parseZokoHtml(html: string): ZokoPayload | null {
 }
 
 /**
- * Sanitizes AniChan subtitle URLs (percent-encodes raw spaces in track filenames)
- * Ported from com.anilili.data.remote.AniChanParser
+ * Sanitizes AniChan subtitle URLs (percent-encodes raw spaces in track filenames).
  */
-export function sanitizeAniChanSubtitleUrl(url: string, baseUrl = 'https:
+export function sanitizeAniChanSubtitleUrl(url: string, baseUrl = 'https://anichan.to'): string {
   const absolute = url.startsWith('/') ? `${baseUrl}${url}` : url;
   return absolute.replace(/ /g, '%20');
 }
 
-
-
-
+/** Shard directory for per-title media-index files: floor(anilistId / 1000). */
 export function calculateMediaIndexShard(anilistId: number): number {
   if (isNaN(anilistId) || anilistId < 0) return 0;
   return Math.floor(anilistId / 1000);
 }
-
-
-
 
 export function resolveUrl(relativeOrAbsolute: string, baseUrl: string): string {
   try {
@@ -98,50 +96,4 @@ export function resolveUrl(relativeOrAbsolute: string, baseUrl: string): string 
   } catch {
     return relativeOrAbsolute;
   }
-}
-
-
-
-
-
-export function rewriteM3u8Content(
-  m3u8Content: string,
-  baseUrl: string,
-  proxyBaseUrl = '/api/proxy-stream',
-  referer?: string
-): string {
-  const lines = m3u8Content.split(/\r?\n/);
-  const rewrittenLines: string[] = [];
-
-  const makeProxyUrl = (targetUrl: string): string => {
-    const absUrl = resolveUrl(targetUrl, baseUrl);
-    let proxied = `${proxyBaseUrl}?url=${encodeURIComponent(absUrl)}`;
-    if (referer) {
-      proxied += `&referer=${encodeURIComponent(referer)}`;
-    }
-    return proxied;
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      rewrittenLines.push(line);
-      continue;
-    }
-
-    
-    if (trimmed.startsWith('#')) {
-      let tagLine = line;
-      tagLine = tagLine.replace(/URI=["']([^"']+)["']/g, (_match, uri) => {
-        return `URI="${makeProxyUrl(uri)}"`;
-      });
-      rewrittenLines.push(tagLine);
-      continue;
-    }
-
-    
-    rewrittenLines.push(makeProxyUrl(trimmed));
-  }
-
-  return rewrittenLines.join('\n');
 }

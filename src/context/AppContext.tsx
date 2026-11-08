@@ -39,7 +39,6 @@ import {
   fetchUserAnimeList,
   saveUserMediaListEntry,
   getAniListOAuthUrl,
-  exchangeCodeForToken,
   loadOAuthToken,
   saveOAuthToken,
   clearOAuthToken,
@@ -50,7 +49,6 @@ import {
 } from '../utils/anilistApi';
 import {
   fetchMediaIndexEpisodes,
-  fetchMediaIndexLiliStream,
   fetchMediaIndexSkip,
   isAnimeDubbed
 } from '../utils/mediaIndexApi';
@@ -243,7 +241,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   useEffect(() => {
     document.documentElement.style.setProperty('--anilife-accent', settings.accentColor);
-    document.documentElement.style.setProperty('--anilili-accent', settings.accentColor);
     
     if (settings.canvasBackground === 'amoled') {
       document.documentElement.style.setProperty('--anilife-canvas', '#000000');
@@ -256,28 +253,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const queryParams = new URLSearchParams(window.location.search);
-      const code = queryParams.get('code');
-      if (code) {
-        exchangeCodeForToken(code, 'https://anilife-web.vercel.app/auth/callback').then(token => {
-          if (token) {
-            saveOAuthToken(token);
-            if (window.opener) {
-              try {
-                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token }, '*');
-                window.close();
-              } catch {}
-            }
-            loginWithToken(token);
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-        }).catch(err => {
-          console.error('Code exchange failed:', err);
-        });
-      }
-    }
-
     if (typeof window !== 'undefined' && window.location.hash.includes('access_token=')) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const token = hashParams.get('access_token');
@@ -412,7 +387,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             episodeNumber: Math.max(1, entry.progress || 1),
             currentTimeSec: 600,
             durationSec: (entry.media.duration || 24) * 60,
-            serverName: 'xfdm',
+            serverName: settings.activeServer,
             audioMode: 'SUB',
             updatedAt: new Date(entry.updatedAt * 1000).toISOString()
           });
@@ -498,7 +473,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const initiateAniListOAuth = () => {
-    const redirectUri = 'https://anilife-web.vercel.app/auth/callback';
+    const redirectUri = `${window.location.origin}/auth/callback`;
     const authUrl = getAniListOAuthUrl(redirectUri);
     window.location.href = authUrl;
   };
@@ -668,7 +643,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       anime,
       episodeNumber: episodeNum,
       audioMode,
-      serverId: settings.activeServer || 'lili'
+      serverId: settings.activeServer || 'zoko'
     });
   };
 

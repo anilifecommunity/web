@@ -14,72 +14,56 @@ export interface MediaIndexEpisode {
   skipId?: string;
 }
 
-export interface MediaIndexLiliRecord {
-  base: string;
-  episodes: Record<string, string>;
-  length?: number;
-  skipId?: string;
-}
-
 export interface MediaIndexSkipData {
   op?: [number, number];
   ed?: [number, number];
   recap?: [number, number];
 }
 
-const MEDIA_INDEX_PRIMARY = 'https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/main/data';
-const MEDIA_INDEX_FALLBACK = 'https://cdn.jsdelivr.net/gh/immafurryfemboy/fish@main/data';
+/**
+ * Anilife-owned static metadata index, served by jsDelivr.
+ *
+ * Layout is `data/anime/{shard}/{anilistId}/...` and shard is `floor(id / 1000)`.
+ * The repository is MIT-0 and browser-readable (CORS `*`), so episode, skip and
+ * backdrop enrichment never needs a server.
+ */
+const MEDIA_INDEX_BASE = 'https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/data';
 
 async function fetchIndexJson<T>(subpath: string): Promise<T | null> {
-  const sources = [
-    `${MEDIA_INDEX_PRIMARY}/${subpath}`,
-    `${MEDIA_INDEX_FALLBACK}/${subpath}`
-  ];
-  for (const url of sources) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return await res.json();
-    } catch {}
+  try {
+    const res = await fetch(`${MEDIA_INDEX_BASE}/${subpath}`);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 const episodeCache = new Map<number, MediaIndexEpisode[]>();
-const liliStreamCache = new Map<number, MediaIndexLiliRecord | null>();
 let dubIndexSet: Set<number> | null = null;
 let backdropMap: Record<string, string> | null = null;
+
+export function mediaIndexShard(anilistId: number): number {
+  if (!Number.isFinite(anilistId) || anilistId < 0) return 0;
+  return Math.floor(anilistId / 1000);
+}
 
 export async function fetchMediaIndexEpisodes(anilistId: number): Promise<MediaIndexEpisode[]> {
   if (episodeCache.has(anilistId)) {
     return episodeCache.get(anilistId)!;
   }
-  const shard = Math.floor(anilistId / 1000);
-  const data = await fetchIndexJson<MediaIndexEpisode[]>(`anime/${shard}/${anilistId}/episodes.json`);
-  if (Array.isArray(data)) {
-    episodeCache.set(anilistId, data);
-    return data;
-  }
-  episodeCache.set(anilistId, []);
-  return [];
-}
-
-export async function fetchMediaIndexLiliStream(anilistId: number): Promise<MediaIndexLiliRecord | null> {
-  if (liliStreamCache.has(anilistId)) {
-    return liliStreamCache.get(anilistId)!;
-  }
-  const shard = Math.floor(anilistId / 1000);
-  const record = await fetchIndexJson<MediaIndexLiliRecord>(`anime/${shard}/${anilistId}/lili.json`);
-  if (record && record.base && record.episodes) {
-    liliStreamCache.set(anilistId, record);
-    return record;
-  }
-  liliStreamCache.set(anilistId, null);
-  return null;
+  const data = await fetchIndexJson<MediaIndexEpisode[]>(
+    `anime/${mediaIndexShard(anilistId)}/${anilistId}/episodes.json`
+  );
+  const episodes = Array.isArray(data) ? data : [];
+  episodeCache.set(anilistId, episodes);
+  return episodes;
 }
 
 export async function fetchMediaIndexSkip(anilistId: number, episodeNum: number, malId?: number): Promise<MediaIndexSkipData | null> {
-  const shard = Math.floor(anilistId / 1000);
-  const data = await fetchIndexJson<any>(`skip/${shard}/${anilistId}.json`);
+  const data = await fetchIndexJson<any>(
+    `skip/${mediaIndexShard(anilistId)}/${anilistId}.json`
+  );
   if (data?.episodes?.[String(episodeNum)] && Array.isArray(data.episodes[String(episodeNum)])) {
     const result: MediaIndexSkipData = {};
     for (const item of data.episodes[String(episodeNum)]) {

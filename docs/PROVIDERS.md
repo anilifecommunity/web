@@ -45,10 +45,12 @@ the manifest, a variant and a segment with seek, not a metadata 200.
 
 ## Rules
 
-- Playback is automatic. The player sends the enabled server order and never shows a per-episode
-  server picker. A failed server falls through to the next enabled server within one bounded request.
-- The viewer's enabled set and priority are the only source controls. Empty or absent settings mean
-  "all web-capable servers enabled"; an explicit disable is never reverted.
+- Playback is automatic by default. The player sends the enabled server order; a failed server
+  falls through to the next enabled server within one bounded request. The player also offers an
+  optional anonymous Servers drawer so the viewer can pin a different server without leaving
+  playback.
+- The viewer's enabled set and priority are the primary source controls. Empty or absent settings
+  mean "all web-capable servers enabled"; an explicit disable is never reverted.
 - Server identities stay anonymous in the UI (`Server 1`, `Server 2`). Only Settings shows which
   servers are enabled, and it lists just browser-verified entries.
 - Audio is never silently swapped. A dub request that only has a sub is an explicit failure.

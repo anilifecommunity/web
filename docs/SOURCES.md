@@ -34,6 +34,16 @@ id for the host. The same registry is served read-only at `GET /api/providers` a
 | Vidmoly | Player host | Requires auth | Homepage 401. Authentication was not bypassed. |
 | MP4Upload | Player host | Iframe blocked | Homepage 200 with `X-Frame-Options: SAMEORIGIN`. |
 
+## WCostream
+
+`wcostream.tv` was tested on 2026-11-08. The plain Worker request receives Cloudflare's 403
+"Just a moment" challenge, and the page sets `X-Frame-Options: SAMEORIGIN`. A real browser can load
+the page and exposes an embed such as
+`https://embed.wcostream.com/inc/embed/index.php?file=...&h=...&t=...`, but the `h`/`t` values are
+page-generated and the embed is not constructible from an AniList id. Using a browser clearance
+cookie or a proxy would bypass Cloudflare, so no adapter was added. Its Chromecast player does not
+change that: the app still needs the signed per-episode page first.
+
 ## Why only one additional adapter was added
 
 VidSrc was added because AniZip supplies a real AniList-to-TMDB episode mapping and the embed page

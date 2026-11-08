@@ -22,7 +22,7 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | Automatic source fallback | DONE | Enabled order sent to Worker; failed server falls through; disabled servers are never queried |
 | VidSrc fallback | PARTIAL | AniZip->TMDB mapping and iframe verified; media startup needs a user test; Reanime stays first |
 | Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
-| No per-episode server picker | DONE | Player shows an anonymous status chip, Retry and a Settings pointer only |
+| Manual server switch | DONE | Automatic fallback stays default; the player's Servers drawer switches among enabled anonymous servers |
 | Source and downstream research | DONE | `SOURCES.md`; `/api/providers` exposes read-only downstream statuses |
 | Discord Rich Presence | PARTIAL | Embedded App SDK, token exchange, activity gate and presence implemented; needs Activity portal setup and a valid secret or Public Client |
 | Privacy correct, diagnostics local, toggles OFF | DONE | `PRIVACY.md`, `SECURITY.md`, no upload endpoint |

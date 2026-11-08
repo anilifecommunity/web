@@ -321,6 +321,9 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                 placeholder="e.g. 1234 (leave blank for none)"
                 className="w-full px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white focus:outline-none focus:border-[#74cf66]"
               />
+              <p className="text-[10px] text-zinc-500">
+                This PIN is a local privacy screen on this browser, not account authentication.
+              </p>
             </div>
 
             {}

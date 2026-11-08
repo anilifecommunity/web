@@ -152,7 +152,7 @@ const ANIVEXA: ProviderDefinition[] = [
   anivexa('animedekho'),
   anivexa('toonhub', {
     name: 'ToonHub4u',
-    status: 'worker-metadata-only',
+    status: 'unverified',
     evidence: [
       {
         date: '2026-11-08',

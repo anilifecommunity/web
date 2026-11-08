@@ -64,6 +64,17 @@ export function enabledServerIds(
   return configured.filter((id) => allowed.has(id));
 }
 
+/** Applies the viewer's priority list without adding or removing servers. */
+export function orderServerOptions(options: ServerOption[], priority?: string[]): ServerOption[] {
+  if (!priority || priority.length === 0) return options;
+  const rank = new Map(priority.map((id, index) => [id, index]));
+  return [...options].sort((a, b) => {
+    const aRank = rank.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+    const bRank = rank.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+    return aRank - bRank;
+  });
+}
+
 /** Enabled servers with the preferred one first, then the viewer's configured order. */
 export function resolveServerOrder(
   options: ServerOption[],

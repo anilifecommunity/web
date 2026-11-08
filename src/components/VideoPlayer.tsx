@@ -8,6 +8,7 @@ import {
   preferredServerOption,
   enabledServerIds,
   resolveServerOrder,
+  orderServerOptions,
 } from '../utils/providerOptions';
 import { messageFor } from '../resolver';
 import { resolveEpisode } from '../utils/workerApi';
@@ -70,12 +71,15 @@ export const VideoPlayer: React.FC<Props> = ({
   const [currentEpisodeNumber, setCurrentEpisodeNumber] = useState(initialEpisodeNumber);
   const [audioMode, setAudioMode] = useState<'SUB' | 'DUB'>(initialAudioMode);
   const serverOptions = useMemo(
-    () => webServerOptions(settings.hideAdultContent),
-    [settings.hideAdultContent]
+    () => orderServerOptions(webServerOptions(settings.hideAdultContent), settings.serverPriority),
+    [settings.hideAdultContent, settings.serverPriority]
   );
 
   const [activeServer, setActiveServer] = useState<ServerOption>(() => {
-    const options = webServerOptions(settings.hideAdultContent);
+    const options = orderServerOptions(
+      webServerOptions(settings.hideAdultContent),
+      settings.serverPriority
+    );
     return preferredServerOption(
       options,
       settings.activeServer,

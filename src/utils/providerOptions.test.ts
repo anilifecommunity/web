@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Anime } from '../types/anime';
 import { getAnimeAniListId } from './animeData';
-import { enabledServerIds, resolveServerOrder, webServerOptions } from './providerOptions';
+import { enabledServerIds, orderServerOptions, resolveServerOrder, webServerOptions } from './providerOptions';
 
 function sample(id: string, aniListId?: number): Anime {
   return { id, anilistId: aniListId } as unknown as Anime;
@@ -40,4 +40,12 @@ test('resolve order puts the preferred server first and drops disabled servers',
   const enabled = [ids[1], ids[0]];
   assert.deepEqual(resolveServerOrder(options, ids[1], enabled), [ids[1], ids[0]]);
   assert.deepEqual(resolveServerOrder(options, ids[0], [ids[0]]), [ids[0]]);
+});
+
+test('priority reorders options without dropping any', () => {
+  const options = webServerOptions();
+  const ids = options.map((option) => option.id);
+  const ordered = orderServerOptions(options, [ids[1], ids[0]]);
+  assert.deepEqual(ordered.slice(0, 2).map((option) => option.id), [ids[1], ids[0]]);
+  assert.equal(ordered.length, ids.length);
 });

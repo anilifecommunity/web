@@ -1194,51 +1194,91 @@ export const VideoPlayer: React.FC<Props> = ({
         {activeDrawer === 'servers' && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-y-0 right-0 w-full sm:w-96 bg-[#0e0c18]/95 border-l border-[#74cf66]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-4 animate-fadeIn text-xs"
+            className="absolute inset-y-0 right-0 z-50 flex w-full flex-col border-l border-white/10 bg-[#0b0a12]/95 p-4 backdrop-blur-2xl animate-fadeIn sm:w-[360px]"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <div>
-                <h3 className="font-bold text-sm text-white">Servers</h3>
-                <p className="text-[11px] text-zinc-400">Switch server without leaving playback</p>
+            <div className="flex items-start justify-between gap-3 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#74cf66]/10 text-[#74cf66]">
+                  <Server className="h-4 w-4" />
+                </span>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Servers</h3>
+                  <p className="text-[11px] text-zinc-500">Switch without leaving playback</p>
+                </div>
               </div>
               <button
                 onClick={() => setActiveDrawer('none')}
-                className="p-1 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white"
+                className="rounded-full p-1.5 text-zinc-500 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                title="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {switchableServers.length === 0 ? (
-              <p className="text-[11px] text-zinc-400">
-                No enabled servers. Turn one on in Settings &gt; Servers.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {switchableServers.map((server) => {
-                  const position = serverOptions.findIndex((item) => item.id === server.id);
-                  const isSelected = activeServer.id === server.id;
-                  return (
-                    <button
-                      key={server.id}
-                      onClick={() => selectServer(server)}
-                      className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#74cf66]/20 border border-[#74cf66] text-white'
-                          : 'bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-300'
-                      }`}
-                    >
-                      <div className="min-w-0 pr-2">
-                        <span className="font-bold text-sm">Server {position + 1}</span>
-                        <p className="text-[10px] text-zinc-400 mt-0.5 line-clamp-1">
-                          {server.supportsDub ? 'Supports Sub & Dub' : 'Subtitles only'}
-                        </p>
-                      </div>
-                      {isSelected && <Check className="w-4 h-4 text-[#74cf66]" />}
-                    </button>
-                  );
-                })}
+              <div className="flex flex-1 items-center justify-center px-4 text-center">
+                <p className="text-[11px] leading-relaxed text-zinc-500">
+                  No enabled servers. Turn one on in Settings &gt; Servers.
+                </p>
               </div>
+            ) : (
+              <>
+                <div className="flex-1 space-y-1.5 overflow-y-auto no-scrollbar pt-1">
+                  {switchableServers.map((server) => {
+                    const position = serverOptions.findIndex((item) => item.id === server.id);
+                    const isSelected = activeServer.id === server.id;
+                    return (
+                      <button
+                        key={server.id}
+                        onClick={() => selectServer(server)}
+                        className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'border-[#74cf66]/40 bg-[#74cf66]/10'
+                            : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                            isSelected
+                              ? 'bg-[#74cf66] text-black'
+                              : 'bg-white/5 text-zinc-400 group-hover:text-zinc-300'
+                          }`}
+                        >
+                          {position + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-2">
+                            <span className="truncate text-sm font-semibold text-white">
+                              Server {position + 1}
+                            </span>
+                            {isSelected && (
+                              <span className="rounded-full bg-[#74cf66]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#74cf66]">
+                                Current
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-1 flex items-center gap-1">
+                            {server.supportsSub && (
+                              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400">
+                                SUB
+                              </span>
+                            )}
+                            {server.supportsDub && (
+                              <span className="rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-zinc-400">
+                                DUB
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                        {isSelected && <Check className="h-4 w-4 shrink-0 text-[#74cf66]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 border-t border-white/5 pt-3 text-[10px] leading-relaxed text-zinc-500">
+                  Automatic fallback stays on. If this server fails, the next enabled server is tried.
+                </div>
+              </>
             )}
           </div>
         )}

@@ -35,6 +35,7 @@ import { EnabledServersModal } from './EnabledServersModal';
 import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '../data/backup';
 import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 import { useDiscordStatus } from '../discord/useDiscordActivity';
+import { connectDiscordActivity, isDiscordActivity } from '../discord/activity';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const {
@@ -853,23 +854,33 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     </div>
                   </div>
 
-                  <span
-                    className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+                  <button
+                    onClick={() => {
+                      if (isDiscordActivity()) {
+                        void connectDiscordActivity();
+                      } else {
+                        window.open('https://discord.com/app', '_blank', 'noopener,noreferrer');
+                        showNotice('Discord opened. Launch Anilife from the App Launcher.');
+                      }
+                    }}
+                    className={`rounded-full px-3 py-1.5 text-[10px] font-bold transition-colors cursor-pointer ${
                       discord.status === 'connected'
                         ? 'bg-[#5865F2]/20 text-[#8b95ff]'
                         : discord.status === 'error'
-                          ? 'bg-red-500/15 text-red-300'
-                          : 'bg-white/5 text-zinc-400'
+                          ? 'bg-red-500/15 text-red-300 hover:bg-red-500/25'
+                          : 'bg-[#5865F2] text-white hover:bg-[#4752c4]'
                     }`}
                   >
                     {discord.status === 'connected'
-                      ? 'Linked'
+                      ? 'Connected'
                       : discord.status === 'error'
-                        ? 'Error'
+                        ? 'Retry'
                         : discord.status === 'connecting'
-                          ? 'Linking'
-                          : 'Inactive'}
-                  </span>
+                          ? 'Connecting...'
+                          : isDiscordActivity()
+                            ? 'Connect Discord'
+                            : 'Open Discord'}
+                  </button>
                 </div>
 
                 {discord.status === 'error' && discord.error && (
@@ -877,11 +888,14 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 )}
 
                 {discord.status !== 'connected' && discord.status !== 'connecting' && (
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">
-                    Rich Presence is set by the Discord Embedded App SDK. Launch Anilife from
-                    Discord as an Activity to connect; a normal browser tab cannot set Discord
-                    presence.
-                  </p>
+                  <div className="space-y-1 text-[11px] text-zinc-500 leading-relaxed">
+                    <p>
+                      Rich Presence only works inside Discord. In the Discord client, open the
+                      App Launcher next to the chat bar, choose <span className="text-zinc-300">Anilife</span>,
+                      then press <span className="text-zinc-300">Launch</span>.
+                    </p>
+                    <p>A normal browser tab cannot set Discord presence.</p>
+                  </div>
                 )}
 
                 <label className="flex items-center justify-between pt-3 border-t border-white/5 cursor-pointer">

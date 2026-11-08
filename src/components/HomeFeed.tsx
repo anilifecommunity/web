@@ -138,12 +138,16 @@ export const HomeFeed: React.FC = () => {
                 key={i}
                 onClick={() => setActiveSpotlightIdx(i)}
                 aria-label={`Go to slide ${i + 1}`}
-                className={`transition-all rounded-full cursor-pointer ${
-                  activeSpotlightIdx === i
-                    ? 'w-6 h-1.5 bg-[#74cf66] shadow-sm shadow-[rgba(116,207,102,0.8)]'
-                    : 'w-1.5 h-1.5 bg-zinc-500 hover:bg-zinc-300'
-                }`}
-              />
+                className="flex h-6 w-6 items-center justify-center rounded-full cursor-pointer"
+              >
+                <span
+                  className={`block rounded-full transition-all ${
+                    activeSpotlightIdx === i
+                      ? 'w-6 h-1.5 bg-[#74cf66] shadow-sm shadow-[rgba(116,207,102,0.8)]'
+                      : 'w-1.5 h-1.5 bg-zinc-500 hover:bg-zinc-300'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </section>

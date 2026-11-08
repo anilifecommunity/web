@@ -3,6 +3,12 @@
   "name": "anilife-web",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": true,
+  "routes": [
+    { "pattern": "anilife.cc", "custom_domain": true },
+    { "pattern": "www.anilife.cc", "custom_domain": true }
+  ],
   "observability": {
     "enabled": true
   },

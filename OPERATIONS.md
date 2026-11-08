@@ -2,9 +2,16 @@
 
 ## Hosts
 
+- Production: `https://anilife.cc` and `https://www.anilife.cc` (www redirects to the apex)
 - Preview: `https://anilife-web.adfreegames.workers.dev` (Worker `anilife-web`)
-- Production (after approval): `anilife.cc` and `www.anilife.cc`
 - Never use a `beta.anilife.cc` hostname.
+
+`wrangler.jsonc` declares both production hosts as custom domains, so `npm run deploy:worker`
+deploys production. For an isolated preview, upload a version without promoting it:
+
+```bash
+npx wrangler versions upload
+```
 
 ## Secrets
 

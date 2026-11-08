@@ -173,6 +173,11 @@ async function handleGateVerify(request: Request, env: Env): Promise<Response> {
 
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+
+  if (url.hostname === 'www.anilife.cc') {
+    return Response.redirect(`https://anilife.cc${url.pathname}${url.search}`, 301);
+  }
+
   const path = url.pathname;
 
   if (!path.startsWith('/api/')) {

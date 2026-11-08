@@ -4,7 +4,7 @@ The browser/PWA client for Anilife. It shares the Anilife product semantics and 
 catalogue with the Android app, but uses browser conventions: real URLs, IndexedDB, a PWA shell
 and a small Cloudflare Worker for metadata mediation.
 
-- Production host (after approval): `anilife.cc`
+- Production: `https://anilife.cc` (`www` redirects to the apex)
 - Preview: `https://anilife-web.adfreegames.workers.dev`
 - Reference app (read-only): `anilifecommunity/android-and-tv`
 
@@ -81,5 +81,5 @@ security headers apply to every response. Preview hosts ending in `.workers.dev`
 
 ## Licence
 
-Anilife-authored code follows the project's licensing decision; no licence is declared in this
-repository yet. Third-party metadata, posters and media remain the property of their owners.
+MIT No Attribution (MIT-0). See `LICENSE`. Third-party metadata, posters and media remain the
+property of their owners and are fetched at runtime.

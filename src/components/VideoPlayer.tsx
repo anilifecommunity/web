@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Hls from 'hls.js';
 import { Anime, Episode, ServerOption } from '../types/anime';
 import { useApp } from '../context/AppContext';
-import { SERVERS, getAnimeAniListId } from '../utils/animeData';
+import { getAnimeAniListId } from '../utils/animeData';
+import { webServerOptions } from '../utils/providerOptions';
+import { messageFor } from '../resolver';
+import { resolveEpisode } from '../utils/workerApi';
 import { formatPlayerClock, formatTime, calculateProgressPercent } from '../utils/playerUtils';
 import {
   fetchMediaIndexEpisodes,
@@ -62,8 +65,21 @@ export const VideoPlayer: React.FC<Props> = ({
 
   const [currentEpisodeNumber, setCurrentEpisodeNumber] = useState(initialEpisodeNumber);
   const [audioMode, setAudioMode] = useState<'SUB' | 'DUB'>(initialAudioMode);
+  const serverOptions = useMemo(
+    () => webServerOptions(settings.hideAdultContent),
+    [settings.hideAdultContent]
+  );
+
   const [activeServer, setActiveServer] = useState<ServerOption>(() => {
-    return SERVERS.find(s => s.id === settings.activeServer) || SERVERS[0];
+    const options = webServerOptions(settings.hideAdultContent);
+    return options.find(s => s.id === settings.activeServer) || options[0] || {
+      id: 'none',
+      name: 'No source',
+      speed: 'Normal',
+      supportsDub: false,
+      supportsSub: false,
+      supportsDownload: false,
+    };
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -95,6 +111,7 @@ export const VideoPlayer: React.FC<Props> = ({
   
   const [streamUrl, setStreamUrl] = useState<string>('');
   const [streamError, setStreamError] = useState<boolean>(false);
+  const [streamErrorText, setStreamErrorText] = useState('');
 
   
   const [clockString, setClockString] = useState('');
@@ -141,86 +158,77 @@ export const VideoPlayer: React.FC<Props> = ({
   useEffect(() => {
     setIsLoading(true);
     setStreamError(false);
+    setStreamErrorText('');
+    const abort = new AbortController();
     let isCancelled = false;
 
     async function resolveSource() {
-      const candidateServers = settings.serverPriority && settings.serverPriority.length > 0
-        ? settings.serverPriority
-        : SERVERS.map(s => s.id);
-
-      const orderedServers = [
-        activeServer.id,
-        ...candidateServers.filter(id => id !== activeServer.id)
-      ];
-
-      for (const serverId of orderedServers) {
+      if (isNaN(numericAniListId)) {
         if (isCancelled) return;
-        try {
-          const queryParams = new URLSearchParams({
-            provider: serverId,
-            animeId: isNaN(numericAniListId) ? '154587' : String(numericAniListId),
-            episode: String(currentEpisodeNumber),
-            audio: audioMode.toLowerCase(),
-            title: anime.title || ''
-          });
-
-          const res = await fetch(`/api/sources?${queryParams.toString()}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.source?.streamUrl && !isCancelled) {
-              setStreamUrl(data.source.streamUrl);
-              const matchedServer = SERVERS.find(s => s.id === serverId);
-              if (matchedServer) setActiveServer(matchedServer);
-
-              if (Array.isArray(data.source.subtitles)) {
-                setSubtitles(data.source.subtitles);
-              }
-              if (data.source.skip) {
-                const toTuple = (v: unknown): [number, number] | undefined => {
-                  if (Array.isArray(v) && v.length >= 2 && !isNaN(Number(v[0])) && !isNaN(Number(v[1]))) {
-                    return [Number(v[0]), Number(v[1])];
-                  }
-                  if (v && typeof v === 'object' && 'start' in v && 'end' in v) {
-                    return [Number((v as { start: number }).start), Number((v as { end: number }).end)];
-                  }
-                  return undefined;
-                };
-                const op = toTuple(data.source.skip.intro);
-                const ed = toTuple(data.source.skip.outro);
-                if (op || ed) {
-                  setSkipData(prev => ({
-                    ...prev,
-                    ...(op ? { op } : {}),
-                    ...(ed ? { ed } : {})
-                  }));
-                }
-              }
-              setIsLoading(false);
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn(`[VideoPlayer] Server ${serverId} failed, trying next...`, err);
-        }
-      }
-
-      if (!isCancelled) {
+        setStreamErrorText('This title has no AniList id, so no source can be resolved.');
         setStreamError(true);
         setIsLoading(false);
+        return;
       }
-    }
 
-    if (settings.discordRichPresence && anime.title) {
-      fetch('/api/discord/presence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: anime.title, episode: currentEpisodeNumber })
-      }).catch(() => {});
+      const result = await resolveEpisode(
+        {
+          provider: activeServer.id,
+          aniListId: numericAniListId,
+          episode: currentEpisodeNumber,
+          audio: audioMode === 'DUB' ? 'dub' : 'sub',
+          lang: selectedSubLanguage,
+          fallback: false,
+        },
+        abort.signal
+      );
+
+      if (isCancelled) return;
+
+      if (!result.ok) {
+        setStreamErrorText(messageFor(result.error));
+        setStreamError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const offer = result.offer;
+      if (offer.streams.length === 0) {
+        setStreamErrorText('No server returned a playable stream for this episode.');
+        setStreamError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      setStreamUrl(offer.streams[0].url);
+      setSubtitles(
+        offer.subtitles.map((sub, index) => ({
+          language: sub.language,
+          label: sub.label || sub.language.toUpperCase(),
+          url: sub.url,
+          default: index === 0,
+        }))
+      );
+
+      const intro = offer.skipWindows?.find((window) => window.kind === 'intro');
+      const outro = offer.skipWindows?.find((window) => window.kind === 'outro');
+      if (intro || outro) {
+        setSkipData((prev) => ({
+          ...prev,
+          ...(intro ? { op: [intro.startMs / 1000, intro.endMs / 1000] as [number, number] } : {}),
+          ...(outro ? { ed: [outro.startMs / 1000, outro.endMs / 1000] as [number, number] } : {}),
+        }));
+      }
+
+      setIsLoading(false);
     }
 
     resolveSource();
-    return () => { isCancelled = true; };
-  }, [numericAniListId, currentEpisodeNumber, activeServer.id, audioMode, anime.title, settings.discordRichPresence]);
+    return () => {
+      isCancelled = true;
+      abort.abort();
+    };
+  }, [numericAniListId, currentEpisodeNumber, activeServer.id, audioMode, selectedSubLanguage]);
 
   
   useEffect(() => {
@@ -262,6 +270,8 @@ export const VideoPlayer: React.FC<Props> = ({
               break;
             default:
               hls.destroy();
+              setStreamErrorText('This browser could not play the selected stream. Try another server.');
+              setStreamError(true);
               setIsLoading(false);
               break;
           }
@@ -422,9 +432,8 @@ export const VideoPlayer: React.FC<Props> = ({
         {}
         <video
           ref={videoRef}
-          src={!streamUrl.includes('.m3u8') ? streamUrl : undefined}
+          src={streamUrl && !streamUrl.includes('.m3u8') ? streamUrl : undefined}
           className={`w-full h-full ${objectFitClass} transition-all duration-300`}
-          crossOrigin="anonymous"
           onCanPlay={() => setIsLoading(false)}
           onLoadedData={() => setIsLoading(false)}
           onTimeUpdate={() => {
@@ -447,6 +456,7 @@ export const VideoPlayer: React.FC<Props> = ({
           playsInline
           onError={() => {
             setIsLoading(false);
+            setStreamErrorText(`This browser could not play the stream from ${activeServer.name}.`);
             setStreamError(true);
           }}
         >
@@ -473,7 +483,7 @@ export const VideoPlayer: React.FC<Props> = ({
                 Stream unavailable from {activeServer.name}
               </h3>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md">
-                Unable to load Episode {currentEpisodeNumber}. Please switch to another server or retry.
+                {streamErrorText || `Unable to load Episode ${currentEpisodeNumber}. Please switch to another server or retry.`}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -1030,7 +1040,7 @@ export const VideoPlayer: React.FC<Props> = ({
             </div>
 
             <div className="space-y-2">
-              {SERVERS.map((server) => {
+              {serverOptions.map((server) => {
                 const isSelected = activeServer.id === server.id;
                 return (
                   <button

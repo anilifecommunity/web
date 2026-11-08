@@ -41,6 +41,20 @@ gate cookie, plus the same short-lived gate token in the JSON response. The Acti
 token in memory and sends it as `X-Anilife-Gate` on resolver calls, so playback still works if the
 Discord proxy does not persist cookies.
 
+## Launching it for a test
+
+1. In the Developer Portal, add yourself under **App Testers** if the app is not distributed.
+2. Install it to your account with the user-install link:
+   `https://discord.com/oauth2/authorize?client_id=1567279187893551185&integration_type=1&scope=applications.commands`
+3. Open Discord, pick a server voice channel or a DM, open the **App Launcher** next to the chat
+   bar, choose **Anilife**, then press **Launch**.
+4. The Activity authorizes automatically. If it does not, open **Settings > Accounts & Sync** and
+   press **Connect Discord**.
+5. Start an episode; the Discord profile should show the title and episode.
+
+A normal browser tab cannot set Rich Presence. The account is linked by Discord inside the
+Activity, not by a website login form.
+
 ## What is published
 
 - Browsing: `Browsing Anilife` / `Anime streaming`.

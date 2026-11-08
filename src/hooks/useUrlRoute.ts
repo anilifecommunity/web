@@ -4,7 +4,7 @@ import { ANIME_CATALOG } from '../utils/animeData';
 import { fetchAniListMediaById } from '../utils/anilistApi';
 import type { Anime } from '../types/anime';
 
-type Tab = 'home' | 'search' | 'schedule' | 'mylist' | 'downloads';
+type Tab = 'home' | 'search' | 'schedule' | 'mylist';
 
 type Route =
   | { kind: 'tab'; tab: Tab }
@@ -19,7 +19,6 @@ const TAB_PATHS: Record<Tab, string> = {
   search: '/discover',
   schedule: '/schedule',
   mylist: '/library',
-  downloads: '/downloads',
 };
 
 function parseRoute(pathname: string): Route {
@@ -39,7 +38,7 @@ function parseRoute(pathname: string): Route {
   if (first === 'search' || first === 'discover') return { kind: 'tab', tab: 'search' };
   if (first === 'schedule') return { kind: 'tab', tab: 'schedule' };
   if (first === 'library' || first === 'mylist') return { kind: 'tab', tab: 'mylist' };
-  if (first === 'downloads') return { kind: 'tab', tab: 'downloads' };
+  if (first === 'downloads') return { kind: 'tab', tab: 'home' };
   if (first === 'home') return { kind: 'tab', tab: 'home' };
   return { kind: 'home' };
 }
@@ -72,6 +71,10 @@ export function useUrlRoute(): void {
 
       if (route.kind === 'tab') {
         app.setActiveTab(route.tab);
+        const canonical = TAB_PATHS[route.tab];
+        if (window.location.pathname !== canonical) {
+          window.history.replaceState(null, '', canonical);
+        }
       } else if (route.kind === 'settings') {
         app.setShowSettingsModal(true);
       } else if (route.kind === 'profiles') {
@@ -149,7 +152,7 @@ export function useUrlRoute(): void {
               ? 'Schedule'
               : app.activeTab === 'mylist'
                 ? 'My List'
-                : 'Downloads';
+                : 'Anilife';
     }
 
     document.title = `${title} · Anilife`;

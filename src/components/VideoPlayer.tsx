@@ -36,7 +36,6 @@ import {
   Tv,
   Check,
   ChevronDown,
-  Download,
   Heart,
   Search,
   Sparkles,
@@ -1293,13 +1292,6 @@ export const VideoPlayer: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => showToast(`Downloaded episode ${currentEpisode.number} for offline play!`)}
-              className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white"
-              title="Download"
-            >
-              <Download className="w-4 h-4" />
-            </button>
             <button
               onClick={() => setIsFavorited(!isFavorited)}
               className={`p-2 rounded-full hover:bg-white/10 ${

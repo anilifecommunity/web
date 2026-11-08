@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   Play,
-  Download,
   Share2,
   ChevronDown,
   ArrowUpDown,
@@ -388,14 +387,6 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
               >
                 {isGridView ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
               </button>
-
-              <button
-                onClick={() => showToast(`Downloading all ${allEpisodes.length} episodes...`)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#74cf66] font-medium transition-colors cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>Download</span>
-              </button>
             </div>
 
             {}
@@ -498,18 +489,6 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
                             title={isEpWatched ? 'Mark as unwatched' : 'Mark as watched'}
                           >
                             <Eye className="w-4 h-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              showToast(`Downloading Episode ${ep.number}...`);
-                            }}
-                            className="p-2 rounded-full hover:bg-white/10 text-zinc-500 hover:text-white transition-colors"
-                            title="Download episode"
-                          >
-                            <Download className="w-4 h-4" />
                           </button>
                         </div>
                       )}

@@ -111,8 +111,8 @@ export function convertAniListToAnime(m: AniListMedia): Anime {
 }
 
 interface AppContextType {
-  activeTab: 'home' | 'search' | 'schedule' | 'mylist' | 'downloads';
-  setActiveTab: (tab: 'home' | 'search' | 'schedule' | 'mylist' | 'downloads') => void;
+  activeTab: 'home' | 'search' | 'schedule' | 'mylist';
+  setActiveTab: (tab: 'home' | 'search' | 'schedule' | 'mylist') => void;
   selectedAnime: Anime | null;
   setSelectedAnime: (anime: Anime | null) => void;
   activeVideo: VideoPlaybackTarget | null;
@@ -184,7 +184,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<'home' | 'search' | 'schedule' | 'mylist' | 'downloads'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'search' | 'schedule' | 'mylist'>('home');
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
   const [activeVideo, setActiveVideo] = useState<VideoPlaybackTarget | null>(null);
 

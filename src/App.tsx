@@ -5,7 +5,6 @@ import { HomeFeed } from './components/HomeFeed';
 import { BrowseSearch } from './components/BrowseSearch';
 import { ScheduleView } from './components/ScheduleView';
 import { MyListView } from './components/MyListView';
-import { DownloadsView } from './components/DownloadsView';
 import { AnimeDetailModal } from './components/AnimeDetailModal';
 import { VideoPlayer } from './components/VideoPlayer';
 import { SettingsModal } from './components/SettingsModal';
@@ -100,7 +99,6 @@ const AppContent: React.FC = () => {
           {activeTab === 'search' && <BrowseSearch />}
           {activeTab === 'schedule' && <ScheduleView />}
           {activeTab === 'mylist' && <MyListView />}
-          {activeTab === 'downloads' && <DownloadsView />}
         </main>
       </div>
 

@@ -1,5 +1,9 @@
 import { AppSettings, ContinueWatchingEntry, UserProfile, WatchlistEntry, ThemePresetName } from '../types/anime';
 import { INITIAL_CONTINUE_WATCHING } from './animeData';
+import { STORAGE_KEYS } from '../data/keys';
+import { putRecord } from '../data/idb';
+
+export { STORAGE_KEYS };
 
 export const POPULAR_AVATARS = [
   { name: 'Satoru Gojo', url: 'https://s4.anilist.co/file/anilistcdn/character/large/b127691-9zqh1xpIubn7.png' },
@@ -137,21 +141,24 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoHideNav: false,
 };
 
-const STORAGE_KEYS = {
-  SETTINGS: 'anilife_settings_v3',
-  WATCHLIST_PREFIX: 'anilife_watchlist_v3_',
-  CONTINUE_PREFIX: 'anilife_continue_v3_',
-  SEARCH_PREFIX: 'anilife_searches_v3_',
-  PROFILES: 'anilife_profiles_v3',
-  ACTIVE_PROFILE_ID: 'anilife_active_profile_id_v3',
-  OAUTH_TOKEN: 'anilife_oauth_token',
-  LIVE_CATALOG_CACHE: 'anilife_live_catalog_cache_v3',
-};
+const LEGACY_STORAGE_KEYS = {
+  SETTINGS: 'anilife_settings_v2',
+  PROFILES: 'anilife_profiles_v2',
+} as const;
 
 export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (!raw) return DEFAULT_SETTINGS;
+    if (!raw) {
+      // One-time upgrade from the v2 key, written forward so the next boot is a plain read.
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEYS.SETTINGS);
+      if (legacy) {
+        const merged = { ...DEFAULT_SETTINGS, ...JSON.parse(legacy) };
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
+        return merged;
+      }
+      return DEFAULT_SETTINGS;
+    }
     return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
   } catch {
     return DEFAULT_SETTINGS;
@@ -161,6 +168,7 @@ export function loadSettings(): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   try {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    void putRecord('settings', 'settings', settings);
   } catch (err) {
     console.error('Failed to save settings:', err);
   }
@@ -169,7 +177,17 @@ export function saveSettings(settings: AppSettings): void {
 export function loadProfiles(): UserProfile[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PROFILES);
-    if (!raw) return DEFAULT_PROFILES;
+    if (!raw) {
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEYS.PROFILES);
+      if (legacy) {
+        const parsed = JSON.parse(legacy);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(parsed));
+          return parsed;
+        }
+      }
+      return DEFAULT_PROFILES;
+    }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     return DEFAULT_PROFILES;
@@ -181,6 +199,7 @@ export function loadProfiles(): UserProfile[] {
 export function saveProfiles(profiles: UserProfile[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+    void putRecord('profiles', 'profiles', profiles);
   } catch (err) {
     console.error('Failed to save profiles:', err);
   }
@@ -198,6 +217,7 @@ export function loadActiveProfileId(): string {
 export function saveActiveProfileId(id: string): void {
   try {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, id);
+    void putRecord('app_meta', 'activeProfileId', id);
   } catch (err) {
     console.error('Failed to save active profile id:', err);
   }
@@ -206,13 +226,7 @@ export function saveActiveProfileId(id: string): void {
 export function loadWatchlist(profileId: string = 'default'): WatchlistEntry[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEYS.WATCHLIST_PREFIX}${profileId}`);
-    if (!raw) {
-      return [
-        { animeId: '162780', status: 'Watching', updatedAt: new Date().toISOString() },
-        { animeId: '130298', status: 'Completed', updatedAt: new Date().toISOString() },
-        { animeId: '153841', status: 'Plan to watch', updatedAt: new Date().toISOString() },
-      ];
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
     return [];
@@ -222,6 +236,7 @@ export function loadWatchlist(profileId: string = 'default'): WatchlistEntry[] {
 export function saveWatchlist(profileId: string, entries: WatchlistEntry[]): void {
   try {
     localStorage.setItem(`${STORAGE_KEYS.WATCHLIST_PREFIX}${profileId}`, JSON.stringify(entries));
+    void putRecord('watchlist', profileId, entries);
   } catch (err) {
     console.error('Failed to save watchlist:', err);
   }
@@ -240,6 +255,7 @@ export function loadContinueWatching(profileId: string = 'default'): ContinueWat
 export function saveContinueWatching(profileId: string, entries: ContinueWatchingEntry[]): void {
   try {
     localStorage.setItem(`${STORAGE_KEYS.CONTINUE_PREFIX}${profileId}`, JSON.stringify(entries));
+    void putRecord('history', profileId, entries);
   } catch (err) {
     console.error('Failed to save continue watching:', err);
   }
@@ -248,18 +264,17 @@ export function saveContinueWatching(profileId: string, entries: ContinueWatchin
 export function loadRecentSearches(profileId: string = 'default'): string[] {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEYS.SEARCH_PREFIX}${profileId}`);
-    if (!raw) {
-      return ['Dandadan', 'Apothecary Diaries', 'One Piece', 'Frieren', 'Jujutsu Kaisen'];
-    }
+    if (!raw) return [];
     return JSON.parse(raw);
   } catch {
-    return ['Dandadan', 'Apothecary Diaries', 'One Piece', 'Frieren', 'Jujutsu Kaisen'];
+    return [];
   }
 }
 
 export function saveRecentSearches(profileId: string, searches: string[]): void {
   try {
     localStorage.setItem(`${STORAGE_KEYS.SEARCH_PREFIX}${profileId}`, JSON.stringify(searches));
+    void putRecord('search_history', profileId, searches);
   } catch (err) {
     console.error('Failed to save recent searches:', err);
   }

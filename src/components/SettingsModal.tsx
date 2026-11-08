@@ -35,7 +35,7 @@ import { EnabledServersModal } from './EnabledServersModal';
 import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '../data/backup';
 import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 import { useDiscordStatus } from '../discord/useDiscordActivity';
-import { connectDiscordActivity, isDiscordActivity } from '../discord/activity';
+import { connectDiscordActivity, DISCORD_INSTALL_URL, isDiscordActivity } from '../discord/activity';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const {
@@ -859,8 +859,8 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       if (isDiscordActivity()) {
                         void connectDiscordActivity();
                       } else {
-                        window.open('https://discord.com/app', '_blank', 'noopener,noreferrer');
-                        showNotice('Discord opened. Launch Anilife from the App Launcher.');
+                        window.open(DISCORD_INSTALL_URL, '_blank', 'noopener,noreferrer');
+                        showNotice('Install Anilife, then launch it from the Discord App Launcher.');
                       }
                     }}
                     className={`rounded-full px-3 py-1.5 text-[10px] font-bold transition-colors cursor-pointer ${
@@ -888,9 +888,9 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 {discord.status !== 'connected' && discord.status !== 'connecting' && (
                   <div className="space-y-1 text-[11px] text-zinc-500 leading-relaxed">
                     <p>
-                      Rich Presence only works inside Discord. In the Discord client, open the
-                      App Launcher next to the chat bar, choose <span className="text-zinc-300">Anilife</span>,
-                      then press <span className="text-zinc-300">Launch</span>.
+                      The button installs Anilife to your Discord account when needed. Then open
+                      the App Launcher next to the chat bar, choose <span className="text-zinc-300">Anilife</span>,
+                      and press <span className="text-zinc-300">Launch</span>.
                     </p>
                     <p>A normal browser tab cannot set Discord presence.</p>
                   </div>

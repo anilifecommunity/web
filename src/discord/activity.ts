@@ -28,6 +28,8 @@ const CLIENT_ID = String(
   (import.meta.env.VITE_DISCORD_CLIENT_ID as string | undefined) ?? '1567279187893551185'
 ).trim();
 
+export const DISCORD_INSTALL_URL = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&integration_type=1&scope=applications.commands`;
+
 let sdk: DiscordSDKType | null = null;
 let setupPromise: Promise<DiscordState | null> | null = null;
 let state: DiscordState = { status: 'unavailable', inActivity: false };

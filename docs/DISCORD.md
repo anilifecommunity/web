@@ -52,6 +52,9 @@ Discord proxy does not persist cookies.
    press **Connect Discord**.
 5. Start an episode; the Discord profile should show the title and episode.
 
+The **Connect Discord** button in Settings opens the same user-install URL when Anilife is viewed in
+a normal browser, and performs the Activity authorization when it is already running inside Discord.
+
 A normal browser tab cannot set Rich Presence. The account is linked by Discord inside the
 Activity, not by a website login form.
 

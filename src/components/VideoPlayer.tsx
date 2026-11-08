@@ -138,6 +138,7 @@ export const VideoPlayer: React.FC<Props> = ({
   const [selectedSubLanguage, setSelectedSubLanguage] = useState(settings.preferredSubLanguage || 'English');
   const [subtitles, setSubtitles] = useState<Array<{ language: string; label: string; url: string; default?: boolean }>>([]);
   const hlsRef = useRef<Hls | null>(null);
+  const hlsRecoveryRef = useRef(0);
 
   const numericAniListId = getAnimeAniListId(anime);
 
@@ -276,7 +277,7 @@ export const VideoPlayer: React.FC<Props> = ({
   
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || isLoading || !streamUrl) return;
+    if (!video || !streamUrl) return;
 
     
     if (hlsRef.current) {
@@ -285,6 +286,18 @@ export const VideoPlayer: React.FC<Props> = ({
     }
 
     const isHls = streamUrl.endsWith('.m3u8') || streamUrl.includes('.m3u8') || streamUrl.includes('format=hls');
+    const startupTimer = window.setTimeout(() => {
+      setStreamErrorText('The stream did not start in time. Retry or review enabled servers in Settings.');
+      setStreamError(true);
+      setIsLoading(false);
+    }, 30_000);
+    const clearStartupTimer = () => window.clearTimeout(startupTimer);
+    const onPlaying = () => {
+      clearStartupTimer();
+      setIsPlaying(true);
+      setIsLoading(false);
+    };
+    video.addEventListener('playing', onPlaying);
 
     if (isHls && Hls.isSupported()) {
       const hls = new Hls({
@@ -296,6 +309,7 @@ export const VideoPlayer: React.FC<Props> = ({
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        hlsRecoveryRef.current = 0;
         setIsLoading(false);
         video.playbackRate = playbackSpeed;
         video.volume = volume;
@@ -303,23 +317,26 @@ export const VideoPlayer: React.FC<Props> = ({
         video.play().then(() => setIsPlaying(true)).catch(() => {});
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              hls.destroy();
-              recordDiagnostic('PLAY-02', { episode: currentEpisodeNumber });
-              setStreamErrorText('This browser could not play the selected stream. Retry or review enabled servers in Settings.');
-              setStreamError(true);
-              setIsLoading(false);
-              break;
-          }
+        if (!data.fatal) return;
+
+        const canRecover = hlsRecoveryRef.current < 2;
+        if (canRecover && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          hlsRecoveryRef.current += 1;
+          hls.startLoad();
+          return;
         }
+        if (canRecover && data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hlsRecoveryRef.current += 1;
+          hls.recoverMediaError();
+          return;
+        }
+
+        hls.destroy();
+        hlsRef.current = null;
+        recordDiagnostic('PLAY-02', { episode: currentEpisodeNumber });
+        setStreamErrorText('This stream could not continue. Retry or review enabled servers in Settings.');
+        setStreamError(true);
+        setIsLoading(false);
       });
     } else {
       video.src = streamUrl;
@@ -335,12 +352,14 @@ export const VideoPlayer: React.FC<Props> = ({
     }
 
     return () => {
+      clearStartupTimer();
+      video.removeEventListener('playing', onPlaying);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [streamUrl, isLoading]);
+  }, [streamUrl]);
 
   
   useEffect(() => {

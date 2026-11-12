@@ -17,8 +17,7 @@ import { FirstVisitGate } from './components/FirstVisitGate';
 import { useUrlRoute } from './hooks/useUrlRoute';
 import { useDiscordActivity } from './discord/useDiscordActivity';
 import { X } from 'lucide-react';
-
-const ABOUT_NOTICE_KEY = 'anilife_about_notice_v1';
+import { markAboutNoticeSeen, shouldShowAboutNotice } from './utils/notice';
 
 const UrlRouteSync: React.FC = () => {
   useUrlRoute();
@@ -60,18 +59,10 @@ const AppContent: React.FC = () => {
     }
   });
 
-  const [showAboutNotice, setShowAboutNotice] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(ABOUT_NOTICE_KEY) !== '1';
-    } catch {
-      return true;
-    }
-  });
+  const [showAboutNotice, setShowAboutNotice] = useState<boolean>(() => shouldShowAboutNotice());
 
   const dismissAboutNotice = () => {
-    try {
-      localStorage.setItem(ABOUT_NOTICE_KEY, '1');
-    } catch {}
+    markAboutNoticeSeen();
     setShowAboutNotice(false);
   };
 

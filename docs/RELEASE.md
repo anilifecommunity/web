@@ -24,6 +24,8 @@ Status at 2026-11-08. Production: `https://anilife.cc`; preview:
 | VidLink and 2Embed servers | PARTIAL | Separate switchable servers; VidLink loaded a video element, 2Embed exposes the player embed; user playback test pending |
 | Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
 | Manual server switch | DONE | Automatic fallback stays default; the player's Servers drawer switches among enabled anonymous servers |
+| Single-profile mode | DONE | Settings > Accounts & Sync can hide the profile picker and open the last active profile |
+| About disclaimer | DONE | About states that Anilife hosts no media and only indexes public sources |
 | Source and downstream research | DONE | `SOURCES.md`; `/api/providers` exposes read-only downstream statuses |
 | Discord Rich Presence | PARTIAL | Embedded App SDK, token exchange, activity gate and presence implemented; needs Activity portal setup and a valid secret or Public Client |
 | Privacy correct, diagnostics local, toggles OFF | DONE | `PRIVACY.md`, `SECURITY.md`, no upload endpoint |

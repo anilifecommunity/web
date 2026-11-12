@@ -831,6 +831,34 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 )}
               </div>
 
+              <div className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-sm text-white">Multiple profiles</h3>
+                    <p className="text-xs text-zinc-400">
+                      Show the profile picker when Anilife opens.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.multiProfileEnabled !== false}
+                    onChange={(e) => {
+                      updateSettings({ multiProfileEnabled: e.target.checked });
+                      if (e.target.checked) {
+                        try {
+                          sessionStorage.removeItem('anilife_profile_selected');
+                        } catch {}
+                      }
+                    }}
+                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer shrink-0"
+                  />
+                </div>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">
+                  Turn this off if you are the only viewer. Anilife will open the last active
+                  profile automatically and skip the profile picker.
+                </p>
+              </div>
+
               {}
               <div className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800 space-y-4">
                 <div className="flex items-center justify-between">
@@ -1093,6 +1121,29 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <p className="text-[#74cf66] font-semibold pt-1">
                     ♡ Built with passion by the Anilife Team
                   </p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                <h3 className="text-sm font-bold text-white">About Anilife</h3>
+                <div className="space-y-3 text-zinc-300 leading-relaxed text-xs">
+                  <p>
+                    Anilife does not host, upload, or store any anime content on its website or
+                    servers. Instead, our platform works similarly to a search engine, discovering
+                    and indexing publicly available sources from across the internet and providing
+                    users with access to them for streaming.
+                  </p>
+                  <p>
+                    We do not claim ownership of or affiliation with any third-party content or
+                    sources displayed on our platform. Our goal is simply to make discovering and
+                    accessing anime easier.
+                  </p>
+                  <p>
+                    If you have any questions, concerns, copyright-related inquiries, or other
+                    matters you would like to discuss, feel free to contact our team through our
+                    official Discord server.
+                  </p>
+                  <p className="text-[#74cf66] font-semibold">Thank you for being part of Anilife.</p>
                 </div>
               </div>
 

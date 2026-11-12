@@ -124,6 +124,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   
   navigationLayout: 'sidebar',
   autoHideNav: false,
+  multiProfileEnabled: true,
 
   diagnosticUpload: false,
   performanceUpload: false,

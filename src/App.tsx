@@ -49,6 +49,7 @@ const AppContent: React.FC = () => {
   useDiscordActivity();
 
   const [hasSelectedProfileSession, setHasSelectedProfileSession] = useState<boolean>(() => {
+    if (settings.multiProfileEnabled === false) return true;
     try {
       return Boolean(sessionStorage.getItem('anilife_profile_selected'));
     } catch {
@@ -120,7 +121,7 @@ const AppContent: React.FC = () => {
       )}
 
       {}
-      {!showIntro && (!hasSelectedProfileSession || showProfileModal) && (
+      {!showIntro && ((settings.multiProfileEnabled !== false && !hasSelectedProfileSession) || showProfileModal) && (
         <CrunchyrollProfileScreen
           onSelectProfile={() => {
             setHasSelectedProfileSession(true);

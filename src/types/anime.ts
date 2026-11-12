@@ -174,6 +174,7 @@ export interface AppSettings {
   
   navigationLayout: 'sidebar' | 'topbar';
   autoHideNav: boolean;
+  multiProfileEnabled?: boolean;
 
   /** Both default off. No upload endpoint is called until an operator configures one. */
   diagnosticUpload?: boolean;

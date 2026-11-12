@@ -235,11 +235,11 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
           </button>
         )}
 
-        {phase !== 'checking' && (
+        {(phase === 'verifying' || phase === 'error') && (
           <button
             type="button"
             onClick={() => window.location.assign('/')}
-            className="relative z-10 mt-4 w-full rounded-full bg-[#74cf66] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+            className="mt-4 w-full rounded-full bg-[#74cf66] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
           >
             Proceed to Home
           </button>

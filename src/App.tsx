@@ -16,6 +16,9 @@ import { AppIntro } from './components/AppIntro';
 import { FirstVisitGate } from './components/FirstVisitGate';
 import { useUrlRoute } from './hooks/useUrlRoute';
 import { useDiscordActivity } from './discord/useDiscordActivity';
+import { X } from 'lucide-react';
+
+const ABOUT_NOTICE_KEY = 'anilife_about_notice_v1';
 
 const UrlRouteSync: React.FC = () => {
   useUrlRoute();
@@ -56,6 +59,21 @@ const AppContent: React.FC = () => {
       return false;
     }
   });
+
+  const [showAboutNotice, setShowAboutNotice] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ABOUT_NOTICE_KEY) !== '1';
+    } catch {
+      return true;
+    }
+  });
+
+  const dismissAboutNotice = () => {
+    try {
+      localStorage.setItem(ABOUT_NOTICE_KEY, '1');
+    } catch {}
+    setShowAboutNotice(false);
+  };
 
   return (
     <div className="relative min-h-screen text-zinc-100 flex flex-col font-sans selection:bg-[#74cf66] selection:text-black">
@@ -144,6 +162,67 @@ const AppContent: React.FC = () => {
             >
               Back to Home
             </button>
+          </div>
+        </div>
+      )}
+
+      {showAboutNotice && hasSelectedProfileSession && !showProfileModal && !showIntro && (
+        <div
+          className="fixed inset-0 z-[180] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="about-anilife-title"
+        >
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#12101e] shadow-2xl">
+            <button
+              type="button"
+              onClick={dismissAboutNotice}
+              className="absolute right-3 top-3 z-10 rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="max-h-[80vh] overflow-y-auto p-6 pr-12 sm:p-7 sm:pr-14">
+              <div className="mb-4 flex items-center gap-3">
+                <img
+                  src="/assets/images/Anilife-Logo.png"
+                  alt=""
+                  className="h-10 w-10 rounded-xl object-contain"
+                />
+                <h2 id="about-anilife-title" className="text-lg font-bold text-white">
+                  About Anilife
+                </h2>
+              </div>
+
+              <div className="space-y-3 text-sm leading-relaxed text-zinc-300">
+                <p>
+                  Anilife does not host, upload, or store any anime content on its website or
+                  servers. Instead, our platform works similarly to a search engine, discovering
+                  and indexing publicly available sources from across the internet and providing
+                  users with access to them for streaming.
+                </p>
+                <p>
+                  We do not claim ownership of or affiliation with any third-party content or
+                  sources displayed on our platform. Our goal is simply to make discovering and
+                  accessing anime easier.
+                </p>
+                <p>
+                  If you have any questions, concerns, copyright-related inquiries, or other
+                  matters you'd like to discuss, feel free to contact our team through our
+                  official Discord server.
+                </p>
+                <p className="font-semibold text-[#74cf66]">Thank you for being part of Anilife.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={dismissAboutNotice}
+                className="mt-6 w-full rounded-full bg-[#74cf66] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+              >
+                Got it
+              </button>
+            </div>
           </div>
         </div>
       )}

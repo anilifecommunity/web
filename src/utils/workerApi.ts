@@ -93,16 +93,21 @@ export async function getGateStatus(): Promise<boolean> {
 }
 
 export async function verifyGateToken(token: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12_000);
   try {
     const response = await fetch('/api/gate/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
+      signal: controller.signal,
     });
     if (!response.ok) return false;
     const data = (await response.json()) as { ok?: boolean };
     return data.ok === true;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }

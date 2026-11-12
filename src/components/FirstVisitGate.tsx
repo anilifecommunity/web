@@ -115,14 +115,20 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
           callback: (token: string) => {
             setPhase('verifying');
             setMessage('Verifying...');
-            verifyGateToken(token).then((ok) => {
+            verifyGateToken(token).then(async (ok) => {
               if (cancelled) return;
               if (ok) {
                 setPhase('passed');
-              } else {
-                setPhase('error');
-                setMessage('Verification failed. Please try again.');
+                return;
               }
+              const passed = await getGateStatus();
+              if (cancelled) return;
+              if (passed) {
+                setPhase('passed');
+                return;
+              }
+              setPhase('error');
+              setMessage('Verification failed. Please try again.');
             });
           },
           'error-callback': () => {
@@ -226,6 +232,16 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
             className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:border-[#74cf66] hover:text-white"
           >
             Try again
+          </button>
+        )}
+
+        {(phase === 'verifying' || phase === 'error') && (
+          <button
+            type="button"
+            onClick={() => window.location.assign('/')}
+            className="mt-4 w-full rounded-full bg-[#74cf66] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+          >
+            Proceed to Home
           </button>
         )}
 

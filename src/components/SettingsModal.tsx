@@ -1140,7 +1140,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </p>
                   <p>
                     If you have any questions, concerns, copyright-related inquiries, or other
-                    matters you would like to discuss, feel free to contact our team through our
+                    matters you'd like to discuss, feel free to contact our team through our
                     official Discord server.
                   </p>
                   <p className="text-[#74cf66] font-semibold">Thank you for being part of Anilife.</p>

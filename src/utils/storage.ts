@@ -122,7 +122,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   dnsOverHttps: true,
 
   
-  navigationLayout: 'sidebar',
+  navigationLayout: 'topbar',
   autoHideNav: false,
   multiProfileEnabled: true,
 

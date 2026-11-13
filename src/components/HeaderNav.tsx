@@ -201,9 +201,9 @@ export const HeaderNav: React.FC = () => {
         settings.autoHideNav && !isMouseNearEdge ? '-translate-y-full' : 'translate-y-0'
       }`}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <div className="max-w-7xl mx-auto flex min-w-0 items-center justify-between gap-2 sm:gap-3">
         {}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5">
           <button
             onClick={() => setActiveTab('home')}
             className="flex items-center gap-2.5 mr-3 select-none cursor-pointer group shrink-0"
@@ -219,7 +219,7 @@ export const HeaderNav: React.FC = () => {
             </span>
           </button>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -227,14 +227,14 @@ export const HeaderNav: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  className={`flex shrink-0 items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#74cf66] text-black shadow-[0_0_12px_rgba(116,207,102,0.3)]'
                       : 'text-zinc-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
+                  <span className="hidden min-[430px]:inline">{item.label}</span>
                 </button>
               );
             })}
@@ -246,7 +246,7 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setShowRandomModal(true)}
             title="Random anime pick"
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            className="min-w-9 min-h-9 flex items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           >
             <Dices className="w-4 h-4 text-[#74cf66]" />
           </button>
@@ -254,7 +254,7 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setShowNotificationsModal(true)}
             title="Notifications"
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            className="min-w-9 min-h-9 flex items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           >
             <Bell className="w-4 h-4" />
           </button>
@@ -262,7 +262,7 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setShowSettingsModal(true)}
             title="Settings"
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            className="min-w-9 min-h-9 flex items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -271,7 +271,7 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setShowProfileModal(true)}
             title={`Profile: ${activeProfile.name}`}
-            className="p-1 rounded-full hover:ring-2 hover:ring-[#74cf66] transition-all cursor-pointer ml-1"
+            className="min-w-9 min-h-9 flex items-center justify-center p-1 rounded-full hover:ring-2 hover:ring-[#74cf66] transition-all cursor-pointer ml-0.5"
           >
             <img
               src={safeImageUrl(activeProfile.avatar, '/assets/images/Anilife-Logo.png')}

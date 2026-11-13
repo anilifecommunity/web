@@ -416,6 +416,17 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
+                        onClick={() => updateSettings({ navigationLayout: 'topbar' })}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          (settings.navigationLayout ?? 'topbar') === 'topbar'
+                            ? 'bg-[#74cf66] text-black shadow-md'
+                            : 'bg-white/5 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        Top Navbar
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => updateSettings({ navigationLayout: 'sidebar' })}
                         className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           settings.navigationLayout === 'sidebar'
@@ -424,17 +435,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         }`}
                       >
                         Expandable Sidebar (Desktop)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => updateSettings({ navigationLayout: 'topbar' })}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          settings.navigationLayout === 'topbar'
-                            ? 'bg-[#74cf66] text-black shadow-md'
-                            : 'bg-white/5 text-zinc-400 hover:text-white'
-                        }`}
-                      >
-                        Top Navbar
                       </button>
                     </div>
                   </div>
@@ -1148,14 +1148,88 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </div>
 
               {}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                   OFFICIAL APP DOWNLOADS
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                
+                {/* Android Section */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+                  <div>
+                    <div className="font-bold text-white text-sm">Android APK</div>
+                    <div className="text-[11px] text-zinc-400">Mobile & Tablet App</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <a
+                      href="https://cutt.ly/uyvB6Wn0"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
+                    >
+                      <span>Mediafire</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                    </a>
+                    <a
+                      href="https://cutt.ly/Anilili"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
+                    >
+                      <span>Drive</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                    </a>
+                    <a
+                      href="https://cutt.ly/Anilili-mega"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
+                    >
+                      <span>Mega</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Android TV Section */}
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
+                  <div>
+                    <div className="font-bold text-white text-sm">Android TV / Google TV / Fire TV</div>
+                    <div className="text-[11px] text-zinc-400">Smart TV Edition</div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <a
+                      href="https://cutt.ly/hyvB6OOF"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
+                    >
+                      <span>Mediafire</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                    </a>
+                    <a
+                      href="https://cutt.ly/AnililiTV"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
+                    >
+                      <span>Drive</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                    </a>
+                    <a
+                      href="https://cutt.ly/myvB11jE"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
+                    >
+                      <span>Mega</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Other Platforms */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {[
-                    { name: 'Android APK', desc: 'Mobile & Tablet App', badge: 'Coming Soon' },
-                    { name: 'Android TV', desc: 'Smart TV Edition', badge: 'Coming Soon' },
                     { name: 'Desktop (Windows)', desc: 'Standalone App', badge: 'Coming Soon' },
                     { name: 'iOS App', desc: 'iPhone & iPad', badge: 'Coming Soon' },
                     { name: 'macOS', desc: 'Apple Silicon & Intel', badge: 'Coming Soon' },
@@ -1203,5 +1277,3 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     </div>
   );
 };
-
-

@@ -13,6 +13,7 @@
 | [ruleset-main.json](ruleset-main.json) | Importable ruleset for `main` |
 | [PRIVACY.md](PRIVACY.md) | What is stored and what leaves the device |
 | [DISCORD.md](DISCORD.md) | Discord Activity and Rich Presence setup |
+| [CHANGELOG.md](../CHANGELOG.md) | Release history |
 
 The project overview and quick start are in the root [README](../README.md). The licence is
 [MIT-0](../LICENSE).

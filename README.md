@@ -4,6 +4,8 @@ The browser/PWA client for Anilife. It shares the Anilife product semantics and 
 catalogue with the Android app, but uses browser conventions: real URLs, IndexedDB, a PWA shell
 and a small Cloudflare Worker for metadata mediation.
 
+Current release: **0.1.0** (2026-11-13), aligned with Anilife Android/TV 0.1.0.
+
 - Production: `https://anilife.cc` (`www` redirects to the apex)
 - Preview: `https://anilife-web.adfreegames.workers.dev`
 - Reference app (read-only): `anilifecommunity/android-and-tv`
@@ -22,7 +24,9 @@ player: native HLS/MP4, or a provider player in a sandboxed iframe
 
 - The Worker is a **control plane**: it resolves provider metadata from fixed origins. It is not a
   media proxy and accepts no caller-supplied URL.
-- Playback is **embed-only** today: the working source (Reanime) returns a Flixcloud player page.
+- Playback uses automatic fallback across the enabled sources. Reanime returns a Flixcloud player
+  page; VidSrc, VidLink and 2Embed are separate embed fallbacks. The player also has an optional
+  manual Servers drawer.
 - **Episode downloads are intentionally disabled.** There is no Downloads tab, no download action
   in the detail page or player, and `/downloads` redirects home.
 - Local data (profiles, settings, history, library) lives in `localStorage` with an IndexedDB
@@ -83,6 +87,7 @@ security headers apply to every response. Preview hosts ending in `.workers.dev`
 - `docs/PROVIDER_MATRIX.md` - dated provider evidence
 - `docs/SOURCES.md` - source and downstream host research
 - `docs/DISCORD.md` - Discord Activity and Rich Presence setup
+- `CHANGELOG.md` - release history
 
 ## Licence
 

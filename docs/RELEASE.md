@@ -1,6 +1,7 @@
 # Release gates
 
-Status at 2026-11-08. Production: `https://anilife.cc`; preview:
+Current release: **0.1.0** (2026-11-13), aligned with Anilife Android/TV 0.1.0.
+Production: `https://anilife.cc`; preview:
 `https://anilife-web.adfreegames.workers.dev`.
 
 | Gate | Status | Notes |

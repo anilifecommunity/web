@@ -14,8 +14,12 @@
     { "pattern": "www.anilife.cc", "custom_domain": true }
   ],
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
   },
+  "r2_buckets": [
+    { "binding": "RELEASE_INDEX_BUCKET", "bucket_name": "anilife-release-index" }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

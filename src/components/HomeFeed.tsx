@@ -61,7 +61,7 @@ export const HomeFeed: React.FC = () => {
     <div className="space-y-8 pb-20 animate-fadeIn">
       {}
       {currentSpotlight && (
-        <section className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden min-h-[380px] sm:min-h-[480px] flex items-end p-5 sm:p-10 border border-[#74cf66]/20 shadow-2xl group">
+        <section className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden min-h-[380px] sm:min-h-[480px] flex items-end p-5 sm:p-10 border border-[var(--anilife-accent)]/20 shadow-2xl group">
           {}
           <div
             className="absolute inset-0 bg-cover bg-center transition-all duration-700 transform scale-100 group-hover:scale-102"
@@ -76,8 +76,8 @@ export const HomeFeed: React.FC = () => {
           {}
           <div className="relative z-10 max-w-2xl space-y-3">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-3.5 bg-[#74cf66] rounded-full inline-block" />
-              <span className="text-xs uppercase tracking-widest font-bold text-[#74cf66] flex items-center gap-1.5">
+              <span className="w-1.5 h-3.5 bg-[var(--anilife-accent)] rounded-full inline-block" />
+              <span className="text-xs uppercase tracking-widest font-bold text-[var(--anilife-accent)] flex items-center gap-1.5">
                 <img
                   src="/assets/images/Anilife-Logo.png"
                   alt=""
@@ -93,8 +93,8 @@ export const HomeFeed: React.FC = () => {
 
             {}
             <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium text-zinc-300">
-              <div className="flex items-center gap-1 text-[#74cf66] font-bold bg-[#74cf66]/15 px-2.5 py-0.5 rounded-full border border-[#74cf66]/30">
-                <Star className="w-3.5 h-3.5 fill-[#74cf66] text-[#74cf66]" />
+              <div className="flex items-center gap-1 text-[var(--anilife-accent)] font-bold bg-[var(--anilife-accent)]/15 px-2.5 py-0.5 rounded-full border border-[var(--anilife-accent)]/30">
+                <Star className="w-3.5 h-3.5 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
                 <span>{currentSpotlight.score}%</span>
               </div>
               <span>•</span>
@@ -115,7 +115,7 @@ export const HomeFeed: React.FC = () => {
             <div className="pt-2 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => playAnimeEpisode(currentSpotlight, 1)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-semibold text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-[rgba(116,207,102,0.3)] cursor-pointer"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-semibold text-xs sm:text-sm transition-all duration-200 shadow-lg shadow-[var(--anilife-accent-shadow)] cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-black" />
                 <span>Open to watch</span>
@@ -143,7 +143,7 @@ export const HomeFeed: React.FC = () => {
                 <span
                   className={`block rounded-full transition-all ${
                     activeSpotlightIdx === i
-                      ? 'w-6 h-1.5 bg-[#74cf66] shadow-sm shadow-[rgba(116,207,102,0.8)]'
+                      ? 'w-6 h-1.5 bg-[var(--anilife-accent)] shadow-sm shadow-[var(--anilife-accent-shadow)]'
                       : 'w-1.5 h-1.5 bg-zinc-500 hover:bg-zinc-300'
                   }`}
                 />
@@ -162,13 +162,13 @@ export const HomeFeed: React.FC = () => {
                 <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">
                   Continue watching
                 </h2>
-                <span className="w-8 h-0.5 bg-[#74cf66] rounded-full" />
+                <span className="w-8 h-0.5 bg-[var(--anilife-accent)] rounded-full" />
               </div>
             </div>
 
             <button
               onClick={() => setIsContinueExpanded(!isContinueExpanded)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/15 text-xs text-[#74cf66] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/15 text-xs text-[var(--anilife-accent)] font-medium transition-colors cursor-pointer"
             >
               {isContinueExpanded ? (
                 <>
@@ -202,7 +202,7 @@ export const HomeFeed: React.FC = () => {
                   key={anime.id}
                   className={`group relative shrink-0 ${
                     isContinueExpanded ? 'w-full' : 'w-72 sm:w-80'
-                  } h-36 rounded-2xl bg-zinc-900/90 border border-white/10 hover:border-[#74cf66] overflow-hidden transition-all duration-300 shadow-xl cursor-pointer`}
+                  } h-36 rounded-2xl bg-zinc-900/90 border border-white/10 hover:border-[var(--anilife-accent)] overflow-hidden transition-all duration-300 shadow-xl cursor-pointer`}
                   onClick={() => playAnimeEpisode(anime, entry.episodeNumber, entry.audioMode)}
                 >
                   {}
@@ -243,14 +243,14 @@ export const HomeFeed: React.FC = () => {
 
                   {}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-10 h-10 rounded-full bg-[#74cf66] text-black flex items-center justify-center shadow-lg shadow-[#74cf66]/40">
+                    <div className="w-10 h-10 rounded-full bg-[var(--anilife-accent)] text-black flex items-center justify-center shadow-lg shadow-[var(--anilife-accent)]/40">
                       <Play className="w-4 h-4 fill-black ml-0.5" />
                     </div>
                   </div>
 
                   {}
                   <div className="absolute bottom-0 inset-x-0 p-3 space-y-1 z-10">
-                    <h3 className="font-bold text-sm text-white truncate group-hover:text-[#74cf66] transition-colors">
+                    <h3 className="font-bold text-sm text-white truncate group-hover:text-[var(--anilife-accent)] transition-colors">
                       {anime.title}
                     </h3>
                     <p className="text-xs text-zinc-300 truncate">
@@ -260,7 +260,7 @@ export const HomeFeed: React.FC = () => {
                     {}
                     <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden mt-1">
                       <div
-                        className="h-full bg-[#74cf66] rounded-full transition-all duration-300"
+                        className="h-full bg-[var(--anilife-accent)] rounded-full transition-all duration-300"
                         style={{ width: `${progressPct}%` }}
                       />
                     </div>
@@ -278,18 +278,19 @@ export const HomeFeed: React.FC = () => {
           <div className="flex items-center gap-2">
             <Flame className="w-4 h-4 text-amber-400" />
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">Trending Now</h2>
-            <span className="w-8 h-0.5 bg-[#74cf66]/80 rounded-full" />
+            <span className="w-8 h-0.5 bg-[var(--anilife-accent)]/80 rounded-full" />
           </div>
         </div>
 
         <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar pb-2">
           {trendingList.map((anime, idx) => (
-            <div
+            <button
+              type="button"
               key={anime.id}
               onClick={() => setSelectedAnime(anime)}
-              className="group shrink-0 w-32 sm:w-44 cursor-pointer space-y-2"
+              className="group shrink-0 w-32 sm:w-44 cursor-pointer space-y-2 text-left"
             >
-              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[#74cf66]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[rgba(116,207,102,0.2)] bg-zinc-900">
+              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[var(--anilife-accent)]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[var(--anilife-accent-shadow)] bg-zinc-900">
                 <img
                   src={anime.posterImage}
                   alt={anime.title}
@@ -302,8 +303,8 @@ export const HomeFeed: React.FC = () => {
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-black text-amber-300">
                   #{idx + 1}
                 </div>
-                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-[#74cf66] flex items-center gap-1">
-                  <Star className="w-2.5 h-2.5 fill-[#74cf66] text-[#74cf66]" />
+                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-[var(--anilife-accent)] flex items-center gap-1">
+                  <Star className="w-2.5 h-2.5 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
                   <span>{anime.score}%</span>
                 </div>
                 {anime.hasDub && (
@@ -313,14 +314,14 @@ export const HomeFeed: React.FC = () => {
                 )}
               </div>
               <div>
-                <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[#74cf66] transition-colors">
+                <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[var(--anilife-accent)] transition-colors">
                   {anime.title}
                 </h3>
                 <p className="text-[11px] text-zinc-400 line-clamp-1">
                   {anime.format} • {anime.year} • {anime.genres[0]}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -329,20 +330,21 @@ export const HomeFeed: React.FC = () => {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Tv className="w-4 h-4 text-[#74cf66]" />
+            <Tv className="w-4 h-4 text-[var(--anilife-accent)]" />
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">Popular This Season</h2>
-            <span className="w-8 h-0.5 bg-[#74cf66]/80 rounded-full" />
+            <span className="w-8 h-0.5 bg-[var(--anilife-accent)]/80 rounded-full" />
           </div>
         </div>
 
         <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar pb-2">
           {seasonList.map((anime) => (
-            <div
+            <button
+              type="button"
               key={anime.id}
               onClick={() => setSelectedAnime(anime)}
-              className="group shrink-0 w-32 sm:w-44 cursor-pointer space-y-2"
+              className="group shrink-0 w-32 sm:w-44 cursor-pointer space-y-2 text-left"
             >
-              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[#74cf66]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[rgba(116,207,102,0.2)] bg-zinc-900">
+              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[var(--anilife-accent)]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[var(--anilife-accent-shadow)] bg-zinc-900">
                 <img
                   src={anime.posterImage}
                   alt={anime.title}
@@ -352,20 +354,20 @@ export const HomeFeed: React.FC = () => {
                   }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-[#74cf66] flex items-center gap-1">
-                  <Star className="w-2.5 h-2.5 fill-[#74cf66] text-[#74cf66]" />
+                <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-[var(--anilife-accent)] flex items-center gap-1">
+                  <Star className="w-2.5 h-2.5 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
                   <span>{anime.score}%</span>
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[#74cf66] transition-colors">
+                <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[var(--anilife-accent)] transition-colors">
                   {anime.title}
                 </h3>
                 <p className="text-[11px] text-zinc-400 line-clamp-1">
                   {anime.genres.slice(0, 2).join(', ')}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -376,18 +378,19 @@ export const HomeFeed: React.FC = () => {
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-amber-400" />
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-wide">Top Rated All-Time</h2>
-            <span className="w-8 h-0.5 bg-[#74cf66]/80 rounded-full" />
+            <span className="w-8 h-0.5 bg-[var(--anilife-accent)]/80 rounded-full" />
           </div>
         </div>
 
         <div className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar pb-2">
           {forYouList.map((anime) => (
-            <div
+            <button
+              type="button"
               key={anime.id}
               onClick={() => setSelectedAnime(anime)}
-              className="group shrink-0 w-32 sm:w-44 cursor-pointer space-y-2"
+              className="group shrink-0 w-32 sm:w-44 cursor-pointer space-y-2 text-left"
             >
-              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[#74cf66]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[rgba(116,207,102,0.2)] bg-zinc-900">
+              <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[var(--anilife-accent)]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[var(--anilife-accent-shadow)] bg-zinc-900">
                 <img
                   src={anime.posterImage}
                   alt={anime.title}
@@ -403,14 +406,14 @@ export const HomeFeed: React.FC = () => {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[#74cf66] transition-colors">
+                <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[var(--anilife-accent)] transition-colors">
                   {anime.title}
                 </h3>
                 <p className="text-[11px] text-zinc-400 line-clamp-1">
                   {anime.format} • {anime.year}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </section>

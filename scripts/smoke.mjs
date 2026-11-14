@@ -68,12 +68,15 @@ await check('app shell', async () => {
   return `status ${response.status}`;
 });
 
-await check('deep link serves the shell', async () => {
-  const response = await fetch(`${base}/anime/151807`);
-  assert(response.ok, `status ${response.status}`);
-  const html = await response.text();
-  assert(html.includes('id="root"'), 'shell missing');
-  return `status ${response.status}`;
+await check('deep links serve the shell', async () => {
+  for (const path of ['/anime/151807', '/discover', '/settings']) {
+    const response = await fetch(`${base}${path}`);
+    assert(response.ok, `${path} status ${response.status}`);
+    assert(response.headers.get('content-type')?.includes('text/html'), `${path} is not HTML`);
+    const html = await response.text();
+    assert(html.includes('id="root"'), `${path} shell missing`);
+  }
+  return 'anime, discover, settings';
 });
 
 await check('PWA manifest', async () => {

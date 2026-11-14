@@ -12,8 +12,13 @@ import { createGateToken, gateCookie, GATE_COOKIE, readCookie, verifyGateToken, 
 import { GuardError, safeFetch } from './guards';
 import { fail, json, parseInteger } from './http';
 import { hit } from './rateLimit';
+import {
+  getStableReleaseIndex,
+  publishStableReleaseIndex,
+  type ReleaseIndexEnv,
+} from './releaseIndex';
 
-export interface Env {
+export interface Env extends ReleaseIndexEnv {
   ASSETS: Fetcher;
   /** Turnstile secret key. When unset, the first-visit gate is disabled (local development). */
   TURNSTILE_SECRET?: string;
@@ -380,6 +385,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   const path = url.pathname;
+
+  if (path === '/downloads/index.json') {
+    if (request.method !== 'GET') return fail(405, 'method_not_allowed');
+    return getStableReleaseIndex(request, env);
+  }
+
+  if (path === '/internal/releases/stable') {
+    if (request.method !== 'POST') return fail(405, 'method_not_allowed');
+    return publishStableReleaseIndex(request, env);
+  }
 
   if (!path.startsWith('/api/')) {
     // The OAuth return page is a static file, but the extensionless route would otherwise fall

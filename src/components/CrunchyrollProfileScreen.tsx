@@ -125,7 +125,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
               <div key={p.id} className="flex flex-col items-center space-y-3 group">
                 <button
                   onClick={() => (mode === 'manage' ? startEdit(p) : handlePick(p))}
-                  className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-zinc-900 border-2 border-transparent transition-all duration-200 group-hover:scale-105 group-hover:border-[#74cf66] group-hover:shadow-[0_0_20px_rgba(116,207,102,0.3)] cursor-pointer"
+                  className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-zinc-900 border-2 border-transparent transition-all duration-200 group-hover:scale-105 group-hover:border-[var(--anilife-accent)] group-hover:shadow-[0_0_20px_var(--anilife-accent-shadow)] cursor-pointer"
                 >
                   <img
                     src={p.avatar}
@@ -136,7 +136,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                     }}
                   />
                   {p.pin && (
-                    <div className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 text-[#74cf66]">
+                    <div className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 text-[var(--anilife-accent)]">
                       <Lock className="w-3.5 h-3.5" />
                     </div>
                   )}
@@ -157,7 +157,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
               <div className="flex flex-col items-center space-y-3 group">
                 <button
                   onClick={startAdd}
-                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-zinc-900/60 border-2 border-dashed border-zinc-700 hover:border-[#74cf66] flex items-center justify-center text-zinc-400 hover:text-white transition-all duration-200 group-hover:scale-105 cursor-pointer"
+                  className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-zinc-900/60 border-2 border-dashed border-zinc-700 hover:border-[var(--anilife-accent)] flex items-center justify-center text-zinc-400 hover:text-white transition-all duration-200 group-hover:scale-105 cursor-pointer"
                 >
                   <Plus className="w-8 h-8 sm:w-10 sm:h-10" />
                 </button>
@@ -172,7 +172,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
           <div className="pt-6">
             <button
               onClick={() => setMode(mode === 'manage' ? 'view' : 'manage')}
-              className="px-6 py-2.5 rounded-xl border border-zinc-700 hover:border-[#74cf66] text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white tracking-wide transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl border border-zinc-700 hover:border-[var(--anilife-accent)] text-xs sm:text-sm font-semibold text-zinc-300 hover:text-white tracking-wide transition-all cursor-pointer"
             >
               {mode === 'manage' ? 'Done' : 'Manage Profiles'}
             </button>
@@ -192,7 +192,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
           <img
             src={targetPinProfile.avatar}
             alt={targetPinProfile.name}
-            className="w-24 h-24 rounded-2xl object-cover ring-2 ring-[#74cf66]"
+            className="w-24 h-24 rounded-2xl object-cover ring-2 ring-[var(--anilife-accent)]"
           />
           <div>
             <h2 className="text-xl font-bold text-white">Enter Profile PIN</h2>
@@ -206,7 +206,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                 key={i}
                 className={`w-3.5 h-3.5 rounded-full border transition-all ${
                   pinInput.length > i
-                    ? 'bg-[#74cf66] border-[#74cf66]'
+                    ? 'bg-[var(--anilife-accent)] border-[var(--anilife-accent)]'
                     : pinError
                     ? 'border-red-500 bg-red-500/20'
                     : 'border-zinc-700 bg-zinc-900'
@@ -264,7 +264,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
               <img
                 src={avatarInput}
                 alt="Selected"
-                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-[#74cf66]"
+                className="w-20 h-20 rounded-2xl object-cover ring-2 ring-[var(--anilife-accent)]"
                 onError={(e) => {
                   e.currentTarget.src = POPULAR_AVATARS[0].url;
                 }}
@@ -280,7 +280,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                   placeholder="Enter name"
                   maxLength={24}
                   required
-                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white focus:outline-none focus:border-[#74cf66]"
+                  className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white focus:outline-none focus:border-[var(--anilife-accent)]"
                 />
               </div>
             </div>
@@ -297,7 +297,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                     type="button"
                     onClick={() => setAvatarInput(av.url)}
                     className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                      avatarInput === av.url ? 'border-[#74cf66] scale-95' : 'border-transparent hover:border-zinc-700'
+                      avatarInput === av.url ? 'border-[var(--anilife-accent)] scale-95' : 'border-transparent hover:border-zinc-700'
                     }`}
                     title={av.name}
                   >
@@ -310,7 +310,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
             {}
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-[#74cf66]" />
+                <KeyRound className="w-3.5 h-3.5 text-[var(--anilife-accent)]" />
                 Profile PIN (Optional 4 Digits)
               </label>
               <input
@@ -319,7 +319,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                 value={pinCode}
                 onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
                 placeholder="e.g. 1234 (leave blank for none)"
-                className="w-full px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white focus:outline-none focus:border-[#74cf66]"
+                className="w-full px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-sm text-white focus:outline-none focus:border-[var(--anilife-accent)]"
               />
               <p className="text-[10px] text-zinc-500">
                 This PIN is a local privacy screen on this browser, not account authentication.
@@ -351,7 +351,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-xl bg-[#74cf66] hover:bg-[#62b956] text-black text-xs font-bold transition-all shadow-[0_0_15px_rgba(116,207,102,0.3)] cursor-pointer"
+                  className="px-6 py-2 rounded-xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black text-xs font-bold transition-all shadow-[0_0_15px_var(--anilife-accent-shadow)] cursor-pointer"
                 >
                   Save Profile
                 </button>

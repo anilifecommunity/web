@@ -533,8 +533,8 @@ export const VideoPlayer: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-[100] flex h-full w-full overflow-hidden bg-[#08080a] text-white select-none font-sans">
       {skipToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[120] px-5 py-2.5 rounded-full bg-black/80 backdrop-blur-xl border border-[#74cf66]/50 shadow-2xl text-xs sm:text-sm font-bold text-white flex items-center gap-2 animate-bounce">
-          <Sparkles className="w-4 h-4 text-[#74cf66]" />
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[120] px-5 py-2.5 rounded-full bg-black/80 backdrop-blur-xl border border-[var(--anilife-accent)]/50 shadow-2xl text-xs sm:text-sm font-bold text-white flex items-center gap-2 animate-bounce">
+          <Sparkles className="w-4 h-4 text-[var(--anilife-accent)]" />
           <span>{skipToast}</span>
         </div>
       )}
@@ -626,7 +626,7 @@ export const VideoPlayer: React.FC<Props> = ({
                     e.stopPropagation();
                     setRetryNonce((value) => value + 1);
                   }}
-                  className="px-5 py-2.5 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[rgba(116,207,102,0.3)] transition-transform hover:scale-105 cursor-pointer"
+                  className="px-5 py-2.5 rounded-full bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[var(--anilife-accent-shadow)] transition-transform hover:scale-105 cursor-pointer"
                 >
                   Retry
                 </button>
@@ -650,14 +650,14 @@ export const VideoPlayer: React.FC<Props> = ({
         {isLoading && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/75 backdrop-blur-sm space-y-3">
             <div className="relative flex items-center justify-center">
-              <div className="w-16 h-16 border-4 border-[#74cf66]/20 border-t-[#74cf66] rounded-full animate-spin" />
+              <div className="w-16 h-16 border-4 border-[var(--anilife-accent)]/20 border-t-[var(--anilife-accent)] rounded-full animate-spin" />
               <img
                 src="/assets/images/Anilife-Logo.png"
                 alt="Anilife"
                 className="absolute w-8 h-8 rounded-full shadow-lg"
               />
             </div>
-            <p className="text-xs font-semibold text-[#74cf66]">
+            <p className="text-xs font-semibold text-[var(--anilife-accent)]">
               Finding a server for this episode
             </p>
           </div>
@@ -666,7 +666,7 @@ export const VideoPlayer: React.FC<Props> = ({
         {!settings.autoSkipIntro && (isInOp || isInEd) && (
           <button
             onClick={handleSkipButton}
-            className="absolute bottom-28 right-6 z-40 px-5 py-2 rounded-full bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-xl shadow-[rgba(116,207,102,0.4)] border border-[#74cf66]/50 flex items-center gap-2 animate-pulse cursor-pointer transition-transform hover:scale-105"
+            className="absolute bottom-28 right-6 z-40 px-5 py-2 rounded-full bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs sm:text-sm shadow-xl shadow-[var(--anilife-accent-shadow)] border border-[var(--anilife-accent)]/50 flex items-center gap-2 animate-pulse cursor-pointer transition-transform hover:scale-105"
           >
             <FastForward className="w-4 h-4" />
             <span>{isInOp ? 'Skip Opening' : 'Skip Ending'}</span>
@@ -682,7 +682,7 @@ export const VideoPlayer: React.FC<Props> = ({
               }}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-xs font-bold text-white hover:bg-black/80 cursor-pointer"
             >
-              <Unlock className="w-4 h-4 text-[#74cf66]" />
+              <Unlock className="w-4 h-4 text-[var(--anilife-accent)]" />
               <span>Tap to unlock screen</span>
             </button>
           </div>
@@ -766,7 +766,7 @@ export const VideoPlayer: React.FC<Props> = ({
                     </button>
                     <button
                       onClick={markEmbedWatched}
-                      className="rounded-full bg-[#74cf66] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+                      className="rounded-full bg-[var(--anilife-accent)] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
                     >
                       Mark watched
                     </button>
@@ -806,7 +806,7 @@ export const VideoPlayer: React.FC<Props> = ({
                   step="0.5"
                   value={currentTime}
                   onChange={(e) => handleSeek(Number(e.target.value))}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/25 accent-[#74cf66] focus:outline-none"
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/25 accent-[var(--anilife-accent)] focus:outline-none"
                 />
                 <span className="w-11 text-[11px] font-mono text-zinc-400">
                   {formatTime(duration)}
@@ -824,7 +824,7 @@ export const VideoPlayer: React.FC<Props> = ({
                   </button>
                   <button
                     onClick={handlePlayPause}
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-[#74cf66] text-black shadow-xl shadow-[rgba(116,207,102,0.35)] transition-transform hover:scale-105 active:scale-95 cursor-pointer sm:h-12 sm:w-12"
+                    className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--anilife-accent)] text-black shadow-xl shadow-[var(--anilife-accent-shadow)] transition-transform hover:scale-105 active:scale-95 cursor-pointer sm:h-12 sm:w-12"
                     title={isPlaying ? 'Pause' : 'Play'}
                   >
                     {isPlaying ? (
@@ -883,7 +883,7 @@ export const VideoPlayer: React.FC<Props> = ({
                   {embedUrl && (
                     <button
                       onClick={markEmbedWatched}
-                      className="rounded-full bg-[#74cf66] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+                      className="rounded-full bg-[var(--anilife-accent)] px-3 py-1.5 text-[11px] font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
                       title="Mark this episode watched"
                     >
                       Mark watched
@@ -905,7 +905,7 @@ export const VideoPlayer: React.FC<Props> = ({
                   </button>
                   <button
                     onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
-                    className="rounded-full border border-[#74cf66]/40 bg-[#74cf66]/15 px-2.5 py-1 text-[11px] font-bold text-[#74cf66] cursor-pointer"
+                    className="rounded-full border border-[var(--anilife-accent)]/40 bg-[var(--anilife-accent)]/15 px-2.5 py-1 text-[11px] font-bold text-[var(--anilife-accent)] cursor-pointer"
                     title="Audio track"
                   >
                     {audioMode}
@@ -1157,7 +1157,7 @@ export const VideoPlayer: React.FC<Props> = ({
                     type="checkbox"
                     checked={settings.autoPlayNext}
                     onChange={(e) => updateSettings({ autoPlayNext: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
 
@@ -1171,7 +1171,7 @@ export const VideoPlayer: React.FC<Props> = ({
                     type="checkbox"
                     checked={settings.autoSkipIntro}
                     onChange={(e) => updateSettings({ autoSkipIntro: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
               </div>
@@ -1198,7 +1198,7 @@ export const VideoPlayer: React.FC<Props> = ({
           >
             <div className="flex items-start justify-between gap-3 pb-3">
               <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#74cf66]/10 text-[#74cf66]">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--anilife-accent)]/10 text-[var(--anilife-accent)]">
                   <Server className="h-4 w-4" />
                 </span>
                 <div>
@@ -1233,14 +1233,14 @@ export const VideoPlayer: React.FC<Props> = ({
                         onClick={() => selectServer(server)}
                         className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors cursor-pointer ${
                           isSelected
-                            ? 'border-[#74cf66]/40 bg-[#74cf66]/10'
+                            ? 'border-[var(--anilife-accent)]/40 bg-[var(--anilife-accent)]/10'
                             : 'border-white/5 bg-white/[0.03] hover:border-white/10 hover:bg-white/[0.06]'
                         }`}
                       >
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
                             isSelected
-                              ? 'bg-[#74cf66] text-black'
+                              ? 'bg-[var(--anilife-accent)] text-black'
                               : 'bg-white/5 text-zinc-400 group-hover:text-zinc-300'
                           }`}
                         >
@@ -1252,7 +1252,7 @@ export const VideoPlayer: React.FC<Props> = ({
                               Server {position + 1}
                             </span>
                             {isSelected && (
-                              <span className="rounded-full bg-[#74cf66]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#74cf66]">
+                              <span className="rounded-full bg-[var(--anilife-accent)]/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--anilife-accent)]">
                                 Current
                               </span>
                             )}
@@ -1270,7 +1270,7 @@ export const VideoPlayer: React.FC<Props> = ({
                             )}
                           </span>
                         </span>
-                        {isSelected && <Check className="h-4 w-4 shrink-0 text-[#74cf66]" />}
+                        {isSelected && <Check className="h-4 w-4 shrink-0 text-[var(--anilife-accent)]" />}
                       </button>
                     );
                   })}
@@ -1286,7 +1286,7 @@ export const VideoPlayer: React.FC<Props> = ({
         {activeDrawer === 'captions' && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-y-0 right-0 w-full sm:w-80 bg-[#0e0c18]/95 border-l border-[#74cf66]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-4 animate-fadeIn text-xs"
+            className="absolute inset-y-0 right-0 w-full sm:w-80 bg-[#0e0c18]/95 border-l border-[var(--anilife-accent)]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-4 animate-fadeIn text-xs"
           >
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <h3 className="font-bold text-sm text-white">Subtitles & Captions</h3>
@@ -1310,7 +1310,7 @@ export const VideoPlayer: React.FC<Props> = ({
                     }}
                     className={`w-full flex items-center justify-between p-2.5 rounded-xl transition-all ${
                       selectedSubLanguage === lang
-                        ? 'bg-[#74cf66] text-black font-bold'
+                        ? 'bg-[var(--anilife-accent)] text-black font-bold'
                         : 'bg-white/5 hover:bg-white/10 text-zinc-300'
                     }`}
                   >
@@ -1347,7 +1347,7 @@ export const VideoPlayer: React.FC<Props> = ({
         {activeDrawer === 'episodes' && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute inset-y-0 right-0 w-full sm:w-80 bg-[#0e0c18]/95 border-l border-[#74cf66]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-3 animate-fadeIn text-xs"
+            className="absolute inset-y-0 right-0 w-full sm:w-80 bg-[#0e0c18]/95 border-l border-[var(--anilife-accent)]/30 backdrop-blur-2xl p-5 z-50 overflow-y-auto space-y-3 animate-fadeIn text-xs"
           >
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <h3 className="font-bold text-sm text-white">Episodes ({activeEpisodes.length})</h3>
@@ -1371,7 +1371,7 @@ export const VideoPlayer: React.FC<Props> = ({
                     }}
                     className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-[#74cf66]/20 border border-[#74cf66] text-white'
+                        ? 'bg-[var(--anilife-accent)]/20 border border-[var(--anilife-accent)] text-white'
                         : 'bg-white/5 hover:bg-white/10 text-zinc-300'
                     }`}
                   >
@@ -1384,7 +1384,7 @@ export const VideoPlayer: React.FC<Props> = ({
                         {ep.durationSec ? `${Math.round(ep.durationSec / 60)} min` : '24 min'}
                       </div>
                     </div>
-                    {isSelected && <Play className="w-3.5 h-3.5 fill-[#74cf66] text-[#74cf66] shrink-0" />}
+                    {isSelected && <Play className="w-3.5 h-3.5 fill-[var(--anilife-accent)] text-[var(--anilife-accent)] shrink-0" />}
                   </button>
                 );
               })}
@@ -1443,7 +1443,7 @@ export const VideoPlayer: React.FC<Props> = ({
                 onClick={() => setCurrentEpisodeNumber(ep.number)}
                 className={`flex w-full items-center gap-3 rounded-xl border p-2 text-left transition-colors cursor-pointer ${
                   isSelected
-                    ? 'border-[#74cf66]/40 bg-[#74cf66]/15'
+                    ? 'border-[var(--anilife-accent)]/40 bg-[var(--anilife-accent)]/15'
                     : 'border-transparent hover:bg-white/5'
                 }`}
               >
@@ -1464,14 +1464,14 @@ export const VideoPlayer: React.FC<Props> = ({
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className={`truncate text-xs font-semibold ${isSelected ? 'text-[#74cf66]' : 'text-white'}`}>
+                  <p className={`truncate text-xs font-semibold ${isSelected ? 'text-[var(--anilife-accent)]' : 'text-white'}`}>
                     {ep.title}
                   </p>
                   <p className="mt-0.5 truncate text-[10px] text-zinc-500">
                     {ep.airedDate || durationLabel}
                   </p>
                 </div>
-                {isSelected && <Play className="h-3.5 w-3.5 shrink-0 fill-[#74cf66] text-[#74cf66]" />}
+                {isSelected && <Play className="h-3.5 w-3.5 shrink-0 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />}
               </button>
             );
           })}
@@ -1481,7 +1481,7 @@ export const VideoPlayer: React.FC<Props> = ({
           {embedUrl && (
             <button
               onClick={markEmbedWatched}
-              className="w-full rounded-xl bg-[#74cf66] px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+              className="w-full rounded-xl bg-[var(--anilife-accent)] px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
             >
               Mark episode watched
             </button>
@@ -1495,7 +1495,7 @@ export const VideoPlayer: React.FC<Props> = ({
             </button>
             <button
               onClick={() => setAudioMode(audioMode === 'SUB' ? 'DUB' : 'SUB')}
-              className="rounded-xl border border-[#74cf66]/40 bg-[#74cf66]/15 px-3 py-2 text-[11px] font-bold text-[#74cf66] cursor-pointer"
+              className="rounded-xl border border-[var(--anilife-accent)]/40 bg-[var(--anilife-accent)]/15 px-3 py-2 text-[11px] font-bold text-[var(--anilife-accent)] cursor-pointer"
             >
               {audioMode}
             </button>

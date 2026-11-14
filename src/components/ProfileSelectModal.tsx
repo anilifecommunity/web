@@ -45,13 +45,13 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
 
   const colorSwatches = [
-    '#74cf66', 
-    '#3B82F6', 
-    '#06B6D4', 
-    '#10B981', 
-    '#F59E0B', 
-    '#D1102B', 
-    '#F472B6', 
+    '#74cf66',
+    '#3B82F6',
+    '#06B6D4',
+    '#10B981',
+    '#F59E0B',
+    '#D1102B',
+    '#F472B6',
   ];
 
   const handleSelectProfile = (profile: UserProfile) => {
@@ -144,7 +144,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl animate-fadeIn text-white font-sans">
       <div
-        className="w-full max-w-lg bg-[#0a0a0c] border border-[#74cf66]/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar"
+        className="w-full max-w-lg bg-[#0a0a0c] border border-[var(--anilife-accent)]/30 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto no-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {}
@@ -190,7 +190,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                 return (
                   <div
                     key={prof.id}
-                    className="relative flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#74cf66]/50 transition-all group"
+                    className="relative flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[var(--anilife-accent)]/50 transition-all group"
                   >
                     {}
                     <button
@@ -198,7 +198,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                         e.stopPropagation();
                         openEditProfile(prof);
                       }}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-[#74cf66] text-zinc-400 hover:text-black transition-all opacity-0 group-hover:opacity-100 z-10 cursor-pointer"
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 hover:bg-[var(--anilife-accent)] text-zinc-400 hover:text-black transition-all opacity-0 group-hover:opacity-100 z-10 cursor-pointer"
                       title="Edit Profile"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
@@ -208,7 +208,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                       onClick={() => handleSelectProfile(prof)}
                       className="flex flex-col items-center gap-2 w-full cursor-pointer"
                     >
-                      <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-[#74cf66]/40 p-0.5 group-hover:scale-105 transition-transform shadow-lg">
+                      <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-[var(--anilife-accent)]/40 p-0.5 group-hover:scale-105 transition-transform shadow-lg">
                         <img
                           src={prof.avatar}
                           alt={prof.name}
@@ -218,23 +218,23 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                           }}
                         />
                         {prof.pin && (
-                          <div className="absolute top-0 right-0 p-1.5 rounded-full bg-black/85 text-[#74cf66] shadow">
+                          <div className="absolute top-0 right-0 p-1.5 rounded-full bg-black/85 text-[var(--anilife-accent)] shadow">
                             <Lock className="w-3.5 h-3.5" />
                           </div>
                         )}
                         {isActive && (
-                          <div className="absolute inset-0 bg-[#74cf66]/60 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-[var(--anilife-accent)]/60 flex items-center justify-center">
                             <Check className="w-7 h-7 text-black font-bold" />
                           </div>
                         )}
                       </div>
 
                       <div className="text-center">
-                        <span className="font-bold text-sm text-white group-hover:text-[#74cf66] block truncate max-w-[110px]">
+                        <span className="font-bold text-sm text-white group-hover:text-[var(--anilife-accent)] block truncate max-w-[110px]">
                           {prof.name}
                         </span>
                         {isActive && (
-                          <span className="text-[10px] text-[#74cf66] font-medium">Active</span>
+                          <span className="text-[10px] text-[var(--anilife-accent)] font-medium">Active</span>
                         )}
                       </div>
                     </button>
@@ -245,9 +245,9 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
               {}
               <button
                 onClick={openAddProfile}
-                className="flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-[#74cf66] transition-all cursor-pointer group min-h-[140px]"
+                className="flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-[var(--anilife-accent)] transition-all cursor-pointer group min-h-[140px]"
               >
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/20 group-hover:scale-105 transition-transform text-zinc-400 group-hover:text-[#74cf66]">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/20 group-hover:scale-105 transition-transform text-zinc-400 group-hover:text-[var(--anilife-accent)]">
                   <Plus className="w-7 h-7" />
                 </div>
                 <span className="font-semibold text-xs text-zinc-400 group-hover:text-white">
@@ -258,7 +258,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
 
             <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between text-xs text-zinc-400">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#74cf66]" />
+                <Shield className="w-4 h-4 text-[var(--anilife-accent)]" />
                 <span>Profiles keep separate continue watching, lists & themes</span>
               </div>
             </div>
@@ -273,9 +273,9 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
               <img
                 src={pinTargetProfile.avatar}
                 alt={pinTargetProfile.name}
-                className="w-full h-full object-cover rounded-full border-2 border-[#74cf66]/50 shadow-lg"
+                className="w-full h-full object-cover rounded-full border-2 border-[var(--anilife-accent)]/50 shadow-lg"
               />
-              <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#74cf66] text-black shadow-md">
+              <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[var(--anilife-accent)] text-black shadow-md">
                 <Lock className="w-4 h-4" />
               </div>
             </div>
@@ -287,7 +287,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                   key={i}
                   className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 ${
                     pinDigits.length > i
-                      ? 'bg-[#74cf66] border-[#74cf66] scale-125 shadow-sm shadow-[rgba(116,207,102,0.5)]'
+                      ? 'bg-[var(--anilife-accent)] border-[var(--anilife-accent)] scale-125 shadow-sm shadow-[var(--anilife-accent-shadow)]'
                       : pinError
                       ? 'border-red-500 bg-red-500/20 animate-shake'
                       : 'border-white/20 bg-white/5'
@@ -303,7 +303,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
             )}
 
             {showPinHint && (
-              <p className="text-xs text-[#74cf66] font-semibold animate-fadeIn bg-[#74cf66]/10 py-1.5 px-3 rounded-full border border-[#74cf66]/30">
+              <p className="text-xs text-[var(--anilife-accent)] font-semibold animate-fadeIn bg-[var(--anilife-accent)]/10 py-1.5 px-3 rounded-full border border-[var(--anilife-accent)]/30">
                 Hint: PIN is {pinTargetProfile.pin || '1234'}
               </p>
             )}
@@ -327,7 +327,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                   <button
                     key={btn}
                     onClick={() => handleNumpad(btn)}
-                    className="w-16 h-16 mx-auto rounded-full bg-white/5 hover:bg-white/15 text-white font-bold text-xl flex items-center justify-center cursor-pointer transition-all active:scale-90 border border-white/5 hover:border-[#74cf66]/30"
+                    className="w-16 h-16 mx-auto rounded-full bg-white/5 hover:bg-white/15 text-white font-bold text-xl flex items-center justify-center cursor-pointer transition-all active:scale-90 border border-white/5 hover:border-[var(--anilife-accent)]/30"
                   >
                     {btn}
                   </button>
@@ -338,7 +338,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
             <div className="flex items-center justify-between pt-2 px-6 text-xs text-zinc-400">
               <button
                 onClick={() => setShowPinHint(true)}
-                className="hover:text-[#74cf66] transition-colors cursor-pointer"
+                className="hover:text-[var(--anilife-accent)] transition-colors cursor-pointer"
               >
                 Forgot PIN?
               </button>
@@ -377,7 +377,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                   placeholder="e.g. Anime Fan, Guest"
                   required
                   maxLength={20}
-                  className="w-full px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-white font-semibold text-sm focus:outline-none focus:border-[#74cf66]"
+                  className="w-full px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-white font-semibold text-sm focus:outline-none focus:border-[var(--anilife-accent)]"
                 />
               </div>
             </div>
@@ -388,7 +388,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                 <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
                   Pick Character Avatar
                 </label>
-                <span className="text-[10px] text-[#74cf66] font-medium">AniList Characters</span>
+                <span className="text-[10px] text-[var(--anilife-accent)] font-medium">AniList Characters</span>
               </div>
 
               <div className="grid grid-cols-5 gap-2 max-h-36 overflow-y-auto no-scrollbar p-1 bg-black/30 rounded-2xl border border-white/5">
@@ -403,13 +403,13 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                         setCustomAvatarUrl('');
                       }}
                       className={`relative aspect-square rounded-full overflow-hidden border-2 transition-transform cursor-pointer hover:scale-105 ${
-                        isSelected ? 'border-[#74cf66] shadow-md shadow-[rgba(116,207,102,0.5)] scale-105' : 'border-white/10'
+                        isSelected ? 'border-[var(--anilife-accent)] shadow-md shadow-[var(--anilife-accent-shadow)] scale-105' : 'border-white/10'
                       }`}
                       title={av.name}
                     >
                       <img src={av.url} alt={av.name} className="w-full h-full object-cover" />
                       {isSelected && (
-                        <div className="absolute inset-0 bg-[#74cf66]/40 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-[var(--anilife-accent)]/40 flex items-center justify-center">
                           <Check className="w-4 h-4 text-black font-bold" />
                         </div>
                       )}
@@ -429,7 +429,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                 value={customAvatarUrl}
                 onChange={(e) => setCustomAvatarUrl(e.target.value)}
                 placeholder="https://.../avatar.png"
-                className="w-full px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-white text-xs focus:outline-none focus:border-[#74cf66]"
+                className="w-full px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-white text-xs focus:outline-none focus:border-[var(--anilife-accent)]"
               />
             </div>
 
@@ -457,7 +457,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
             <div className="space-y-1.5 p-3 rounded-2xl bg-white/5 border border-white/5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-[#74cf66]" />
+                  <KeyRound className="w-4 h-4 text-[var(--anilife-accent)]" />
                   <span className="text-xs font-bold text-white">4-Digit PIN Lock (Optional)</span>
                 </div>
                 {formPin && (
@@ -478,7 +478,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                 value={formPin}
                 onChange={(e) => setFormPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 placeholder="Leave blank for no lock"
-                className="w-full px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-white text-xs tracking-widest focus:outline-none focus:border-[#74cf66]"
+                className="w-full px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-white text-xs tracking-widest focus:outline-none focus:border-[var(--anilife-accent)]"
               />
               <p className="text-[10px] text-zinc-400">
                 Lock this profile so only viewers with this 4-digit PIN can access it.
@@ -508,7 +508,7 @@ export const ProfileSelectModal: React.FC<Props> = ({ onClose }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#74cf66] hover:bg-[#62b956] text-xs font-bold text-black shadow-lg shadow-[rgba(116,207,102,0.3)] cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-xs font-bold text-black shadow-lg shadow-[var(--anilife-accent-shadow)] cursor-pointer"
                 >
                   {mode === 'add' ? 'Create Profile' : 'Save Changes'}
                 </button>

@@ -80,3 +80,11 @@ test('a legacy enable list gains newly added fallback servers', () => {
   assert.ok(loaded.enabledServers.includes('2embed'));
   assert.equal(loaded.serverCatalogVersion, 2);
 });
+
+test('new viewers hide adult content while an explicit opt-in is preserved', () => {
+  withStoredSettings({});
+  assert.equal(loadSettings().hideAdultContent, true);
+
+  withStoredSettings({ hideAdultContent: false });
+  assert.equal(loadSettings().hideAdultContent, false);
+});

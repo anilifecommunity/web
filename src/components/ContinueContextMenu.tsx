@@ -51,7 +51,7 @@ export const ContinueContextMenu: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md animate-fadeIn font-sans">
       <div
-        className="w-full max-w-lg bg-[#0e0c18] border border-[#74cf66]/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl overflow-y-auto max-h-[90vh] text-white"
+        className="w-full max-w-lg bg-[#0e0c18] border border-[var(--anilife-accent)]/30 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl overflow-y-auto max-h-[90vh] text-white"
         onClick={(e) => e.stopPropagation()}
       >
         {}
@@ -63,7 +63,7 @@ export const ContinueContextMenu: React.FC<Props> = ({
               className="w-12 h-16 object-cover rounded-lg shadow-md border border-white/10"
             />
             <div>
-              <span className="text-[10px] tracking-wider uppercase font-bold text-[#74cf66]">
+              <span className="text-[10px] tracking-wider uppercase font-bold text-[var(--anilife-accent)]">
                 Continue Watching
               </span>
               <h3 className="font-bold text-base line-clamp-1">{anime.title}</h3>
@@ -130,18 +130,18 @@ export const ContinueContextMenu: React.FC<Props> = ({
                   onClick={() => handleStatusChange(opt.status)}
                   className={`w-full flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-[#74cf66]/20 border border-[#74cf66]/50 text-white font-semibold'
+                      ? 'bg-[var(--anilife-accent)]/20 border border-[var(--anilife-accent)]/50 text-white font-semibold'
                       : 'bg-white/5 hover:bg-white/10 text-zinc-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isSelected ? 'text-[#74cf66]' : 'text-zinc-400'}`} />
+                    <Icon className={`w-4 h-4 ${isSelected ? 'text-[var(--anilife-accent)]' : 'text-zinc-400'}`} />
                     <div className="text-left">
                       <div className="text-sm font-medium">{opt.label}</div>
                       <div className="text-xs text-zinc-400">{opt.desc}</div>
                     </div>
                   </div>
-                  {isSelected && <Check className="w-4 h-4 text-[#74cf66]" />}
+                  {isSelected && <Check className="w-4 h-4 text-[var(--anilife-accent)]" />}
                 </button>
               );
             })}

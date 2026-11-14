@@ -70,6 +70,7 @@ export const DEFAULT_PROFILES: UserProfile[] = [
 export const DEFAULT_SETTINGS: AppSettings = {
   
   themePreset: 'Midnight',
+  themePreferenceExplicit: false,
   canvasBackground: 'amoled',
   accentColor: '#74cf66',
   backdropSource: 'none',
@@ -108,7 +109,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   serverCatalogVersion: 2,
 
   
-  hideAdultContent: false,
+  hideAdultContent: true,
   titleLanguage: 'romaji',
   blurSpoilers: false,
   onlyWatchableEpisodes: false,
@@ -185,18 +186,26 @@ export function loadSettings(): AppSettings {
         const merged = normalizeProviderLists({
           ...DEFAULT_SETTINGS,
           ...stored,
+          themePreferenceExplicit: stored.themePreferenceExplicit ?? true,
           serverOrderVersion: stored.serverOrderVersion ?? 0,
           serverCatalogVersion: stored.serverCatalogVersion ?? 0,
         });
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
         return merged;
       }
-      return DEFAULT_SETTINGS;
+      return {
+        ...DEFAULT_SETTINGS,
+        canvasBackground:
+          typeof window !== 'undefined' && !window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'amoled',
+      };
     }
     const stored = JSON.parse(raw) as Partial<AppSettings>;
     return normalizeProviderLists({
       ...DEFAULT_SETTINGS,
       ...stored,
+      themePreferenceExplicit: stored.themePreferenceExplicit ?? true,
       serverOrderVersion: stored.serverOrderVersion ?? 0,
       serverCatalogVersion: stored.serverCatalogVersion ?? 0,
     });

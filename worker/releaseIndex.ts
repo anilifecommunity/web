@@ -3,6 +3,8 @@ import { fail, json } from './http';
 const INDEX_KEY = 'releases/stable.json';
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_CLOCK_SKEW_SECONDS = 300;
+const MAX_CLASS_A_PER_31_DAYS = 750_000;
+const MAX_CLASS_B_PER_31_DAYS = 7_500_000;
 const HEX_64 = /^[0-9a-f]{64}$/;
 const HEX_128 = /^[0-9a-f]{128}$/;
 
@@ -39,7 +41,16 @@ export interface StableReleaseIndex {
 
 export interface ReleaseIndexEnv {
   RELEASE_INDEX_BUCKET: ReleaseIndexBucket;
+  RELEASE_INDEX_USAGE: ReleaseIndexUsageDatabase;
   WEB_RELEASE_INDEX_HMAC_KEY?: string;
+}
+
+export interface ReleaseIndexUsageDatabase {
+  prepare(query: string): {
+    bind(...values: Array<string | number>): {
+      first<T>(): Promise<T | null>;
+    };
+  };
 }
 
 export interface ReleaseIndexStoredObject {
@@ -203,6 +214,46 @@ async function readStoredIndex(bucket: ReleaseIndexBucket): Promise<{
   };
 }
 
+async function consumeR2Operation(
+  database: ReleaseIndexUsageDatabase,
+  operation: 'class_a' | 'class_b',
+  nowSeconds: number
+): Promise<'allowed' | 'limited' | 'unavailable'> {
+  const now = new Date(nowSeconds * 1000);
+  const day = now.toISOString().slice(0, 10);
+  now.setUTCDate(now.getUTCDate() - 30);
+  const cutoff = now.toISOString().slice(0, 10);
+  const limit = operation === 'class_a' ? MAX_CLASS_A_PER_31_DAYS : MAX_CLASS_B_PER_31_DAYS;
+  try {
+    const row = await database
+      .prepare(
+        `INSERT INTO release_index_usage (day, ${operation})
+         SELECT ?1, 1
+         WHERE (SELECT COALESCE(SUM(${operation}), 0) FROM release_index_usage WHERE day >= ?2) < ?3
+         ON CONFLICT(day) DO UPDATE SET ${operation} = ${operation} + 1
+         WHERE (SELECT COALESCE(SUM(${operation}), 0) FROM release_index_usage WHERE day >= ?2) < ?3
+         RETURNING ${operation} AS count`
+      )
+      .bind(day, cutoff, limit)
+      .first<{ count: number }>();
+    return row ? 'allowed' : 'limited';
+  } catch {
+    return 'unavailable';
+  }
+}
+
+async function requireR2Operation(
+  env: ReleaseIndexEnv,
+  operation: 'class_a' | 'class_b',
+  nowSeconds: number
+): Promise<Response | null> {
+  if (!env.RELEASE_INDEX_USAGE) return fail(503, 'release_index_usage_not_configured');
+  const result = await consumeR2Operation(env.RELEASE_INDEX_USAGE, operation, nowSeconds);
+  if (result === 'limited') return fail(503, 'release_index_usage_limit');
+  if (result === 'unavailable') return fail(503, 'release_index_usage_unavailable');
+  return null;
+}
+
 export async function publishStableReleaseIndex(
   request: Request,
   env: ReleaseIndexEnv,
@@ -240,6 +291,8 @@ export async function publishStableReleaseIndex(
   }
 
   const bodyHash = await sha256(body);
+  const readLimit = await requireR2Operation(env, 'class_b', nowSeconds);
+  if (readLimit) return readLimit;
   let stored: Awaited<ReturnType<typeof readStoredIndex>>;
   try {
     stored = await readStoredIndex(env.RELEASE_INDEX_BUCKET);
@@ -254,6 +307,8 @@ export async function publishStableReleaseIndex(
 
   const idempotent = Boolean(stored && bodyHash === stored.hash);
   if (!idempotent) {
+    const writeLimit = await requireR2Operation(env, 'class_a', nowSeconds);
+    if (writeLimit) return writeLimit;
     try {
       const written = await env.RELEASE_INDEX_BUCKET.put(INDEX_KEY, body, {
         onlyIf: stored ? { etagMatches: stored.object.etag } : { etagDoesNotMatch: '*' },
@@ -275,8 +330,14 @@ export async function publishStableReleaseIndex(
   return json({ ok: true, stored: !idempotent, idempotent });
 }
 
-export async function getStableReleaseIndex(request: Request, env: ReleaseIndexEnv): Promise<Response> {
+export async function getStableReleaseIndex(
+  request: Request,
+  env: ReleaseIndexEnv,
+  nowSeconds = Math.floor(Date.now() / 1000)
+): Promise<Response> {
   if (!env.RELEASE_INDEX_BUCKET) return fail(503, 'release_index_not_configured');
+  const readLimit = await requireR2Operation(env, 'class_b', nowSeconds);
+  if (readLimit) return readLimit;
   let stored: Awaited<ReturnType<typeof readStoredIndex>>;
   try {
     stored = await readStoredIndex(env.RELEASE_INDEX_BUCKET);

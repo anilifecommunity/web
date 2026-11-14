@@ -5,6 +5,7 @@ import {
   publishStableReleaseIndex,
   type ReleaseIndexBucket,
   type ReleaseIndexStoredObject,
+  type ReleaseIndexUsageDatabase,
 } from './releaseIndex';
 
 const SECRET = 'release-index-test-secret';
@@ -69,8 +70,10 @@ class FakeBucket {
   etag = 'etag-0';
   metadata: Record<string, string> = {};
   failWrite = false;
+  reads = 0;
 
   async get(): Promise<ReleaseIndexStoredObject | null> {
+    this.reads += 1;
     if (!this.bytes) return null;
     const bytes = this.bytes.slice();
     return {
@@ -98,6 +101,30 @@ class FakeBucket {
   }
 }
 
+class FakeUsageDatabase implements ReleaseIndexUsageDatabase {
+  classA = 0;
+  classB = 0;
+  unavailable = false;
+  limited: 'class_a' | 'class_b' | null = null;
+  limits: number[] = [];
+
+  prepare(query: string) {
+    const operation = query.includes('(day, class_a)') ? 'class_a' : 'class_b';
+    return {
+      bind: (...values: Array<string | number>) => ({
+        first: async <T>() => {
+          if (this.unavailable) throw new Error('usage unavailable');
+          this.limits.push(Number(values[2]));
+          if (this.limited === operation) return null;
+          if (operation === 'class_a') this.classA += 1;
+          else this.classB += 1;
+          return { count: operation === 'class_a' ? this.classA : this.classB } as T;
+        },
+      }),
+    };
+  }
+}
+
 class FakeCache {
   deletes: string[] = [];
   fail = false;
@@ -114,7 +141,8 @@ async function publish(
   cache: FakeCache,
   bytes = body(),
   timestamp = NOW,
-  signatureOverride?: string
+  signatureOverride?: string,
+  usage = new FakeUsageDatabase()
 ): Promise<Response> {
   const request = new Request('https://anilife.cc/internal/releases/stable', {
     method: 'POST',
@@ -127,7 +155,11 @@ async function publish(
   });
   return publishStableReleaseIndex(
     request,
-    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, WEB_RELEASE_INDEX_HMAC_KEY: SECRET },
+    {
+      RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket,
+      RELEASE_INDEX_USAGE: usage,
+      WEB_RELEASE_INDEX_HMAC_KEY: SECRET,
+    },
     cache,
     NOW
   );
@@ -136,12 +168,15 @@ async function publish(
 test('publishes a valid index and invalidates the public cache', async () => {
   const bucket = new FakeBucket();
   const cache = new FakeCache();
-  const response = await publish(bucket, cache);
+  const usage = new FakeUsageDatabase();
+  const response = await publish(bucket, cache, body(), NOW, undefined, usage);
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true, stored: true, idempotent: false });
   assert.deepEqual(cache.deletes, ['https://anilife.cc/downloads/index.json']);
   assert.equal(bucket.metadata.sequence, '5');
+  assert.deepEqual([usage.classA, usage.classB], [1, 1]);
+  assert.deepEqual(usage.limits, [7_500_000, 750_000]);
 });
 
 test('rejects bad HMAC and expired or future timestamps', async () => {
@@ -153,10 +188,40 @@ test('rejects bad HMAC and expired or future timestamps', async () => {
 test('accepts an exact replay idempotently', async () => {
   const bucket = new FakeBucket();
   const cache = new FakeCache();
-  assert.equal((await publish(bucket, cache)).status, 200);
-  const replay = await publish(bucket, cache);
+  const usage = new FakeUsageDatabase();
+  assert.equal((await publish(bucket, cache, body(), NOW, undefined, usage)).status, 200);
+  const replay = await publish(bucket, cache, body(), NOW, undefined, usage);
   assert.equal(replay.status, 200);
   assert.deepEqual(await replay.json(), { ok: true, stored: false, idempotent: true });
+  assert.deepEqual([usage.classA, usage.classB], [1, 2]);
+});
+
+test('hard-stops before R2 when the usage cap is reached or accounting is unavailable', async () => {
+  const bucket = new FakeBucket();
+  const usage = new FakeUsageDatabase();
+  usage.limited = 'class_b';
+  const readResponse = await getStableReleaseIndex(
+    new Request('https://anilife.cc/downloads/index.json'),
+    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
+    NOW
+  );
+  assert.equal(readResponse.status, 503);
+  assert.equal(bucket.reads, 0);
+
+  usage.limited = 'class_a';
+  const writeResponse = await publish(bucket, new FakeCache(), body(), NOW, undefined, usage);
+  assert.equal(writeResponse.status, 503);
+  assert.equal(bucket.bytes, null);
+
+  usage.limited = null;
+  usage.unavailable = true;
+  const unavailable = await getStableReleaseIndex(
+    new Request('https://anilife.cc/downloads/index.json'),
+    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
+    NOW
+  );
+  assert.equal(unavailable.status, 503);
+  assert.equal(bucket.reads, 1);
 });
 
 test('rejects downgrade and same-sequence conflicts', async () => {
@@ -206,12 +271,18 @@ test('reports R2 write and cache invalidation failures without echoing the paylo
 
 test('serves byte-identical JSON with the body SHA-256 ETag and ignores query parameters', async () => {
   const bucket = new FakeBucket();
+  const usage = new FakeUsageDatabase();
   const expected = body();
-  assert.equal((await publish(bucket, new FakeCache(), expected)).status, 200);
+  assert.equal((await publish(bucket, new FakeCache(), expected, NOW, undefined, usage)).status, 200);
 
   const response = await getStableReleaseIndex(
     new Request('https://anilife.cc/downloads/index.json?verify=1800000000'),
-    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, WEB_RELEASE_INDEX_HMAC_KEY: SECRET }
+    {
+      RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket,
+      RELEASE_INDEX_USAGE: usage,
+      WEB_RELEASE_INDEX_HMAC_KEY: SECRET,
+    },
+    NOW
   );
   assert.equal(response.status, 200);
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), expected);

@@ -130,10 +130,12 @@ export const HeaderNav: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
                   title={item.label}
                   className={`flex items-center gap-3.5 w-full p-2.5 rounded-xl transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#74cf66] text-black font-bold shadow-[0_0_12px_rgba(116,207,102,0.3)]'
+                      ? 'bg-[var(--anilife-accent)] text-black font-bold shadow-[0_0_12px_var(--anilife-accent-shadow)]'
                       : 'text-zinc-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -156,7 +158,7 @@ export const HeaderNav: React.FC = () => {
             className="flex items-center gap-3.5 w-full p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             title="Random Anime Pick"
           >
-            <Dices className="w-5 h-5 shrink-0 text-[#74cf66]" />
+            <Dices className="w-5 h-5 shrink-0 text-[var(--anilife-accent)]" />
             {isExpanded && <span className="text-xs font-semibold truncate">Random</span>}
           </button>
 
@@ -187,7 +189,7 @@ export const HeaderNav: React.FC = () => {
             <img
               src={safeImageUrl(activeProfile.avatar, '/assets/images/Anilife-Logo.png')}
               alt={activeProfile.name}
-              className="w-8 h-8 rounded-full object-cover ring-2 ring-[#74cf66] shrink-0"
+              className="w-8 h-8 rounded-full object-cover ring-2 ring-[var(--anilife-accent)] shrink-0"
             />
             {isExpanded && (
               <div className="text-left min-w-0">
@@ -238,9 +240,11 @@ export const HeaderNav: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
+                  aria-label={item.label}
+                  aria-current={isActive ? 'page' : undefined}
                   className={`flex shrink-0 items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 sm:py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-[#74cf66] text-black shadow-[0_0_12px_rgba(116,207,102,0.3)]'
+                      ? 'bg-[var(--anilife-accent)] text-black shadow-[0_0_12px_var(--anilife-accent-shadow)]'
                       : 'text-zinc-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -259,7 +263,7 @@ export const HeaderNav: React.FC = () => {
             title="Random anime pick"
             className="hidden min-[400px]:flex min-w-9 min-h-9 items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           >
-            <Dices className="w-4 h-4 text-[#74cf66]" />
+            <Dices className="w-4 h-4 text-[var(--anilife-accent)]" />
           </button>
 
           <button
@@ -282,7 +286,7 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setShowProfileModal(true)}
             title={`Profile: ${activeProfile.name}`}
-            className="min-w-9 min-h-9 flex items-center justify-center p-1 rounded-full hover:ring-2 hover:ring-[#74cf66] transition-all cursor-pointer ml-0.5"
+            className="min-w-9 min-h-9 flex items-center justify-center p-1 rounded-full hover:ring-2 hover:ring-[var(--anilife-accent)] transition-all cursor-pointer ml-0.5"
           >
             <img
               src={safeImageUrl(activeProfile.avatar, '/assets/images/Anilife-Logo.png')}

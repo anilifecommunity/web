@@ -45,7 +45,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
         {}
         <div className="flex items-start justify-between pb-3">
           <div>
-            <div className="text-[11px] font-bold text-[#74cf66] tracking-widest uppercase">
+            <div className="text-[11px] font-bold text-[var(--anilife-accent)] tracking-widest uppercase">
               SERVERS
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">
@@ -78,7 +78,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
                 onClick={() => toggleServer(server.id)}
                 className={`flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
                   isChecked
-                    ? 'bg-[#181528] border-[#74cf66]/30 hover:border-[#74cf66]/50'
+                    ? 'bg-[#181528] border-[var(--anilife-accent)]/30 hover:border-[var(--anilife-accent)]/50'
                     : 'bg-[#12101e]/60 border-white/5 opacity-60 hover:opacity-80'
                 }`}
               >
@@ -91,7 +91,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
                   <div
                     className={`w-5 h-5 rounded-md flex items-center justify-center transition-colors ${
                       isChecked
-                        ? 'bg-[#74cf66] text-black shadow-sm'
+                        ? 'bg-[var(--anilife-accent)] text-black shadow-sm'
                         : 'border border-white/20 bg-transparent'
                     }`}
                   >
@@ -107,7 +107,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
         <div className="pt-4 mt-2 border-t border-white/10 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-2xl bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[rgba(116,207,102,0.25)] transition-all cursor-pointer"
+            className="px-6 py-2.5 rounded-2xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs sm:text-sm shadow-lg shadow-[var(--anilife-accent-shadow)] transition-all cursor-pointer"
           >
             Done
           </button>

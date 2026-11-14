@@ -100,7 +100,7 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
         {}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-[#74cf66]/20 text-[#74cf66]">
+            <div className="p-2.5 rounded-xl bg-[var(--anilife-accent)]/20 text-[var(--anilife-accent)]">
               <Dices className={`w-5 h-5 ${isRolling ? 'animate-spin' : ''}`} />
             </div>
             <div>
@@ -124,7 +124,7 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
               onClick={() => handleCategoryChange(cat)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 selectedFilter === cat
-                  ? 'bg-[#74cf66] text-black shadow-[0_0_10px_rgba(116,207,102,0.3)]'
+                  ? 'bg-[var(--anilife-accent)] text-black shadow-[0_0_10px_var(--anilife-accent-shadow)]'
                   : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800'
               }`}
             >
@@ -148,10 +148,10 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
           {/* Top badges */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between">
             <span className="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-[11px] font-bold text-white flex items-center gap-1">
-              <Star className="w-3 h-3 fill-[#74cf66] text-[#74cf66]" />
+              <Star className="w-3 h-3 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
               <span>{pickedAnime.score || 75}%</span>
             </span>
-            <span className="px-2 py-0.5 rounded-md bg-[#74cf66] text-black text-[10px] font-bold">
+            <span className="px-2 py-0.5 rounded-md bg-[var(--anilife-accent)] text-black text-[10px] font-bold">
               {pickedAnime.format || 'TV'}
             </span>
           </div>
@@ -202,7 +202,7 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
               onClose();
               playAnimeEpisode(pickedAnime, 1);
             }}
-            className="flex-1 py-3 rounded-xl bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-[0_0_12px_rgba(116,207,102,0.3)] cursor-pointer"
+            className="flex-1 py-3 rounded-xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-[0_0_12px_var(--anilife-accent-shadow)] cursor-pointer"
           >
             <Play className="w-4 h-4 fill-black" />
             <span>Watch Now</span>

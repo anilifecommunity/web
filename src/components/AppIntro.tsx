@@ -51,7 +51,7 @@ export const AppIntro: React.FC<AppIntroProps> = ({ onFinish }) => {
               setImgSrc('/assets/images/Anilife-Logo.png');
             }}
             alt="Anilife"
-            className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(116,207,102,0.4)] animate-pulse"
+            className="w-full h-full object-contain filter drop-shadow-[0_0_20px_var(--anilife-accent-shadow)] animate-pulse"
           />
         </div>
 
@@ -59,7 +59,7 @@ export const AppIntro: React.FC<AppIntroProps> = ({ onFinish }) => {
         <div className="w-56 sm:w-64 flex flex-col items-center space-y-2">
           <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
             <div
-              className="h-full bg-[#74cf66] rounded-full transition-all duration-75 shadow-[0_0_12px_#74cf66]"
+              className="h-full bg-[var(--anilife-accent)] rounded-full transition-all duration-75 shadow-[0_0_12px_var(--anilife-accent)]"
               style={{ width: `${progress}%` }}
             />
           </div>

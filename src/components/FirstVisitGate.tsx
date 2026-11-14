@@ -182,7 +182,7 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
                 setMessage('Connecting to Discord...');
                 setPhase('discord');
               }}
-              className="mt-5 rounded-full bg-[#74cf66] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+              className="mt-5 rounded-full bg-[var(--anilife-accent)] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
             >
               Try again
             </button>
@@ -229,7 +229,7 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
               setMessage('Checking your browser...');
               setPhase('needed');
             }}
-            className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:border-[#74cf66] hover:text-white"
+            className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm text-zinc-200 transition-colors hover:border-[var(--anilife-accent)] hover:text-white"
           >
             Try again
           </button>
@@ -239,7 +239,7 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
           <button
             type="button"
             onClick={() => window.location.assign('/')}
-            className="mt-4 w-full rounded-full bg-[#74cf66] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+            className="mt-4 w-full rounded-full bg-[var(--anilife-accent)] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
           >
             Proceed to Home
           </button>

@@ -1,23 +1,30 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { HeaderNav } from './components/HeaderNav';
 import { HomeFeed } from './components/HomeFeed';
-import { BrowseSearch } from './components/BrowseSearch';
-import { ScheduleView } from './components/ScheduleView';
-import { MyListView } from './components/MyListView';
-import { AnimeDetailModal } from './components/AnimeDetailModal';
-import { VideoPlayer } from './components/VideoPlayer';
-import { SettingsModal } from './components/SettingsModal';
-import { RandomPickModal } from './components/RandomPickModal';
-import { NotificationsModal } from './components/NotificationsModal';
-import { CrunchyrollProfileScreen } from './components/CrunchyrollProfileScreen';
-import { AniListAuthModal } from './components/AniListAuthModal';
-import { AppIntro } from './components/AppIntro';
 import { FirstVisitGate } from './components/FirstVisitGate';
 import { useUrlRoute } from './hooks/useUrlRoute';
 import { useDiscordActivity } from './discord/useDiscordActivity';
 import { X } from 'lucide-react';
 import { markAboutNoticeSeen, shouldShowAboutNotice } from './utils/notice';
+
+const BrowseSearch = lazy(() => import('./components/BrowseSearch').then((module) => ({ default: module.BrowseSearch })));
+const ScheduleView = lazy(() => import('./components/ScheduleView').then((module) => ({ default: module.ScheduleView })));
+const MyListView = lazy(() => import('./components/MyListView').then((module) => ({ default: module.MyListView })));
+const AnimeDetailModal = lazy(() => import('./components/AnimeDetailModal').then((module) => ({ default: module.AnimeDetailModal })));
+const VideoPlayer = lazy(() => import('./components/VideoPlayer').then((module) => ({ default: module.VideoPlayer })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
+const RandomPickModal = lazy(() => import('./components/RandomPickModal').then((module) => ({ default: module.RandomPickModal })));
+const NotificationsModal = lazy(() => import('./components/NotificationsModal').then((module) => ({ default: module.NotificationsModal })));
+const CrunchyrollProfileScreen = lazy(() => import('./components/CrunchyrollProfileScreen').then((module) => ({ default: module.CrunchyrollProfileScreen })));
+const AniListAuthModal = lazy(() => import('./components/AniListAuthModal').then((module) => ({ default: module.AniListAuthModal })));
+const AppIntro = lazy(() => import('./components/AppIntro').then((module) => ({ default: module.AppIntro })));
+
+const LoadingSurface = () => (
+  <div className="flex min-h-48 items-center justify-center text-sm text-zinc-400" role="status">
+    Loading Anilife...
+  </div>
+);
 
 const UrlRouteSync: React.FC = () => {
   useUrlRoute();
@@ -66,8 +73,20 @@ const AppContent: React.FC = () => {
     setShowAboutNotice(false);
   };
 
+  const hasBlockingOverlay = Boolean(
+    selectedAnime ||
+      activeVideo ||
+      showSettingsModal ||
+      showRandomModal ||
+      showNotificationsModal ||
+      showAuthModal ||
+      showProfileModal ||
+      routeError ||
+      (showAboutNotice && hasSelectedProfileSession && !showIntro)
+  );
+
   return (
-    <div className="relative min-h-screen text-zinc-100 flex flex-col font-sans selection:bg-[#74cf66] selection:text-black">
+    <div className="relative min-h-screen text-zinc-100 flex flex-col font-sans selection:bg-[var(--anilife-accent)] selection:text-black">
       {}
       <div
         className="fixed inset-0 z-0 pointer-events-none transition-colors duration-500"
@@ -105,6 +124,8 @@ const AppContent: React.FC = () => {
       {hasSelectedProfileSession && (
         <>
       <div
+        inert={hasBlockingOverlay ? true : undefined}
+        aria-hidden={hasBlockingOverlay || undefined}
         className={`relative z-10 flex flex-col min-h-screen transition-all ${
           settings.navigationLayout === 'sidebar' ? 'md:pl-16' : ''
         }`}
@@ -112,22 +133,25 @@ const AppContent: React.FC = () => {
         <HeaderNav />
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-5">
-          {activeTab === 'home' && <HomeFeed />}
-          {activeTab === 'search' && <BrowseSearch />}
-          {activeTab === 'schedule' && <ScheduleView />}
-          {activeTab === 'mylist' && <MyListView />}
+          <Suspense fallback={<LoadingSurface />}>
+            {activeTab === 'home' && <HomeFeed />}
+            {activeTab === 'search' && <BrowseSearch />}
+            {activeTab === 'schedule' && <ScheduleView />}
+            {activeTab === 'mylist' && <MyListView />}
+          </Suspense>
         </main>
       </div>
         </>
       )}
 
-      {showIntro && (
-        <AppIntro
-          onFinish={() => {
-            setShowIntro(false);
-          }}
-        />
-      )}
+      <Suspense fallback={<LoadingSurface />}>
+        {showIntro && (
+          <AppIntro
+            onFinish={() => {
+              setShowIntro(false);
+            }}
+          />
+        )}
 
       {}
       {!showIntro && ((settings.multiProfileEnabled !== false && !hasSelectedProfileSession) || showProfileModal) && (
@@ -141,6 +165,7 @@ const AppContent: React.FC = () => {
           }}
         />
       )}
+      </Suspense>
 
       {routeError && (
         <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
@@ -149,7 +174,7 @@ const AppContent: React.FC = () => {
             <p className="mt-2 text-sm text-zinc-400">{routeError}</p>
             <button
               onClick={() => setRouteError(null)}
-              className="mt-5 rounded-full bg-[#74cf66] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+              className="mt-5 rounded-full bg-[var(--anilife-accent)] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
             >
               Back to Home
             </button>
@@ -203,13 +228,13 @@ const AppContent: React.FC = () => {
                   matters you'd like to discuss, feel free to contact our team through our
                   official Discord server.
                 </p>
-                <p className="font-semibold text-[#74cf66]">Thank you for being part of Anilife.</p>
+                <p className="font-semibold text-[var(--anilife-accent)]">Thank you for being part of Anilife.</p>
               </div>
 
               <button
                 type="button"
                 onClick={dismissAboutNotice}
-                className="mt-6 w-full rounded-full bg-[#74cf66] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[#62b956] cursor-pointer"
+                className="mt-6 w-full rounded-full bg-[var(--anilife-accent)] px-5 py-2.5 text-sm font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
               >
                 Got it
               </button>
@@ -220,7 +245,7 @@ const AppContent: React.FC = () => {
 
       {}
       {hasSelectedProfileSession && (
-        <>
+        <Suspense fallback={<LoadingSurface />}>
       {selectedAnime && (
         <AnimeDetailModal
           anime={selectedAnime}
@@ -257,7 +282,7 @@ const AppContent: React.FC = () => {
       {showAuthModal && (
         <AniListAuthModal onClose={() => setShowAuthModal(false)} />
       )}
-        </>
+        </Suspense>
       )}
     </div>
   );

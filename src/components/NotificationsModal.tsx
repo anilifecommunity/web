@@ -58,7 +58,7 @@ export const NotificationsModal: React.FC<Props> = ({ onClose }) => {
                 key={n.id}
                 className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-800 flex items-start gap-3.5"
               >
-                <div className="w-2.5 h-2.5 rounded-full bg-[#74cf66] mt-1.5 shrink-0" />
+                <div className="w-2.5 h-2.5 rounded-full bg-[var(--anilife-accent)] mt-1.5 shrink-0" />
                 <div className="space-y-1">
                   <div className="text-sm font-bold text-white">{n.title}</div>
                   <div className="text-xs text-zinc-400">{n.body}</div>

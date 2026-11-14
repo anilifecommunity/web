@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AppSettings, ThemePresetName } from '../types/anime';
 import { SERVERS } from '../utils/animeData';
@@ -29,15 +29,18 @@ import {
   LogOut,
   RefreshCw,
   ChevronRight,
-  Play
+  Play,
+  BookOpen
 } from 'lucide-react';
 import { EnabledServersModal } from './EnabledServersModal';
 import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '../data/backup';
 import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 import { useDiscordStatus } from '../discord/useDiscordActivity';
 import { connectDiscordActivity, DISCORD_INSTALL_URL, isDiscordActivity } from '../discord/activity';
+import { DownloadSection } from './DownloadSection';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const {
     settings,
     updateSettings,
@@ -60,6 +63,19 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const [customBackdropUrl, setCustomBackdropUrl] = useState('');
   const [dataMessage, setDataMessage] = useState<string | null>(null);
   const [showEnabledServersModal, setShowEnabledServersModal] = useState(false);
+
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      previous?.focus();
+    };
+  }, [onClose]);
 
   const presetsList = Object.keys(THEME_PRESETS) as ThemePresetName[];
   const serverIds = SERVERS.map((server) => server.id);
@@ -136,7 +152,12 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-2xl text-white animate-fadeIn flex flex-col font-sans">
+    <div
+      className="fixed inset-0 z-50 h-dvh overflow-y-auto bg-black/90 backdrop-blur-2xl text-white animate-fadeIn flex flex-col font-sans"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-title"
+    >
       {}
       <div className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-black/75 backdrop-blur-xl border-b border-white/10">
         <div className="flex items-center gap-3">
@@ -148,13 +169,15 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-black text-white capitalize">{activeSection}</h2>
+            <h2 id="settings-title" className="text-lg font-black text-white capitalize">{activeSection}</h2>
             <span className="text-xs text-zinc-400 font-semibold">• Settings</span>
           </div>
         </div>
 
         <button
+          ref={closeButtonRef}
           onClick={onClose}
+          aria-label="Close settings"
           className="p-2 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
@@ -162,7 +185,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       </div>
 
       {dataMessage && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full bg-[#74cf66] text-black font-bold text-xs shadow-2xl shadow-[rgba(116,207,102,0.5)]">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-5 py-2 rounded-full bg-[var(--anilife-accent)] text-black font-bold text-xs shadow-2xl shadow-[var(--anilife-accent-shadow)]">
           {dataMessage}
         </div>
       )}
@@ -185,14 +208,17 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id as any)}
+                onClick={(event) => {
+                  setActiveSection(item.id as any);
+                  event.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   isSelected
-                    ? 'bg-[#74cf66] text-black shadow-md shadow-[rgba(116,207,102,0.3)]'
+                    ? 'bg-[var(--anilife-accent)] text-black shadow-md shadow-[var(--anilife-accent-shadow)]'
                     : 'bg-white/5 hover:bg-white/10 text-zinc-300'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isSelected ? 'text-black' : 'text-[#74cf66]'}`} />
+                <Icon className={`w-4 h-4 ${isSelected ? 'text-black' : 'text-[var(--anilife-accent)]'}`} />
                 <span>{item.label}</span>
               </button>
             );
@@ -253,7 +279,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         onClick={() => applyThemePreset(preset)}
                         className={`flex items-center gap-3 p-3 rounded-2xl text-left transition-all cursor-pointer border ${
                           isSelected
-                            ? 'bg-[#74cf66]/20 border-[#74cf66] text-white shadow-lg'
+                            ? 'bg-[var(--anilife-accent)]/20 border-[var(--anilife-accent)] text-white shadow-lg'
                             : 'bg-white/5 hover:bg-white/10 border-white/5 text-zinc-300'
                         }`}
                       >
@@ -265,7 +291,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                           <div className="font-bold text-xs truncate">{preset}</div>
                           <div className="text-[10px] text-zinc-400 capitalize">{meta.canvas}</div>
                         </div>
-                        {isSelected && <Check className="w-4 h-4 text-[#74cf66] shrink-0" />}
+                        {isSelected && <Check className="w-4 h-4 text-[var(--anilife-accent)] shrink-0" />}
                       </button>
                     );
                   })}
@@ -279,10 +305,10 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => updateSettings({ canvasBackground: 'amoled' })}
+                    onClick={() => updateSettings({ canvasBackground: 'amoled', themePreferenceExplicit: true })}
                     className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
                       settings.canvasBackground === 'amoled'
-                        ? 'bg-[#74cf66]/20 border-[#74cf66] text-white'
+                        ? 'bg-[var(--anilife-accent)]/20 border-[var(--anilife-accent)] text-white'
                         : 'bg-black/60 border-white/10 text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -291,10 +317,10 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </button>
 
                   <button
-                    onClick={() => updateSettings({ canvasBackground: 'dark' })}
+                    onClick={() => updateSettings({ canvasBackground: 'dark', themePreferenceExplicit: true })}
                     className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
                       settings.canvasBackground === 'dark'
-                        ? 'bg-[#74cf66]/20 border-[#74cf66] text-white'
+                        ? 'bg-[var(--anilife-accent)]/20 border-[var(--anilife-accent)] text-white'
                         : 'bg-[#121214] border-white/10 text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -316,7 +342,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       onClick={() => updateSettings({ backdropSource: mode })}
                       className={`py-2 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${
                         settings.backdropSource === mode
-                          ? 'bg-[#74cf66] text-black font-bold'
+                          ? 'bg-[var(--anilife-accent)] text-black font-bold'
                           : 'bg-white/5 hover:bg-white/10 text-zinc-400'
                       }`}
                     >
@@ -332,7 +358,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         key={bd.title}
                         onClick={() => updateSettings({ backdropImage: bd.url })}
                         className={`relative aspect-video rounded-xl overflow-hidden border transition-all cursor-pointer ${
-                          settings.backdropImage === bd.url ? 'border-[#74cf66] ring-2 ring-[#74cf66]' : 'border-white/10'
+                          settings.backdropImage === bd.url ? 'border-[var(--anilife-accent)] ring-2 ring-[var(--anilife-accent)]' : 'border-white/10'
                         }`}
                         title={bd.title}
                       >
@@ -352,7 +378,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       value={customBackdropUrl}
                       onChange={(e) => setCustomBackdropUrl(e.target.value)}
                       placeholder="https://.../backdrop.jpg"
-                      className="flex-1 px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none focus:border-[#74cf66]"
+                      className="flex-1 px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none focus:border-[var(--anilife-accent)]"
                     />
                     <button
                       onClick={() => {
@@ -361,7 +387,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                           showNotice('Backdrop updated');
                         }
                       }}
-                      className="px-4 py-2 rounded-xl bg-[#74cf66] text-xs font-bold text-black cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[var(--anilife-accent)] text-xs font-bold text-black cursor-pointer"
                     >
                       Apply
                     </button>
@@ -378,7 +404,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                             key={dim}
                             onClick={() => updateSettings({ backdropDim: dim })}
                             className={`flex-1 py-1 rounded-lg text-xs font-bold ${
-                              settings.backdropDim === dim ? 'bg-[#74cf66] text-black font-bold' : 'bg-white/5 text-zinc-400'
+                              settings.backdropDim === dim ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'bg-white/5 text-zinc-400'
                             }`}
                           >
                             {dim}
@@ -393,7 +419,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         <button
                           onClick={() => updateSettings({ backdropBlur: !settings.backdropBlur })}
                           className={`w-full py-1 rounded-lg text-xs font-bold ${
-                            settings.backdropBlur ? 'bg-[#74cf66] text-black font-bold' : 'bg-white/5 text-zinc-400'
+                            settings.backdropBlur ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'bg-white/5 text-zinc-400'
                           }`}
                         >
                           {settings.backdropBlur ? 'Enabled (Smooth)' : 'Disabled (Sharp)'}
@@ -419,7 +445,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         onClick={() => updateSettings({ navigationLayout: 'topbar' })}
                         className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           (settings.navigationLayout ?? 'topbar') === 'topbar'
-                            ? 'bg-[#74cf66] text-black shadow-md'
+                            ? 'bg-[var(--anilife-accent)] text-black shadow-md'
                             : 'bg-white/5 text-zinc-400 hover:text-white'
                         }`}
                       >
@@ -430,7 +456,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         onClick={() => updateSettings({ navigationLayout: 'sidebar' })}
                         className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                           settings.navigationLayout === 'sidebar'
-                            ? 'bg-[#74cf66] text-black shadow-md'
+                            ? 'bg-[var(--anilife-accent)] text-black shadow-md'
                             : 'bg-white/5 text-zinc-400 hover:text-white'
                         }`}
                       >
@@ -450,7 +476,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       type="checkbox"
                       checked={settings.autoHideNav}
                       onChange={(e) => updateSettings({ autoHideNav: e.target.checked })}
-                      className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer shrink-0"
+                      className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer shrink-0"
                     />
                   </label>
                 </div>
@@ -469,7 +495,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       type="checkbox"
                       checked={settings.playAppIntro}
                       onChange={(e) => updateSettings({ playAppIntro: e.target.checked })}
-                      className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer shrink-0"
+                      className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer shrink-0"
                     />
                   </label>
 
@@ -492,7 +518,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                             onClick={() => updateSettings({ titleLanguage: lang })}
                             className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                               isSelected
-                                ? 'bg-[#74cf66] text-black border-[#74cf66] shadow-[0_0_12px_rgba(116,207,102,0.3)]'
+                                ? 'bg-[var(--anilife-accent)] text-black border-[var(--anilife-accent)] shadow-[0_0_12px_var(--anilife-accent-shadow)]'
                                 : 'bg-transparent border-zinc-700 text-zinc-300 hover:border-zinc-500'
                             }`}
                           >
@@ -526,7 +552,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     type="checkbox"
                     checked={settings.autoPlayNext}
                     onChange={(e) => updateSettings({ autoPlayNext: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
 
@@ -539,7 +565,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     type="checkbox"
                     checked={settings.autoSkipIntro}
                     onChange={(e) => updateSettings({ autoSkipIntro: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
 
@@ -552,7 +578,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     type="checkbox"
                     checked={settings.skipFiller}
                     onChange={(e) => updateSettings({ skipFiller: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
               </div>
@@ -564,7 +590,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <select
                     value={settings.defaultQuality}
                     onChange={(e) => updateSettings({ defaultQuality: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs font-semibold text-white focus:outline-none focus:border-[#74cf66]"
+                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs font-semibold text-white focus:outline-none focus:border-[var(--anilife-accent)]"
                   >
                     <option value="Auto">Auto (Adaptive)</option>
                     <option value="1080p">1080p Full HD</option>
@@ -578,7 +604,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <select
                     value={settings.screenFit}
                     onChange={(e) => updateSettings({ screenFit: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs font-semibold text-white focus:outline-none focus:border-[#74cf66]"
+                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs font-semibold text-white focus:outline-none focus:border-[var(--anilife-accent)]"
                   >
                     <option value="Fit">Fit (Aspect Ratio)</option>
                     <option value="Crop">Crop (Zoom to Fill)</option>
@@ -605,7 +631,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <button
                       onClick={() => updateSettings({ defaultAudioMode: 'SUB' })}
                       className={`py-2 rounded-xl text-xs font-bold ${
-                        settings.defaultAudioMode === 'SUB' ? 'bg-[#74cf66] text-black font-bold' : 'bg-white/5 text-zinc-400'
+                        settings.defaultAudioMode === 'SUB' ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'bg-white/5 text-zinc-400'
                       }`}
                     >
                       Japanese (Sub)
@@ -613,7 +639,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <button
                       onClick={() => updateSettings({ defaultAudioMode: 'DUB' })}
                       className={`py-2 rounded-xl text-xs font-bold ${
-                        settings.defaultAudioMode === 'DUB' ? 'bg-[#74cf66] text-black font-bold' : 'bg-white/5 text-zinc-400'
+                        settings.defaultAudioMode === 'DUB' ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'bg-white/5 text-zinc-400'
                       }`}
                     >
                       English / Localized (Dub)
@@ -646,7 +672,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     type="checkbox"
                     checked={settings.subtitlesOnDub}
                     onChange={(e) => updateSettings({ subtitlesOnDub: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
               </div>
@@ -661,10 +687,10 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               {}
               <div
                 onClick={() => setShowEnabledServersModal(true)}
-                className="flex items-center justify-between p-4 rounded-2xl bg-[#74cf66]/10 border border-[#74cf66]/30 hover:border-[#74cf66]/50 transition-all cursor-pointer shadow-lg"
+                className="flex items-center justify-between p-4 rounded-2xl bg-[var(--anilife-accent)]/10 border border-[var(--anilife-accent)]/30 hover:border-[var(--anilife-accent)]/50 transition-all cursor-pointer shadow-lg"
               >
                 <div>
-                  <div className="text-[11px] font-bold text-[#74cf66] uppercase tracking-wider">
+                  <div className="text-[11px] font-bold text-[var(--anilife-accent)] uppercase tracking-wider">
                     SERVERS
                   </div>
                   <div className="text-base font-bold text-white mt-0.5">Enabled servers</div>
@@ -673,8 +699,8 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[#74cf66] hidden sm:inline">Configure</span>
-                  <ChevronRight className="w-5 h-5 text-[#74cf66]" />
+                  <span className="text-xs font-semibold text-[var(--anilife-accent)] hidden sm:inline">Configure</span>
+                  <ChevronRight className="w-5 h-5 text-[var(--anilife-accent)]" />
                 </div>
               </div>
 
@@ -709,7 +735,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       key={serverId}
                       className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
                         isDefault
-                          ? 'bg-[#74cf66]/20 border-[#74cf66]/60'
+                          ? 'bg-[var(--anilife-accent)]/20 border-[var(--anilife-accent)]/60'
                           : isEnabled
                           ? 'bg-white/5 border-white/5'
                           : 'bg-black/40 border-white/5 opacity-50'
@@ -720,7 +746,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-xs text-white truncate">Server {idx + 1}</span>
                             {isDefault && (
-                              <span className="text-[10px] text-[#74cf66] font-bold">Active Server</span>
+                              <span className="text-[10px] text-[var(--anilife-accent)] font-bold">Active Server</span>
                             )}
                           </div>
                           <p className="text-[10px] text-zinc-400 line-clamp-1">
@@ -760,7 +786,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         <button
                           onClick={() => toggleServerEnabled(serverId)}
                           className={`p-1.5 rounded-lg cursor-pointer ${
-                            isEnabled ? 'bg-[#74cf66]/30 text-[#74cf66]' : 'bg-zinc-800 text-zinc-500'
+                            isEnabled ? 'bg-[var(--anilife-accent)]/30 text-[var(--anilife-accent)]' : 'bg-zinc-800 text-zinc-500'
                           }`}
                           title={isEnabled ? 'Disable server' : 'Enable server'}
                         >
@@ -786,7 +812,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <img
                       src={currentUser?.avatar?.large || 'https://anilist.co/img/icons/icon.svg'}
                       alt="AniList"
-                      className="w-12 h-12 rounded-full object-cover border-2 border-[#74cf66]"
+                      className="w-12 h-12 rounded-full object-cover border-2 border-[var(--anilife-accent)]"
                     />
                     <div>
                       <h3 className="font-bold text-sm text-white">
@@ -809,7 +835,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   ) : (
                     <button
                       onClick={() => setShowAuthModal(true)}
-                      className="px-4 py-2 rounded-xl bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs shadow-md shadow-[#74cf66]/20 cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs shadow-md shadow-[var(--anilife-accent)]/20 cursor-pointer"
                     >
                       AniList Login
                     </button>
@@ -822,7 +848,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     <button
                       onClick={syncAniList}
                       disabled={isSyncingAniList}
-                      className="flex items-center gap-1.5 text-[#74cf66] hover:text-white font-bold cursor-pointer"
+                      className="flex items-center gap-1.5 text-[var(--anilife-accent)] hover:text-white font-bold cursor-pointer"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isSyncingAniList ? 'animate-spin' : ''}`} />
                       <span>{isSyncingAniList ? 'Syncing...' : 'Sync Now'}</span>
@@ -850,7 +876,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         } catch {}
                       }
                     }}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer shrink-0"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer shrink-0"
                   />
                 </div>
                 <p className="text-[11px] text-zinc-500 leading-relaxed">
@@ -937,7 +963,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     type="checkbox"
                     checked={settings.discordRichPresence}
                     onChange={(e) => updateSettings({ discordRichPresence: e.target.checked })}
-                    className="w-5 h-5 accent-[#74cf66] rounded cursor-pointer"
+                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
                   />
                 </label>
               </div>
@@ -974,7 +1000,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       key={lang}
                       onClick={() => updateSettings({ titleLanguage: lang })}
                       className={`py-2 rounded-xl text-xs font-bold capitalize ${
-                        settings.titleLanguage === lang ? 'bg-[#74cf66] text-black font-bold' : 'bg-white/5 text-zinc-400'
+                        settings.titleLanguage === lang ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'bg-white/5 text-zinc-400'
                       }`}
                     >
                       {lang}
@@ -1012,12 +1038,12 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   onClick={handleExportData}
                   className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white cursor-pointer"
                 >
-                  <Download className="w-4 h-4 text-[#74cf66]" />
+                  <Download className="w-4 h-4 text-[var(--anilife-accent)]" />
                   <span>Export Backup JSON</span>
                 </button>
 
                 <label className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-white cursor-pointer">
-                  <Upload className="w-4 h-4 text-[#74cf66]" />
+                  <Upload className="w-4 h-4 text-[var(--anilife-accent)]" />
                   <span>Import Backup JSON</span>
                   <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
                 </label>
@@ -1034,7 +1060,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     onClick={() => updateSettings({ diagnosticUpload: !settings.diagnosticUpload })}
                     className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                       settings.diagnosticUpload
-                        ? 'bg-[#74cf66] text-black'
+                        ? 'bg-[var(--anilife-accent)] text-black'
                         : 'bg-white/10 text-zinc-400'
                     }`}
                   >
@@ -1047,7 +1073,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     onClick={() => updateSettings({ performanceUpload: !settings.performanceUpload })}
                     className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                       settings.performanceUpload
-                        ? 'bg-[#74cf66] text-black'
+                        ? 'bg-[var(--anilife-accent)] text-black'
                         : 'bg-white/10 text-zinc-400'
                     }`}
                   >
@@ -1103,22 +1129,22 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <img
                     src="/assets/images/Anilife-Logo.png"
                     alt="Anilife Logo"
-                    className="w-12 h-12 rounded-full ring-2 ring-[#74cf66] object-cover"
+                    className="w-12 h-12 rounded-full ring-2 ring-[var(--anilife-accent)] object-cover"
                   />
                   <div>
                     <h3 className="text-base font-black text-white tracking-wide">Anilife</h3>
-                    <p className="text-xs text-[#74cf66]">Version 0.1.0</p>
+                    <p className="text-xs text-[var(--anilife-accent)]">Version 0.1.0</p>
                   </div>
                 </div>
 
                 <div className="space-y-3 text-zinc-300 leading-relaxed text-xs pt-2 border-t border-white/10">
                   <p>
-                    Anilife is a community-driven anime platform built to make watching anime simple and enjoyable. It discovers episodes across multiple servers, remembers where you left off, and keeps your anime library synchronised with AniList and MyAnimeList.
+                    Anilife is a community-driven anime platform built to make watching anime simple and enjoyable. It discovers episodes across multiple servers, remembers where you left off, and keeps your anime library synchronised with AniList.
                   </p>
                   <p>
                     No unnecessary ads, no account required. Just anime, the way it should be.
                   </p>
-                  <p className="text-[#74cf66] font-semibold pt-1">
+                  <p className="text-[var(--anilife-accent)] font-semibold pt-1">
                     ♡ Built with passion by the Anilife Team
                   </p>
                 </div>
@@ -1143,113 +1169,30 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     matters you'd like to discuss, feel free to contact our team through our
                     official Discord server.
                   </p>
-                  <p className="text-[#74cf66] font-semibold">Thank you for being part of Anilife.</p>
+                  <p className="text-[var(--anilife-accent)] font-semibold">Thank you for being part of Anilife.</p>
                 </div>
               </div>
 
-              {}
-              <div className="space-y-4">
-                <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                  OFFICIAL APP DOWNLOADS
-                </div>
-                
-                {/* Android Section */}
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
-                  <div>
-                    <div className="font-bold text-white text-sm">Android APK</div>
-                    <div className="text-[11px] text-zinc-400">Mobile & Tablet App</div>
+              <div className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                <h3 className="text-sm font-bold text-white">Help & documentation</h3>
+                <p className="text-xs leading-relaxed text-zinc-400">
+                  Find setup guides, troubleshooting help, and answers to common questions.
+                </p>
+                <a
+                  href="https://docs.anilife.cc"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-300 hover:text-white"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <BookOpen className="w-4 h-4 text-[var(--anilife-accent)]" />
+                    <span className="font-semibold">Open Anilife Docs</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <a
-                      href="https://cutt.ly/uyvB6Wn0"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      <span>Mediafire</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
-                    </a>
-                    <a
-                      href="https://cutt.ly/Anilili"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      <span>Drive</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
-                    </a>
-                    <a
-                      href="https://cutt.ly/Anilili-mega"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      <span>Mega</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Android TV Section */}
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
-                  <div>
-                    <div className="font-bold text-white text-sm">Android TV / Google TV / Fire TV</div>
-                    <div className="text-[11px] text-zinc-400">Smart TV Edition</div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <a
-                      href="https://cutt.ly/hyvB6OOF"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      <span>Mediafire</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
-                    </a>
-                    <a
-                      href="https://cutt.ly/AnililiTV"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      <span>Drive</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
-                    </a>
-                    <a
-                      href="https://cutt.ly/myvB11jE"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors text-center"
-                    >
-                      <span>Mega</span>
-                      <ExternalLink className="w-3 h-3 text-zinc-400" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Other Platforms */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  {[
-                    { name: 'Desktop (Windows)', desc: 'Standalone App', badge: 'Coming Soon' },
-                    { name: 'iOS App', desc: 'iPhone & iPad', badge: 'Coming Soon' },
-                    { name: 'macOS', desc: 'Apple Silicon & Intel', badge: 'Coming Soon' },
-                    { name: 'Linux', desc: 'AppImage & Flatpak', badge: 'Coming Soon' },
-                  ].map((app) => (
-                    <div
-                      key={app.name}
-                      className="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between"
-                    >
-                      <div>
-                        <div className="font-bold text-white text-xs">{app.name}</div>
-                        <div className="text-[10px] text-zinc-400">{app.desc}</div>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-semibold">
-                        {app.badge}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                  <ExternalLink className="w-4 h-4 text-zinc-500" />
+                </a>
               </div>
+
+              <DownloadSection />
 
               <div className="space-y-2 pt-2">
                 <a
@@ -1259,7 +1202,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 text-zinc-300 hover:text-white"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Database className="w-4 h-4 text-[#74cf66]" />
+                    <Database className="w-4 h-4 text-[var(--anilife-accent)]" />
                     <span className="font-semibold">anilifecommunity/media-index</span>
                   </div>
                   <ExternalLink className="w-4 h-4 text-zinc-500" />

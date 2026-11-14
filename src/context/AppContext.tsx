@@ -209,6 +209,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [settings.accentColor, settings.canvasBackground]);
 
+  useEffect(() => {
+    if (settings.themePreferenceExplicit !== false) return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = () => {
+      const canvasBackground = media.matches ? 'amoled' : 'dark';
+      setSettingsState((current) =>
+        current.canvasBackground === canvasBackground ? current : { ...current, canvasBackground }
+      );
+    };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, [settings.themePreferenceExplicit]);
+
   
   useEffect(() => {
     let cancelled = false;
@@ -247,19 +260,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     async function loadLiveAniList() {
       setIsLoadingCatalog(true);
       try {
-        const [trendingP1, trendingP2, seasonP1, seasonP2, topRated, popularAll] = await Promise.all([
+        const [trending, season, topRated, popularAll] = await Promise.all([
           fetchTrendingAnime(1, 30).catch(() => []),
-          fetchTrendingAnime(2, 30).catch(() => []),
           fetchPopularSeasonAnime(1, 30).catch(() => []),
-          fetchPopularSeasonAnime(2, 30).catch(() => []),
           fetchTopRatedAnime(1, 30).catch(() => []),
           fetchPopularAllTimeAnime(1, 30).catch(() => [])
         ]);
 
         if (!isMounted) return;
 
-        const convTrending = [...trendingP1, ...trendingP2].map(convertAniListToAnime);
-        const convSeason = [...seasonP1, ...seasonP2].map(convertAniListToAnime);
+        const convTrending = trending.map(convertAniListToAnime);
+        const convSeason = season.map(convertAniListToAnime);
         const convTopRated = topRated.map(convertAniListToAnime);
         const convPopular = popularAll.map(convertAniListToAnime);
 
@@ -416,6 +427,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (preset) {
       updateSettings({
         themePreset: presetName,
+        themePreferenceExplicit: true,
         canvasBackground: preset.canvas,
         accentColor: preset.accent,
       });

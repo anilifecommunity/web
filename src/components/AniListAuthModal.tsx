@@ -95,7 +95,7 @@ export const AniListAuthModal: React.FC<Props> = ({ onClose }) => {
               />
               <div>
                 <div className="text-sm font-bold text-white">{currentUser.name}</div>
-                <div className="text-xs text-[#74cf66]">Logged in</div>
+                <div className="text-xs text-[var(--anilife-accent)]">Logged in</div>
               </div>
             </div>
             <button
@@ -141,7 +141,7 @@ export const AniListAuthModal: React.FC<Props> = ({ onClose }) => {
           <div
             className={`p-3 rounded-xl text-xs font-medium ${
               statusMessage.type === 'success'
-                ? 'bg-[#74cf66]/15 text-[#74cf66] border border-[#74cf66]/30'
+                ? 'bg-[var(--anilife-accent)]/15 text-[var(--anilife-accent)] border border-[var(--anilife-accent)]/30'
                 : 'bg-red-500/15 text-red-400 border border-red-500/30'
             }`}
           >
@@ -181,13 +181,13 @@ export const AniListAuthModal: React.FC<Props> = ({ onClose }) => {
                 onChange={(e) => setTokenInput(e.target.value)}
                 placeholder="Paste token or PIN code"
                 required
-                className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#74cf66]"
+                className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[var(--anilife-accent)]"
               />
             </div>
             <button
               type="submit"
               disabled={isSubmitting || !tokenInput.trim()}
-              className="w-full py-2.5 rounded-xl bg-[#74cf66] hover:bg-[#62b956] text-black font-bold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs transition-colors disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? 'Verifying...' : 'Save Token'}
             </button>
@@ -206,7 +206,7 @@ export const AniListAuthModal: React.FC<Props> = ({ onClose }) => {
               onChange={(e) => setUsernameInput(e.target.value)}
               placeholder="e.g. your_username"
               required
-              className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[#74cf66]"
+              className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white focus:outline-none focus:border-[var(--anilife-accent)]"
             />
             <button
               type="submit"

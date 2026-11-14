@@ -118,6 +118,7 @@ export type ThemePresetName =
 export interface AppSettings {
   
   themePreset: ThemePresetName;
+  themePreferenceExplicit?: boolean;
   canvasBackground: 'amoled' | 'dark';
   accentColor: string;
   backdropSource: 'none' | 'anime' | 'custom';

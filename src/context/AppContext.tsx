@@ -37,6 +37,7 @@ import {
   fetchUserAnimeList,
   saveUserMediaListEntry,
   getAniListOAuthUrl,
+  isAniListAuthError,
   loadOAuthToken,
   saveOAuthToken,
   clearOAuthToken,
@@ -210,20 +211,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   
   useEffect(() => {
+    let cancelled = false;
     const token = oauthToken || loadOAuthToken();
     if (token) {
+      updateSettings({ anilistConnected: false });
       fetchViewerProfile(token)
         .then((viewer) => {
+          if (cancelled) return;
           setCurrentUser(viewer);
           updateSettings({ anilistConnected: true, anilistUsername: viewer.name });
           fetchUserAnimeList(viewer.name, token).then(syncUserCollection);
         })
         .catch((err) => {
-          console.error('Failed to restore AniList session:', err);
+          if (cancelled) return;
+          if (isAniListAuthError(err)) {
+            clearOAuthToken();
+            setOauthToken(null);
+            setCurrentUser(null);
+            updateSettings({ anilistConnected: false, anilistUsername: '' });
+            return;
+          }
+          console.warn('Failed to restore AniList session:', err);
         });
     } else if (settings.anilistUsername) {
       fetchUserAnimeList(settings.anilistUsername).then(syncUserCollection).catch(() => {});
     }
+    return () => {
+      cancelled = true;
+    };
   }, [oauthToken]);
 
   

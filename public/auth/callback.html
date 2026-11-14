@@ -63,11 +63,20 @@
   </div>
   <script>
     (function() {
-      var hash = new URLSearchParams(window.location.hash.substring(1));
-      var query = new URLSearchParams(window.location.search);
-      var token = hash.get('access_token') || query.get('access_token');
-      var error = hash.get('error') || query.get('error');
-      var detail = hash.get('error_description') || query.get('error_description');
+      var hashParams = new URLSearchParams(window.location.hash.substring(1));
+      var queryParams = new URLSearchParams(window.location.search);
+      var token = hashParams.get('access_token');
+      var state = hashParams.get('state');
+      var error = hashParams.get('error') || queryParams.get('error');
+      var detail = hashParams.get('error_description') || queryParams.get('error_description');
+      var pendingState = null;
+
+      try {
+        pendingState = sessionStorage.getItem('anilife_oauth_state_v1');
+        sessionStorage.removeItem('anilife_oauth_state_v1');
+      } catch (e) {}
+
+      history.replaceState(null, '', window.location.pathname);
 
       function fail(message) {
         document.getElementById('spinner').style.display = 'none';
@@ -76,30 +85,32 @@
         document.getElementById('back').style.display = 'inline-block';
       }
 
-      function finish(tok) {
-        try {
-          sessionStorage.setItem('anilife_oauth_token', tok);
-        } catch (e) {}
-
-        if (window.opener) {
-          window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS', token: tok }, window.location.origin);
-          document.getElementById('title').textContent = 'Connected';
-          document.getElementById('msg').textContent = 'Success. Closing window...';
-          setTimeout(function() { window.close(); }, 500);
-        } else {
-          document.getElementById('title').textContent = 'Connected';
-          document.getElementById('msg').textContent = 'Success. Redirecting back to Anilife...';
-          setTimeout(function() { window.location.href = '/'; }, 800);
-        }
-      }
-
-      if (token) {
-        finish(token);
-      } else if (error) {
+      if (error) {
         fail(error + (detail ? ': ' + detail : ''));
-      } else {
-        fail('No token was returned. Open Anilife and try signing in again.');
+        return;
       }
+
+      if (!token) {
+        fail('No token was returned. Open Anilife and try signing in again.');
+        return;
+      }
+
+      if (!state || !pendingState || state !== pendingState || pendingState.length < 32) {
+        fail('Sign in could not be verified. Open Anilife and try again.');
+        return;
+      }
+
+      try {
+        localStorage.setItem('anilife_oauth_token_v2', token);
+        sessionStorage.removeItem('anilife_oauth_token');
+      } catch (e) {
+        fail('Anilife could not save the sign-in on this browser.');
+        return;
+      }
+
+      document.getElementById('title').textContent = 'Signing you in';
+      document.getElementById('msg').textContent = 'Loading Anilife...';
+      window.location.replace('/');
     })();
   </script>
 </body>

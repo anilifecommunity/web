@@ -20,6 +20,13 @@
   "r2_buckets": [
     { "binding": "RELEASE_INDEX_BUCKET", "bucket_name": "anilife-release-index" }
   ],
+  "d1_databases": [
+    {
+      "binding": "RELEASE_INDEX_USAGE",
+      "database_name": "anilife-release-index-usage",
+      "database_id": "ab0cee67-1147-43d1-adf5-6123f5d1fa81"
+    }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",

@@ -29,10 +29,21 @@ export const HeaderNav: React.FC = () => {
 
   const [isMouseNearEdge, setIsMouseNearEdge] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia('(min-width: 768px)').matches
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   
   useEffect(() => {
-    if (!settings.autoHideNav) {
+    if (!settings.autoHideNav || settings.navigationLayout !== 'sidebar' || !isDesktop) {
       setIsMouseNearEdge(true);
       return;
     }
@@ -78,7 +89,7 @@ export const HeaderNav: React.FC = () => {
   ] as const;
 
   
-  if (settings.navigationLayout === 'sidebar') {
+  if (settings.navigationLayout === 'sidebar' && isDesktop) {
     return (
       <aside
         onMouseEnter={() => {
@@ -234,7 +245,7 @@ export const HeaderNav: React.FC = () => {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="hidden min-[430px]:inline">{item.label}</span>
+                  <span className="hidden min-[520px]:inline">{item.label}</span>
                 </button>
               );
             })}
@@ -246,7 +257,7 @@ export const HeaderNav: React.FC = () => {
           <button
             onClick={() => setShowRandomModal(true)}
             title="Random anime pick"
-            className="min-w-9 min-h-9 flex items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            className="hidden min-[400px]:flex min-w-9 min-h-9 items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           >
             <Dices className="w-4 h-4 text-[#74cf66]" />
           </button>

@@ -9,7 +9,9 @@ export const STORAGE_KEYS = {
   SEARCH_PREFIX: 'anilife_searches_v3_',
   PROFILES: 'anilife_profiles_v3',
   ACTIVE_PROFILE_ID: 'anilife_active_profile_id_v3',
-  OAUTH_TOKEN: 'anilife_oauth_token',
+  OAUTH_TOKEN: 'anilife_oauth_token_v2',
+  OAUTH_TOKEN_LEGACY: 'anilife_oauth_token',
+  OAUTH_STATE: 'anilife_oauth_state_v1',
   LIVE_CATALOG_CACHE: 'anilife_live_catalog_cache_v3',
 } as const;
 

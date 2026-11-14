@@ -3,6 +3,15 @@
 
 
 
+import {
+  AniListRequestError,
+  buildAniListOAuthUrl,
+  createOAuthState,
+  savePendingOAuthState,
+} from './oauth';
+
+export { clearOAuthToken, isAniListAuthError, loadOAuthToken, saveOAuthToken } from './oauth';
+
 export const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
 
 /**
@@ -114,51 +123,45 @@ export async function queryAniList<T>(
   variables: Record<string, any> = {},
   token?: string | null
 ): Promise<T> {
+  const requestInit: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ query, variables }),
+  };
+
   let response: Response;
   try {
-    response = await fetch(ANILIST_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ query, variables }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`AniList status ${response.status}`);
-    }
+    response = await fetch(ANILIST_ENDPOINT, requestInit);
   } catch {
-    
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    response = await fetch(ANILIST_ENDPOINT, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ query, variables }),
-    });
+    response = await fetch(ANILIST_ENDPOINT, requestInit);
   }
 
   if (!response.ok) {
-    let errDetail = `${response.status} ${response.statusText}`;
+    let detail = `${response.status} ${response.statusText}`;
+    let authFailure = response.status === 401 || response.status === 403;
     try {
-      const errJson = await response.json();
-      if (errJson.errors && errJson.errors[0]?.message) {
-        errDetail = errJson.errors[0].message;
+      const errJson = (await response.json()) as { errors?: Array<{ message?: string }> };
+      const message = errJson.errors?.[0]?.message;
+      if (message) {
+        detail = message;
+        authFailure = authFailure || /invalid token|unauthorized/i.test(message);
       }
     } catch {}
-    throw new Error(`AniList error: ${errDetail}`);
+    if (authFailure) throw new AniListRequestError(detail, response.status || 401);
+    throw new Error(`AniList error: ${detail}`);
   }
 
-  const json = await response.json();
+  const json = (await response.json()) as { data: T; errors?: Array<{ message?: string }> };
   if (json.errors && json.errors.length > 0) {
-    throw new Error(json.errors[0].message || 'AniList query error');
+    const message = json.errors[0].message || 'AniList query error';
+    if (/invalid token|unauthorized/i.test(message)) {
+      throw new AniListRequestError(message, 401);
+    }
+    throw new Error(message);
   }
 
   return json.data;
@@ -171,14 +174,9 @@ export function getAniListOAuthUrl(): string {
   if (!ANILIST_CLIENT_ID) {
     throw new Error('AniList sign-in is not configured');
   }
-  // AniList's implicit grant uses the redirect URL registered on the application; it does not
-  // take a redirect_uri parameter (docs: /guide/auth/implicit). Sending one can make the
-  // authorize endpoint reject the request.
-  const params = new URLSearchParams({
-    client_id: ANILIST_CLIENT_ID,
-    response_type: 'token',
-  });
-  return `https://anilist.co/api/v2/oauth/authorize?${params.toString()}`;
+  const state = createOAuthState();
+  savePendingOAuthState(state);
+  return buildAniListOAuthUrl(ANILIST_CLIENT_ID, state);
 }
 
 
@@ -562,33 +560,8 @@ export async function deleteUserMediaListEntry(token: string, id: number): Promi
 
 
 
-const OAUTH_KEY = 'anilife_oauth_token';
 const CATALOG_CACHE_KEY = 'anilife_live_catalog_cache_v4';
 const USER_DATA_CACHE_KEY = 'anilife_anilist_data_v3';
-
-export function loadOAuthToken(): string | null {
-  try {
-    return sessionStorage.getItem(OAUTH_KEY);
-  } catch {
-    return null;
-  }
-}
-
-export function saveOAuthToken(token: string): void {
-  try {
-    sessionStorage.setItem(OAUTH_KEY, token);
-  } catch {
-    
-  }
-}
-
-export function clearOAuthToken(): void {
-  try {
-    sessionStorage.removeItem(OAUTH_KEY);
-  } catch {
-    
-  }
-}
 
 export function loadCachedCatalog(): any[] | null {
   try {

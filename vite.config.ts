@@ -8,17 +8,6 @@ export default defineConfig(() => {
     plugins: [
       react(),
       tailwindcss(),
-      {
-        name: 'oauth-callback-rewrite',
-        configureServer(server) {
-          server.middlewares.use((req, _res, next) => {
-            if (req.url && (req.url === '/auth/callback' || req.url.startsWith('/auth/callback?'))) {
-              req.url = '/auth/callback/index.html';
-            }
-            next();
-          });
-        },
-      },
     ],
     resolve: {
       alias: {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Check, Download, RefreshCw } from 'lucide-react';
+import { Check, Download, ExternalLink, RefreshCw } from 'lucide-react';
 import {
   fetchDownloadIndex,
   formatFileSize,
@@ -25,7 +25,7 @@ const ABI_HELP: Record<DownloadAsset['abi'], string> = {
 export function DownloadGroup({ title, assets, version }: { title: string; assets: DownloadAsset[]; version: string }) {
   return (
     <section className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-4" aria-labelledby={`downloads-${assets[0].formFactor}`}>
-      <h4 id={`downloads-${assets[0].formFactor}`} className="text-sm font-bold text-white">{title}</h4>
+      <h3 id={`downloads-${assets[0].formFactor}`} className="text-sm font-bold text-white">{title}</h3>
       <div className="grid gap-2 sm:grid-cols-3">
         {assets.map((asset) => (
           <a
@@ -56,6 +56,28 @@ export function DownloadGroup({ title, assets, version }: { title: string; asset
   );
 }
 
+export function DownloadRelease({ index }: { index: DownloadIndex }) {
+  const published = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(index.publishedAt));
+  return (
+    <section className="space-y-4" aria-labelledby="download-anilife-title">
+      <div>
+        <h2 id="download-anilife-title" className="text-sm font-bold text-white">Download Anilife</h2>
+        <p className="mt-1 text-[11px] text-zinc-400">Stable {index.tag} - published {published}</p>
+        <a
+          href={index.releaseUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-flex min-h-6 items-center gap-1.5 text-xs font-semibold text-[var(--anilife-accent)] hover:underline"
+        >
+          Checksums and release notes <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+        </a>
+      </div>
+      <DownloadGroup title="Android" assets={index.assets.filter((asset) => asset.formFactor === 'mobile')} version={index.version} />
+      <DownloadGroup title="Android TV / Fire TV" assets={index.assets.filter((asset) => asset.formFactor === 'tv')} version={index.version} />
+    </section>
+  );
+}
+
 export const DownloadSection: React.FC = () => {
   const [attempt, setAttempt] = useState(0);
   const [index, setIndex] = useState<DownloadIndex | null>(null);
@@ -76,7 +98,7 @@ export const DownloadSection: React.FC = () => {
   if (error) {
     return (
       <section className="space-y-3 rounded-2xl border border-red-400/20 bg-red-400/5 p-4" aria-labelledby="download-anilife-title">
-        <h3 id="download-anilife-title" className="text-sm font-bold text-white">Download Anilife</h3>
+        <h2 id="download-anilife-title" className="text-sm font-bold text-white">Download Anilife</h2>
         <p className="text-xs leading-relaxed text-zinc-300" role="alert">
           The latest stable downloads are unavailable right now. No old or unverified links are shown.
         </p>
@@ -94,21 +116,11 @@ export const DownloadSection: React.FC = () => {
   if (!index) {
     return (
       <section className="rounded-2xl border border-white/5 bg-white/5 p-4" aria-labelledby="download-anilife-title" aria-busy="true">
-        <h3 id="download-anilife-title" className="text-sm font-bold text-white">Download Anilife</h3>
+        <h2 id="download-anilife-title" className="text-sm font-bold text-white">Download Anilife</h2>
         <p className="mt-2 text-xs text-zinc-400">Loading the latest stable release...</p>
       </section>
     );
   }
 
-  const published = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(index.publishedAt));
-  return (
-    <section className="space-y-4" aria-labelledby="download-anilife-title">
-      <div>
-        <h3 id="download-anilife-title" className="text-sm font-bold text-white">Download Anilife</h3>
-        <p className="mt-1 text-[11px] text-zinc-400">Stable {index.tag} - published {published}</p>
-      </div>
-      <DownloadGroup title="Android" assets={index.assets.filter((asset) => asset.formFactor === 'mobile')} version={index.version} />
-      <DownloadGroup title="Android TV / Fire TV" assets={index.assets.filter((asset) => asset.formFactor === 'tv')} version={index.version} />
-    </section>
-  );
+  return <DownloadRelease index={index} />;
 };

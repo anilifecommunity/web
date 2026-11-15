@@ -11,6 +11,7 @@ import { markAboutNoticeSeen, shouldShowAboutNotice } from './utils/notice';
 const BrowseSearch = lazy(() => import('./components/BrowseSearch').then((module) => ({ default: module.BrowseSearch })));
 const ScheduleView = lazy(() => import('./components/ScheduleView').then((module) => ({ default: module.ScheduleView })));
 const MyListView = lazy(() => import('./components/MyListView').then((module) => ({ default: module.MyListView })));
+const DownloadsPage = lazy(() => import('./components/DownloadsPage').then((module) => ({ default: module.DownloadsPage })));
 const AnimeDetailModal = lazy(() => import('./components/AnimeDetailModal').then((module) => ({ default: module.AnimeDetailModal })));
 const VideoPlayer = lazy(() => import('./components/VideoPlayer').then((module) => ({ default: module.VideoPlayer })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
@@ -138,6 +139,7 @@ const AppContent: React.FC = () => {
             {activeTab === 'search' && <BrowseSearch />}
             {activeTab === 'schedule' && <ScheduleView />}
             {activeTab === 'mylist' && <MyListView />}
+            {activeTab === 'downloads' && <DownloadsPage />}
           </Suspense>
         </main>
       </div>

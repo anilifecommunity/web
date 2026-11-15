@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DownloadGroup } from '../components/DownloadSection';
+import { DownloadGroup, DownloadRelease, DownloadSection } from '../components/DownloadSection';
 import { fetchDownloadIndex, parseDownloadIndex } from './releaseIndex';
 
 const ASSETS = [
@@ -70,6 +70,22 @@ test('renders all six download choices with recommended universal builds', () =>
   assert.equal((html.match(/<a /g) ?? []).length, 6);
   assert.equal((html.match(/Recommended/g) ?? []).length, 2);
   for (const asset of index.assets) assert.ok(html.includes(asset.name));
+});
+
+test('renders validated stable metadata and the matching GitHub release link', () => {
+  const index = parseDownloadIndex(validIndex());
+  const html = renderToStaticMarkup(createElement(DownloadRelease, { index }));
+
+  assert.match(html, /Stable v0\.1\.2/);
+  assert.ok(html.includes(index.releaseUrl));
+  assert.equal((html.match(/Download Anilife 0\.1\.2/g) ?? []).length, 6);
+});
+
+test('renders a busy loading state before the validated index arrives', () => {
+  const html = renderToStaticMarkup(createElement(DownloadSection));
+  assert.match(html, /aria-busy="true"/);
+  assert.match(html, /Loading the latest stable release/);
+  assert.doesNotMatch(html, /releases\/download/);
 });
 
 test('rejects missing assets and prerelease-shaped indexes', () => {

@@ -37,7 +37,6 @@ import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '.
 import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 import { useDiscordStatus } from '../discord/useDiscordActivity';
 import { connectDiscordActivity, DISCORD_INSTALL_URL, isDiscordActivity } from '../discord/activity';
-import { DownloadSection } from './DownloadSection';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -51,7 +50,8 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
     logoutFromAniList,
     syncAniList,
     isSyncingAniList,
-    playIntroAnimation
+    playIntroAnimation,
+    setActiveTab
   } = useApp();
 
   const discord = useDiscordStatus();
@@ -1192,7 +1192,20 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </a>
               </div>
 
-              <DownloadSection />
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('downloads');
+                  onClose();
+                }}
+                className="flex w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 p-3.5 text-left text-zinc-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Download className="h-4 w-4 text-[var(--anilife-accent)]" />
+                  <span className="font-semibold">Downloads</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-zinc-500" />
+              </button>
 
               <div className="space-y-2 pt-2">
                 <a

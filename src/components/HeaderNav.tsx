@@ -6,6 +6,7 @@ import {
   Search,
   Calendar,
   Bookmark,
+  Download,
   Dices,
   Bell,
   Settings,
@@ -86,6 +87,7 @@ export const HeaderNav: React.FC = () => {
     { id: 'search', label: 'Search', icon: Search },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'mylist', label: 'Library', icon: Bookmark },
+    { id: 'downloads', label: 'Downloads', icon: Download },
   ] as const;
 
   

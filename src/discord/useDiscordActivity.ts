@@ -9,6 +9,7 @@ import {
   subscribeDiscord,
   type DiscordState,
 } from './activity';
+import { displayAnimeTitle } from '../utils/animePreferences';
 
 const MAX_DETAILS = 128;
 
@@ -35,7 +36,7 @@ export function useDiscordActivity(): void {
     }
 
     if (activeVideo) {
-      const title = activeVideo.anime.title.slice(0, MAX_DETAILS);
+      const title = displayAnimeTitle(activeVideo.anime, settings.titleLanguage).slice(0, MAX_DETAILS);
       void setDiscordActivity({
         type: 3,
         details: title,
@@ -58,5 +59,5 @@ export function useDiscordActivity(): void {
         large_text: 'Anilife',
       },
     });
-  }, [activeVideo, settings.discordRichPresence, state.status]);
+  }, [activeVideo, settings.discordRichPresence, settings.titleLanguage, state.status]);
 }

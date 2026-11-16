@@ -32,11 +32,13 @@ import {
   webServerOptions,
 } from '../utils/providerOptions';
 import { resolveEpisode } from '../utils/workerApi';
+import { displayAnimeTitle } from '../utils/animePreferences';
 
 interface Props {
   anime: Anime;
   initialEpisodeNumber: number;
   initialAudioMode?: 'SUB' | 'DUB';
+  initialServerId?: string;
   onClose: () => void;
 }
 
@@ -46,6 +48,7 @@ export const VideoPlayer: React.FC<Props> = ({
   anime,
   initialEpisodeNumber,
   initialAudioMode = 'SUB',
+  initialServerId,
   onClose,
 }) => {
   const { settings, updateSettings, updateWatchProgress } = useApp();
@@ -93,7 +96,7 @@ export const VideoPlayer: React.FC<Props> = ({
     [enabledIds, serverOptions],
   );
   const [activeServer, setActiveServer] = useState<ServerOption>(() =>
-    preferredServerOption(serverOptions, settings.activeServer, enabledIds) || {
+    preferredServerOption(serverOptions, initialServerId ?? settings.activeServer, enabledIds) || {
       id: 'none',
       name: 'No source',
       speed: 'Normal',
@@ -117,6 +120,7 @@ export const VideoPlayer: React.FC<Props> = ({
   const objectFitClass = screenSize === 'Fit' ? 'object-contain' : screenSize === 'Crop' ? 'object-cover' : 'object-fill';
   const canDub = switchableServers.some((server) => server.supportsDub);
   const notAiredError = /has not aired|not confirmed as available/i.test(error);
+  const displayTitle = displayAnimeTitle(anime, settings.titleLanguage);
 
   const showToast = useCallback((message: string, durationMs = 2600) => {
     setToast(message);
@@ -207,7 +211,6 @@ export const VideoPlayer: React.FC<Props> = ({
       if (fallbackNotice) showToast(fallbackNotice, 4800);
       const matchedServer = serverOptions.find((server) => server.id === offer.providerId);
       if (matchedServer) setActiveServer(matchedServer);
-      if (settings.activeServer !== offer.providerId) updateSettings({ activeServer: offer.providerId });
       setSubtitles(offer.subtitles.map((subtitle, index) => ({
         language: subtitle.language,
         label: subtitle.label || subtitle.language.toUpperCase(),
@@ -421,7 +424,7 @@ export const VideoPlayer: React.FC<Props> = ({
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-white">{anime.title}</p>
+            <p className="truncate text-sm font-bold text-white">{displayTitle}</p>
             <p className="truncate text-xs text-zinc-400">Episode {currentEpisodeNumber}{currentEpisode?.title ? ` - ${currentEpisode.title}` : ''}</p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -438,7 +441,7 @@ export const VideoPlayer: React.FC<Props> = ({
         <div className="space-y-4 xl:overflow-y-auto xl:pr-1 no-scrollbar">
           <section className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl sm:rounded-2xl" aria-label="Video player">
             {embedUrl ? (
-              <iframe ref={iframeRef} src={embedUrl} title={`${anime.title} episode ${currentEpisodeNumber}`} className="absolute inset-0 h-full w-full bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
+              <iframe ref={iframeRef} src={embedUrl} title={`${displayTitle} episode ${currentEpisodeNumber}`} className="absolute inset-0 h-full w-full bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
             ) : (
               <video
                 ref={videoRef}
@@ -505,7 +508,7 @@ export const VideoPlayer: React.FC<Props> = ({
           <section className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="min-w-0">
               <p className="anilife-eyebrow">Now playing</p>
-              <h1 className="mt-1 truncate text-xl font-black sm:text-2xl">{anime.title}</h1>
+              <h1 className="mt-1 truncate text-xl font-black sm:text-2xl">{displayTitle}</h1>
               <p className="mt-1 text-sm text-zinc-400">Episode {currentEpisodeNumber}{currentEpisode?.title ? ` - ${currentEpisode.title}` : ''}</p>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Clock3, Flame, Info, Play, Star, Trophy, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Anime, ContinueWatchingEntry } from '../types/anime';
+import { Anime, AppSettings, ContinueWatchingEntry } from '../types/anime';
 import { canWatchEpisode, firstAiredEpisode } from '../utils/episodeAvailability';
+import { displayAnimeTitle } from '../utils/animePreferences';
 import { safeImageUrl } from '../utils/safeUrl';
 
 const factsFor = (anime: Anime) => [
@@ -12,7 +13,7 @@ const factsFor = (anime: Anime) => [
   ...anime.genres.slice(0, 2),
 ].filter(Boolean);
 
-const PosterCard: React.FC<{ anime: Anime; rank?: number; onOpen: () => void }> = ({ anime, rank, onOpen }) => (
+const PosterCard: React.FC<{ anime: Anime; rank?: number; titleLanguage: AppSettings['titleLanguage']; onOpen: () => void }> = ({ anime, rank, titleLanguage, onOpen }) => (
   <button type="button" onClick={onOpen} className="group min-w-0 text-left">
     <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-white/10 bg-zinc-900 transition duration-200 group-hover:-translate-y-1 group-hover:border-[var(--anilife-accent)]/50 group-hover:shadow-xl group-hover:shadow-black/40">
       {anime.posterImage ? (
@@ -28,7 +29,7 @@ const PosterCard: React.FC<{ anime: Anime; rank?: number; onOpen: () => void }> 
         </span>
       ) : null}
     </div>
-    <h3 className="mt-2 line-clamp-1 text-sm font-bold text-zinc-100 transition-colors group-hover:text-[var(--anilife-accent)]">{anime.title}</h3>
+    <h3 className="mt-2 line-clamp-1 text-sm font-bold text-zinc-100 transition-colors group-hover:text-[var(--anilife-accent)]">{displayAnimeTitle(anime, titleLanguage)}</h3>
     <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500">{factsFor(anime).slice(0, 3).join(' / ')}</p>
   </button>
 );
@@ -44,6 +45,7 @@ export const HomeFeed: React.FC = () => {
     popularSeasonAnime,
     topRatedAnime,
     spotlightAnime,
+    settings,
   } = useApp();
   const [activeSpotlightIdx, setActiveSpotlightIdx] = useState(0);
 
@@ -70,7 +72,7 @@ export const HomeFeed: React.FC = () => {
 
           <div className="max-w-2xl">
             <p className="anilife-eyebrow">Featured on Anilife</p>
-            <h1 className="max-w-xl text-4xl font-black leading-[0.98] tracking-tight text-white sm:text-6xl">{spotlight.title}</h1>
+            <h1 className="max-w-xl text-4xl font-black leading-[0.98] tracking-tight text-white sm:text-6xl">{displayAnimeTitle(spotlight, settings.titleLanguage)}</h1>
             <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-zinc-300">
               {spotlight.score > 0 && <span className="flex items-center gap-1 text-[var(--anilife-accent)]"><Star className="h-3.5 w-3.5 fill-current" /> {spotlight.score}%</span>}
               {factsFor(spotlight).map((fact) => <span key={fact}>{fact}</span>)}
@@ -88,7 +90,7 @@ export const HomeFeed: React.FC = () => {
           {spotlights.length > 1 && (
             <div className="absolute right-5 top-5 flex gap-1.5 rounded-full border border-white/10 bg-black/50 p-2 backdrop-blur-md">
               {spotlights.map((item, index) => (
-                <button type="button" key={item.id} onClick={() => setActiveSpotlightIdx(index)} aria-label={`Show ${item.title}`} className="flex h-5 w-5 items-center justify-center rounded-full">
+                <button type="button" key={item.id} onClick={() => setActiveSpotlightIdx(index)} aria-label={`Show ${displayAnimeTitle(item, settings.titleLanguage)}`} className="flex h-5 w-5 items-center justify-center rounded-full">
                   <span className={`block h-1.5 rounded-full transition-all ${index === activeSpotlightIdx ? 'w-5 bg-[var(--anilife-accent)]' : 'w-1.5 bg-zinc-500'}`} />
                 </button>
               ))}
@@ -116,12 +118,12 @@ export const HomeFeed: React.FC = () => {
                       <span className="absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--anilife-accent)] text-black"><Play className="h-4 w-4 fill-current" /></span>
                     </div>
                     <div className="p-3">
-                      <h3 className="truncate text-sm font-bold">{anime.title}</h3>
+                      <h3 className="truncate text-sm font-bold">{displayAnimeTitle(anime, settings.titleLanguage)}</h3>
                       <p className="mt-1 text-xs text-zinc-500">Episode {entry.episodeNumber} / {progress}% watched</p>
                       <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--anilife-accent)]" style={{ width: `${progress}%` }} /></div>
                     </div>
                   </button>
-                  <button type="button" onClick={() => removeFromContinueWatching(anime.id)} className="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-zinc-300 opacity-100 backdrop-blur-sm transition hover:text-white sm:opacity-0 sm:group-hover:opacity-100" aria-label={`Remove ${anime.title} from continue watching`}><X className="h-3.5 w-3.5" /></button>
+                  <button type="button" onClick={() => removeFromContinueWatching(anime.id)} className="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-zinc-300 opacity-100 backdrop-blur-sm transition hover:text-white sm:opacity-0 sm:group-hover:opacity-100" aria-label={`Remove ${displayAnimeTitle(anime, settings.titleLanguage)} from continue watching`}><X className="h-3.5 w-3.5" /></button>
                 </article>
               );
             })}
@@ -136,7 +138,7 @@ export const HomeFeed: React.FC = () => {
             <Flame className="h-5 w-5 text-amber-400" aria-hidden="true" />
           </div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 xl:grid-cols-5">
-            {trending.map((anime, index) => <PosterCard key={anime.id} anime={anime} rank={index + 1} onOpen={() => setSelectedAnime(anime)} />)}
+            {trending.map((anime, index) => <PosterCard key={anime.id} anime={anime} rank={index + 1} titleLanguage={settings.titleLanguage} onOpen={() => setSelectedAnime(anime)} />)}
           </div>
         </div>
 
@@ -147,7 +149,7 @@ export const HomeFeed: React.FC = () => {
               <button type="button" key={anime.id} onClick={() => setSelectedAnime(anime)} className="group grid w-full grid-cols-[2rem_3.25rem_1fr] items-center gap-3 py-3 text-left">
                 <span className="text-2xl font-black text-zinc-700 group-hover:text-[var(--anilife-accent)]">{index + 1}</span>
                 <div className="aspect-[2/3] overflow-hidden rounded-md bg-zinc-900">{anime.posterImage && <img src={safeImageUrl(anime.posterImage, '')} alt="" loading="lazy" className="h-full w-full object-cover" />}</div>
-                <span className="min-w-0"><span className="line-clamp-2 text-sm font-bold text-zinc-200 group-hover:text-white">{anime.title}</span><span className="mt-1 flex items-center gap-1 text-[11px] text-zinc-500">{anime.score > 0 ? <><Star className="h-3 w-3 fill-amber-300 text-amber-300" /> {anime.score}%</> : anime.format}</span></span>
+                <span className="min-w-0"><span className="line-clamp-2 text-sm font-bold text-zinc-200 group-hover:text-white">{displayAnimeTitle(anime, settings.titleLanguage)}</span><span className="mt-1 flex items-center gap-1 text-[11px] text-zinc-500">{anime.score > 0 ? <><Star className="h-3 w-3 fill-amber-300 text-amber-300" /> {anime.score}%</> : anime.format}</span></span>
               </button>
             ))}
           </div>
@@ -160,7 +162,7 @@ export const HomeFeed: React.FC = () => {
           <Clock3 className="h-5 w-5 text-[var(--anilife-accent)]" aria-hidden="true" />
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
-          {season.map((anime) => <PosterCard key={anime.id} anime={anime} onOpen={() => setSelectedAnime(anime)} />)}
+          {season.map((anime) => <PosterCard key={anime.id} anime={anime} titleLanguage={settings.titleLanguage} onOpen={() => setSelectedAnime(anime)} />)}
         </div>
       </section>
     </div>

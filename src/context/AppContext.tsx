@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   Anime,
   AppSettings,
@@ -14,6 +14,7 @@ import {
   DEFAULT_SETTINGS,
   THEME_PRESETS,
   loadSettings,
+  mergeSettings,
   saveSettings,
   loadProfiles,
   saveProfiles,
@@ -61,6 +62,7 @@ export interface VideoPlaybackTarget {
 
 import { convertAniListToAnime } from '../utils/animeConversion';
 import { canWatchEpisode } from '../utils/episodeAvailability';
+import { isAnimeVisible } from '../utils/animePreferences';
 
 export { convertAniListToAnime };
 
@@ -470,7 +472,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const updateSettings = (newSettings: Partial<AppSettings>) => {
     setSettingsState(prev => {
-      const updated = { ...prev, ...newSettings };
+      const updated = mergeSettings(prev, newSettings);
       saveSettings(updated);
       return updated;
     });
@@ -584,6 +586,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const playAnimeEpisode = (anime: Anime, episodeNum: number = 1, audioMode?: 'SUB' | 'DUB') => {
+    if (!isAnimeVisible(anime, settings.hideAdultContent)) {
+      setSelectedAnime(null);
+      setRouteError('This title is hidden by your adult-content preference.');
+      return;
+    }
     rememberAnime(anime);
     if (!canWatchEpisode(anime, episodeNum)) {
       setRouteError(
@@ -601,6 +608,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       serverId: settings.activeServer || 'zoko'
     });
   };
+
+  const visibleLiveCatalog = useMemo(
+    () => liveCatalog.filter((anime) => isAnimeVisible(anime, settings.hideAdultContent)),
+    [liveCatalog, settings.hideAdultContent]
+  );
+  const visibleTrendingAnime = useMemo(
+    () => trendingAnime.filter((anime) => isAnimeVisible(anime, settings.hideAdultContent)),
+    [trendingAnime, settings.hideAdultContent]
+  );
+  const visiblePopularSeasonAnime = useMemo(
+    () => popularSeasonAnime.filter((anime) => isAnimeVisible(anime, settings.hideAdultContent)),
+    [popularSeasonAnime, settings.hideAdultContent]
+  );
+  const visibleTopRatedAnime = useMemo(
+    () => topRatedAnime.filter((anime) => isAnimeVisible(anime, settings.hideAdultContent)),
+    [topRatedAnime, settings.hideAdultContent]
+  );
+  const visibleSpotlightAnime = useMemo(
+    () => spotlightAnime.filter((anime) => isAnimeVisible(anime, settings.hideAdultContent)),
+    [spotlightAnime, settings.hideAdultContent]
+  );
 
   return (
     <AppContext.Provider
@@ -649,11 +677,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logoutFromAniList,
         connectAniListUser,
         syncAniList,
-        liveCatalog,
-        trendingAnime,
-        popularSeasonAnime,
-        topRatedAnime,
-        spotlightAnime,
+        liveCatalog: visibleLiveCatalog,
+        trendingAnime: visibleTrendingAnime,
+        popularSeasonAnime: visiblePopularSeasonAnime,
+        topRatedAnime: visibleTopRatedAnime,
+        spotlightAnime: visibleSpotlightAnime,
         isLoadingCatalog,
         showIntro,
         setShowIntro,

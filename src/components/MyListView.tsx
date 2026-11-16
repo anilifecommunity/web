@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { safeImageUrl } from '../utils/safeUrl';
 import { useApp } from '../context/AppContext';
 import { WatchStatus } from '../types/anime';
+import { displayAnimeTitle } from '../utils/animePreferences';
 import {
   RotateCcw,
   BarChart3,
@@ -45,7 +46,7 @@ export const MyListView: React.FC = () => {
     .filter(Boolean) as { entry: any; anime: any }[];
 
   const filteredEntries = resolvedList.filter(({ anime, entry }) => {
-    const matchText = !filterQuery.trim() || anime.title.toLowerCase().includes(filterQuery.toLowerCase());
+    const matchText = !filterQuery.trim() || displayAnimeTitle(anime, settings.titleLanguage).toLowerCase().includes(filterQuery.toLowerCase());
     const matchFormat = selectedFormat === 'Any format' || anime.format === selectedFormat;
     let matchTab = true;
     if (activeTab === 'Watching') matchTab = entry.status === 'Watching';
@@ -222,7 +223,7 @@ export const MyListView: React.FC = () => {
               <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[var(--anilife-accent)]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[var(--anilife-accent-shadow)] bg-zinc-900">
                 <img
                   src={anime.posterImage}
-                  alt={anime.title}
+                  alt={displayAnimeTitle(anime, settings.titleLanguage)}
                   loading="lazy"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx158870-g875H3jE8wR8.jpg';
@@ -265,7 +266,7 @@ export const MyListView: React.FC = () => {
                   }}
                   className="block w-full text-left font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[var(--anilife-accent)] transition-colors"
                 >
-                  {anime.title}
+                  {displayAnimeTitle(anime, settings.titleLanguage)}
                 </button>
                 <p className="text-[11px] text-zinc-400 line-clamp-1">
                   {entry.progress ? `Ep ${entry.progress} watched` : anime.format} • {anime.year}

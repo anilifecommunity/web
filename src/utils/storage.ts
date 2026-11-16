@@ -171,13 +171,22 @@ function normalizeProviderLists(settings: AppSettings): AppSettings {
     enabled = [...new Set([...enabled, ...additions])];
   }
 
+  const activeServer = enabled.includes(settings.activeServer)
+    ? settings.activeServer
+    : priority.find((id) => enabled.includes(id)) ?? enabled[0];
+
   return {
     ...settings,
+    activeServer,
     serverPriority: priority,
     enabledServers: enabled,
     serverOrderVersion: 2,
     serverCatalogVersion: 3,
   };
+}
+
+export function mergeSettings(settings: AppSettings, updates: Partial<AppSettings>): AppSettings {
+  return normalizeProviderLists({ ...settings, ...updates });
 }
 
 export function loadSettings(): AppSettings {

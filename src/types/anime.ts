@@ -33,8 +33,10 @@ export interface Anime {
   id: string;
   anilistId?: number;
   title: string;
+  englishTitle?: string;
   romajiTitle?: string;
   nativeTitle?: string;
+  isAdult?: boolean;
   bannerImage: string;
   posterImage: string;
   score: number; 

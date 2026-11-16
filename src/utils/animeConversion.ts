@@ -44,8 +44,10 @@ export function convertAniListToAnime(m: AniListMedia): Anime {
   return {
     id: String(m.id),
     title,
+    englishTitle: m.title.english,
     romajiTitle: m.title.romaji,
     nativeTitle: m.title.native,
+    isAdult: m.isAdult === true,
     bannerImage: banner || poster,
     posterImage: poster || banner,
     score: m.averageScore ?? 0,

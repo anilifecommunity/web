@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AppSettings, ThemePresetName } from '../types/anime';
 import { SERVERS } from '../utils/animeData';
-import { THEME_PRESETS } from '../utils/storage';
+import { STORAGE_KEYS, THEME_PRESETS } from '../utils/storage';
 import {
   ArrowLeft,
   X,
@@ -569,36 +569,9 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   />
                 </label>
 
-                <label className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 cursor-pointer">
-                  <div>
-                    <div className="text-sm font-semibold text-white">Auto-skip filler episodes</div>
-                    <div className="text-xs text-zinc-400 mt-0.5">Bypasses anime non-canon filler arcs automatically</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.skipFiller}
-                    onChange={(e) => updateSettings({ skipFiller: e.target.checked })}
-                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
-                  />
-                </label>
               </div>
 
-              {}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Default Quality</span>
-                  <select
-                    value={settings.defaultQuality}
-                    onChange={(e) => updateSettings({ defaultQuality: e.target.value as any })}
-                    className="w-full p-2.5 rounded-xl bg-black/60 border border-white/10 text-xs font-semibold text-white focus:outline-none focus:border-[var(--anilife-accent)]"
-                  >
-                    <option value="Auto">Auto (Adaptive)</option>
-                    <option value="1080p">1080p Full HD</option>
-                    <option value="720p">720p HD</option>
-                    <option value="480p">480p SD</option>
-                  </select>
-                </div>
-
+              <div className="grid gap-4">
                 <div className="space-y-2">
                   <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Screen Fit</span>
                   <select
@@ -663,18 +636,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </select>
                 </div>
 
-                <label className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 cursor-pointer">
-                  <div>
-                    <div className="text-sm font-semibold text-white">Subtitles on Dub</div>
-                    <div className="text-xs text-zinc-400 mt-0.5">Keep closed captions on when watching dubbed audio</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.subtitlesOnDub}
-                    onChange={(e) => updateSettings({ subtitlesOnDub: e.target.checked })}
-                    className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer"
-                  />
-                </label>
               </div>
             </div>
           )}
@@ -685,9 +646,10 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           {activeSection === 'servers' && (
             <div className="space-y-4 animate-fadeIn">
               {}
-              <div
+              <button
+                type="button"
                 onClick={() => setShowEnabledServersModal(true)}
-                className="flex items-center justify-between p-4 rounded-2xl bg-[var(--anilife-accent)]/10 border border-[var(--anilife-accent)]/30 hover:border-[var(--anilife-accent)]/50 transition-all cursor-pointer shadow-lg"
+                className="flex w-full items-center justify-between p-4 rounded-2xl bg-[var(--anilife-accent)]/10 border border-[var(--anilife-accent)]/30 hover:border-[var(--anilife-accent)]/50 transition-all cursor-pointer shadow-lg text-left"
               >
                 <div>
                   <div className="text-[11px] font-bold text-[var(--anilife-accent)] uppercase tracking-wider">
@@ -702,7 +664,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   <span className="text-xs font-semibold text-[var(--anilife-accent)] hidden sm:inline">Configure</span>
                   <ChevronRight className="w-5 h-5 text-[var(--anilife-accent)]" />
                 </div>
-              </div>
+              </button>
 
               <div className="flex items-center justify-between pt-2">
                 <div>
@@ -1009,18 +971,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
               </div>
 
-              <label className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 cursor-pointer">
-                <div>
-                  <div className="text-sm font-semibold text-white">Blur Spoilers in Overviews</div>
-                  <div className="text-xs text-zinc-400 mt-0.5">Blurs episode summaries until hovered or tapped</div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={settings.blurSpoilers}
-                  onChange={(e) => updateSettings({ blurSpoilers: e.target.checked })}
-                  className="w-5 h-5 accent-purple-500 rounded cursor-pointer"
-                />
-              </label>
             </div>
           )}
 
@@ -1052,33 +1002,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-3">
                 <div className="text-sm font-semibold text-white">Local diagnostics</div>
                 <div className="text-xs text-zinc-400">
-                  Redacted error codes are kept on this device. Uploads are opt-in and off by default.
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-zinc-300">Automatic diagnostic upload</span>
-                  <button
-                    onClick={() => updateSettings({ diagnosticUpload: !settings.diagnosticUpload })}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
-                      settings.diagnosticUpload
-                        ? 'bg-[var(--anilife-accent)] text-black'
-                        : 'bg-white/10 text-zinc-400'
-                    }`}
-                  >
-                    {settings.diagnosticUpload ? 'On' : 'Off'}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs text-zinc-300">Performance telemetry upload</span>
-                  <button
-                    onClick={() => updateSettings({ performanceUpload: !settings.performanceUpload })}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${
-                      settings.performanceUpload
-                        ? 'bg-[var(--anilife-accent)] text-black'
-                        : 'bg-white/10 text-zinc-400'
-                    }`}
-                  >
-                    {settings.performanceUpload ? 'On' : 'Off'}
-                  </button>
+                  Redacted error codes stay on this device unless you download them.
                 </div>
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <button
@@ -1102,12 +1026,12 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold text-white">Reset Local Cache</div>
-                  <div className="text-xs text-zinc-400">Clears cached anime catalogue and skip timings</div>
+                  <div className="text-xs text-zinc-400">Clears the cached anime catalogue</div>
                 </div>
                 <button
                   onClick={() => {
-                    localStorage.removeItem('anilife_live_catalog_cache_v3');
-                    localStorage.removeItem('anilife_live_catalog_cache_v2');
+                    [STORAGE_KEYS.LIVE_CATALOG_CACHE, 'anilife_live_catalog_cache_v4', 'anilife_live_catalog_cache_v3', 'anilife_live_catalog_cache_v2']
+                      .forEach((key) => localStorage.removeItem(key));
                     showNotice('Cache cleared. Reloading catalogue...');
                     setTimeout(() => window.location.reload(), 1000);
                   }}
@@ -1133,7 +1057,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   />
                   <div>
                     <h3 className="text-base font-black text-white tracking-wide">Anilife</h3>
-                    <p className="text-xs text-[var(--anilife-accent)]">Version 0.1.0</p>
+                    <p className="text-xs text-[var(--anilife-accent)]">Version 0.1.2</p>
                   </div>
                 </div>
 

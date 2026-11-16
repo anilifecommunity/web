@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
-import { fetchAiringSchedule, AiringScheduleItem } from '../utils/anilistApi';
+import { convertAniListToAnime, useApp } from '../context/AppContext';
+import { fetchAiringSchedule, AiringScheduleItem, fetchAniListMediaById } from '../utils/anilistApi';
 import {
   Calendar as CalendarIcon,
   Clock,
-  Bell,
-  Star,
-  Play,
   Loader2
 } from 'lucide-react';
 
 export const ScheduleView: React.FC = () => {
-  const { setSelectedAnime, playAnimeEpisode, liveCatalog } = useApp();
+  const { setSelectedAnime, setRouteError, liveCatalog } = useApp();
 
   
   const now = new Date();
@@ -40,7 +37,6 @@ export const ScheduleView: React.FC = () => {
   });
 
   const [selectedDayIdx, setSelectedDayIdx] = useState(1); 
-  const [reminders, setReminders] = useState<Record<string, boolean>>({});
   const [scheduleItems, setScheduleItems] = useState<AiringScheduleItem[]>([]);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
 
@@ -64,10 +60,6 @@ export const ScheduleView: React.FC = () => {
 
     return () => { isMounted = false; };
   }, [selectedDayIdx]);
-
-  const toggleReminder = (id: string) => {
-    setReminders(prev => ({ ...prev, [id]: !prev[id] }));
-  };
 
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
@@ -131,7 +123,6 @@ export const ScheduleView: React.FC = () => {
               const airTime = airDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               const animeTitle = item.media.title.english || item.media.title.romaji || 'Anime';
               const coverImg = item.media.coverImage.extraLarge || item.media.coverImage.large || '';
-              const hasReminder = reminders[String(item.id)];
 
               return (
                 <div
@@ -142,32 +133,14 @@ export const ScheduleView: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     aria-label={`Open ${animeTitle}`}
-                    onClick={() => {
+                    onClick={async () => {
                       const found = liveCatalog.find(a => a.id === String(item.media.id));
                       if (found) {
                         setSelectedAnime(found);
                       } else {
-                        setSelectedAnime({
-                          id: String(item.media.id),
-                          title: animeTitle,
-                          bannerImage: coverImg,
-                          posterImage: coverImg,
-                          score: item.media.averageScore || 78,
-                          format: (item.media.format as any) || 'TV',
-                          year: airDate.getFullYear(),
-                          status: 'Releasing',
-                          durationMins: 24,
-                          genres: item.media.genres || ['Anime'],
-                          synopsis: 'Broadcasting live on schedule.',
-                          studio: 'Broadcasting Studio',
-                          startDate: String(airDate.getFullYear()),
-                          seasonName: 'Current',
-                          membersCount: 45000,
-                          hasDub: true,
-                          hasSub: true,
-                          seasons: [{ id: 's1', number: 1, title: 'Season 1', year: airDate.getFullYear(), episodes: [] }],
-                          related: []
-                        });
+                        const media = await fetchAniListMediaById(item.media.id).catch(() => null);
+                        if (media) setSelectedAnime(convertAniListToAnime(media));
+                        else setRouteError('This title could not be loaded from AniList. Try again in a moment.');
                       }
                     }}
                     onKeyDown={(event) => {
@@ -203,19 +176,6 @@ export const ScheduleView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <button
-                      onClick={() => toggleReminder(String(item.id))}
-                      className={`p-2 rounded-full border transition-colors cursor-pointer ${
-                        hasReminder
-                          ? 'bg-[var(--anilife-accent)]/20 border-[var(--anilife-accent)] text-[var(--anilife-accent)]'
-                          : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
-                      }`}
-                      title={hasReminder ? 'Reminder set' : 'Remind me'}
-                    >
-                      <Bell className={`w-4 h-4 ${hasReminder ? 'fill-[var(--anilife-accent)] text-[var(--anilife-accent)]' : ''}`} />
-                    </button>
-                  </div>
                 </div>
               );
             })}

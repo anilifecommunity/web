@@ -12,16 +12,31 @@ export function convertAniListToAnime(m: AniListMedia): Anime {
       : m.status === 'NOT_YET_RELEASED'
         ? 'Not Yet Aired'
         : 'Releasing';
+  const format: Anime['format'] = ({
+    TV: 'TV',
+    TV_SHORT: 'TV',
+    MOVIE: 'Movie',
+    ONA: 'ONA',
+    OVA: 'OVA',
+    SPECIAL: 'Special',
+    MUSIC: 'Special',
+  } as Record<string, Anime['format']>)[m.format || ''] || 'Unknown';
 
-  const totalEpisodes = m.nextAiringEpisode ? Math.max(0, m.nextAiringEpisode.episode - 1) : m.episodes;
-  const availableEpisodes = status === 'Not Yet Aired' ? 0 : Math.min(24, Math.max(0, totalEpisodes ?? 12));
+  const availableEpisodes =
+    status === 'Not Yet Aired'
+      ? 0
+      : m.nextAiringEpisode
+        ? Math.max(0, m.nextAiringEpisode.episode - 1)
+        : status === 'Finished'
+          ? Math.max(0, m.episodes ?? 0)
+          : 0;
 
   const episodes: Episode[] = Array.from({ length: availableEpisodes }, (_, i) => ({
     id: `${m.id}-ep-${i + 1}`,
     number: i + 1,
     title: `Episode ${i + 1}`,
-    durationSec: (m.duration || 24) * 60,
-    thumbnail: banner || poster || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop',
+    durationSec: (m.duration ?? 0) * 60,
+    thumbnail: banner || poster,
     videoUrl: '',
     airedDate: undefined
   }));
@@ -33,29 +48,29 @@ export function convertAniListToAnime(m: AniListMedia): Anime {
     nativeTitle: m.title.native,
     bannerImage: banner || poster,
     posterImage: poster || banner,
-    score: m.averageScore || 75,
-    format: (m.format as Anime['format']) || 'TV',
-    year: m.seasonYear || 2024,
+    score: m.averageScore ?? 0,
+    format,
+    year: m.seasonYear ?? 0,
     status,
     nextEpisode: m.nextAiringEpisode
       ? { number: m.nextAiringEpisode.episode, airingAt: m.nextAiringEpisode.airingAt }
       : undefined,
-    durationMins: m.duration || 24,
-    genres: m.genres && m.genres.length > 0 ? m.genres : ['Action', 'Fantasy'],
+    durationMins: m.duration ?? 0,
+    genres: m.genres ?? [],
     synopsis: m.description ? htmlToText(m.description) : 'No synopsis available.',
-    studio: m.studios?.nodes?.[0]?.name || 'Animation Studio',
-    startDate: m.seasonYear ? `${m.season || 'Fall'} ${m.seasonYear}` : '2024',
-    seasonName: m.season || 'Fall',
-    membersCount: m.popularity || 85000,
+    studio: m.studios?.nodes?.[0]?.name ?? '',
+    startDate: m.seasonYear ? `${m.season ? `${m.season} ` : ''}${m.seasonYear}` : '',
+    seasonName: m.season ?? '',
+    membersCount: m.popularity ?? 0,
     trailerUrl: '',
-    hasDub: true,
-    hasSub: true,
+    hasDub: false,
+    hasSub: false,
     seasons: [
       {
         id: `${m.id}-s1`,
         number: 1,
         title: 'Season 1',
-        year: m.seasonYear || 2024,
+        year: m.seasonYear ?? 0,
         episodes
       }
     ],

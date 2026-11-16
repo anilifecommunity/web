@@ -14,9 +14,16 @@
   --anilife-accent: #74cf66;
   --anilife-accent-hover: color-mix(in srgb, var(--anilife-accent) 85%, black);
   --anilife-accent-shadow: color-mix(in srgb, var(--anilife-accent) 30%, transparent);
-  --anilife-canvas: #0e0d16;
-  --anilife-scroll-thumb: #2c2c34;
+  --anilife-canvas: #070708;
+  --anilife-surface: #111113;
+  --anilife-surface-raised: #18181b;
+  --anilife-border: rgba(255, 255, 255, 0.11);
+  --anilife-muted: #a1a1aa;
+  --anilife-scroll-thumb: #34343a;
   --anilife-scroll-thumb-hover: var(--anilife-accent);
+  --anilife-radius: 12px;
+  --anilife-font-body: "Avenir Next", "Segoe UI Variable", "Trebuchet MS", sans-serif;
+  --anilife-font-display: "Avenir Next", "Segoe UI Variable", "Trebuchet MS", sans-serif;
 }
 
 html {
@@ -55,13 +62,152 @@ html {
 body {
   background-color: var(--anilife-canvas);
   color: #f3f4f6;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: var(--anilife-font-body);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--anilife-font-display);
+}
+
+@layer components {
+  .anilife-button {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.625rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .anilife-button-primary {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--anilife-accent) 82%, white), var(--anilife-accent) 55%, color-mix(in srgb, var(--anilife-accent) 88%, black));
+    box-shadow: 0 8px 24px var(--anilife-accent-shadow), inset 0 1px rgba(255, 255, 255, 0.34);
+    color: #050505;
+  }
+
+  .anilife-button-primary::after {
+    content: '';
+    position: absolute;
+    inset: -60% -25%;
+    z-index: -1;
+    background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.42) 50%, transparent 65%);
+    transform: translateX(-85%) rotate(8deg);
+    transition: transform 420ms ease;
+    pointer-events: none;
+  }
+
+  .anilife-button-primary:not(:disabled):hover {
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--anilife-accent) 38%, transparent), inset 0 1px rgba(255, 255, 255, 0.42);
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+
+  .anilife-button-primary:not(:disabled):hover::after {
+    transform: translateX(85%) rotate(8deg);
+  }
+
+  .anilife-button-primary:not(:disabled):active {
+    transform: translateY(0);
+  }
+
+  .anilife-button-secondary {
+    border: 1px solid var(--anilife-border);
+    background: rgba(255, 255, 255, 0.055);
+    color: #f4f4f5;
+  }
+
+  .anilife-button-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .anilife-icon-button {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.625rem;
+    color: #d4d4d8;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .anilife-icon-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+  }
+
+  .anilife-input,
+  .anilife-select {
+    min-height: 44px;
+    border: 1px solid var(--anilife-border);
+    border-radius: 0.625rem;
+    background: var(--anilife-surface);
+    color: #f4f4f5;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .anilife-input::placeholder {
+    color: #71717a;
+  }
+
+  .anilife-select option {
+    background: var(--anilife-surface);
+    color: #f4f4f5;
+  }
+
+  .anilife-eyebrow {
+    margin-bottom: 0.35rem;
+    color: var(--anilife-accent);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .anilife-section-title {
+    color: white;
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  .anilife-status-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    border: 1px solid color-mix(in srgb, var(--anilife-accent) 35%, transparent);
+    border-radius: var(--anilife-radius);
+    background: color-mix(in srgb, var(--anilife-accent) 7%, var(--anilife-surface));
+    padding: 1rem;
+  }
+}
+
+.anilife-player-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+  .anilife-player-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
 }
 
 /* Keyboard users get the accent ring; pointer users do not see it. */

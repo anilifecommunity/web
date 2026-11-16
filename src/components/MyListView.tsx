@@ -5,7 +5,6 @@ import { WatchStatus } from '../types/anime';
 import {
   RotateCcw,
   BarChart3,
-  Plus,
   Check,
   Search,
   Play,
@@ -174,13 +173,6 @@ export const MyListView: React.FC = () => {
           );
         })}
 
-        <button
-          onClick={() => alert('Custom anime list creation.')}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs text-[var(--anilife-accent)] font-medium transition-colors cursor-pointer whitespace-nowrap ml-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New list</span>
-        </button>
       </div>
 
       {}

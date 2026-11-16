@@ -8,7 +8,7 @@ import {
   WatchStatus,
   ThemePresetName
 } from '../types/anime';
-import { ANIME_CATALOG, SERVERS } from '../utils/animeData';
+import { SERVERS } from '../utils/animeData';
 import {
   DEFAULT_PROFILES,
   DEFAULT_SETTINGS,
@@ -60,6 +60,7 @@ export interface VideoPlaybackTarget {
 }
 
 import { convertAniListToAnime } from '../utils/animeConversion';
+import { canWatchEpisode } from '../utils/episodeAvailability';
 
 export { convertAniListToAnime };
 
@@ -93,8 +94,6 @@ interface AppContextType {
   setShowSettingsModal: (show: boolean) => void;
   showRandomModal: boolean;
   setShowRandomModal: (show: boolean) => void;
-  showNotificationsModal: boolean;
-  setShowNotificationsModal: (show: boolean) => void;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
   
@@ -105,7 +104,7 @@ interface AppContextType {
   clearRecentSearches: () => void;
   
   
-  updateWatchProgress: (animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number) => void;
+  updateWatchProgress: (animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number, audioMode: 'SUB' | 'DUB') => void;
   removeFromContinueWatching: (animeId: string) => void;
   setAnimeWatchStatus: (animeId: string, status: WatchStatus) => Promise<void>;
   playAnimeEpisode: (anime: Anime, episodeNum?: number, audioMode?: 'SUB' | 'DUB') => void;
@@ -164,16 +163,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showRandomModal, setShowRandomModal] = useState(false);
-  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showIntro, setShowIntro] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     try {
-      const raw = localStorage.getItem('anilife_app_settings_v2');
-      const settingsObj = raw ? JSON.parse(raw) : null;
-      const isEnabled = settingsObj ? settingsObj.playAppIntro !== false : true;
       const sessionSeen = sessionStorage.getItem('anilife_intro_seen');
-      return isEnabled && !sessionSeen;
+      return settings.playAppIntro !== false && !sessionSeen;
     } catch {
       return false;
     }
@@ -189,7 +184,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSyncingAniList, setIsSyncingAniList] = useState(false);
 
   
-  const [liveCatalog, setLiveCatalog] = useState<Anime[]>(() => loadCachedCatalog() || ANIME_CATALOG);
+  const [liveCatalog, setLiveCatalog] = useState<Anime[]>(() => loadCachedCatalog() || []);
   const [trendingAnime, setTrendingAnime] = useState<Anime[]>([]);
   const [popularSeasonAnime, setPopularSeasonAnime] = useState<Anime[]>([]);
   const [topRatedAnime, setTopRatedAnime] = useState<Anime[]>([]);
@@ -292,12 +287,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
 
         
-        ANIME_CATALOG.forEach(item => {
-          if (!uniqueMap.has(item.id)) {
-            uniqueMap.set(item.id, item);
-          }
-        });
-
         // Keep titles remembered by playback or a deep link even when they are not in this
         // AniList page: the Continue Watching row resolves against this catalogue.
         loadCachedCatalog()?.forEach(item => {
@@ -325,7 +314,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(data.user);
 
     const newEntries: WatchlistEntry[] = [];
-    const continueItems: ContinueWatchingEntry[] = [];
 
     data.lists.forEach(list => {
       list.entries.forEach(entry => {
@@ -342,17 +330,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           updatedAt: new Date(entry.updatedAt * 1000).toISOString()
         });
 
-        if (entry.status === 'CURRENT') {
-          continueItems.push({
-            animeId: String(entry.media.id),
-            episodeNumber: Math.max(1, entry.progress || 1),
-            currentTimeSec: 600,
-            durationSec: (entry.media.duration || 24) * 60,
-            serverName: settings.activeServer,
-            audioMode: 'SUB',
-            updatedAt: new Date(entry.updatedAt * 1000).toISOString()
-          });
-        }
       });
     });
 
@@ -361,10 +338,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveWatchlist(activeProfile.id, newEntries);
     }
 
-    if (continueItems.length > 0) {
-      setContinueWatchingState(continueItems);
-      saveContinueWatching(activeProfile.id, continueItems);
-    }
   };
 
   
@@ -503,7 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const updateWatchProgress = (animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number) => {
+  const updateWatchProgress = (animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number, audioMode: 'SUB' | 'DUB') => {
     setContinueWatchingState(prev => {
       const existingIdx = prev.findIndex(item => item.animeId === animeId);
       const updatedItem: ContinueWatchingEntry = {
@@ -512,7 +485,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentTimeSec,
         durationSec,
         serverName: settings.activeServer,
-        audioMode: settings.defaultAudioMode || 'SUB',
+        audioMode,
         updatedAt: new Date().toISOString()
       };
 
@@ -610,14 +583,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const playAnimeEpisode = (anime: Anime, episodeNum: number = 1, audioMode: 'SUB' | 'DUB' = 'SUB') => {
+  const playAnimeEpisode = (anime: Anime, episodeNum: number = 1, audioMode?: 'SUB' | 'DUB') => {
     rememberAnime(anime);
+    if (!canWatchEpisode(anime, episodeNum)) {
+      setRouteError(
+        anime.nextEpisode?.number === episodeNum
+          ? `Episode ${episodeNum} has not aired yet.`
+          : `Episode ${episodeNum} is not confirmed as available yet.`
+      );
+      return;
+    }
     setSelectedAnime(null);
     setActiveVideo({
       anime,
       episodeNumber: episodeNum,
-      audioMode,
-      serverId: settings.activeServer || 'reanime'
+      audioMode: audioMode || settings.defaultAudioMode || 'SUB',
+      serverId: settings.activeServer || 'zoko'
     });
   };
 
@@ -650,8 +631,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setShowSettingsModal,
         showRandomModal,
         setShowRandomModal,
-        showNotificationsModal,
-        setShowNotificationsModal,
         showAuthModal,
         setShowAuthModal,
         recentSearches,

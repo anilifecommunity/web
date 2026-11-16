@@ -38,7 +38,7 @@ export interface Anime {
   bannerImage: string;
   posterImage: string;
   score: number; 
-  format: 'TV' | 'Movie' | 'ONA' | 'OVA' | 'Special';
+  format: 'TV' | 'Movie' | 'ONA' | 'OVA' | 'Special' | 'Unknown';
   year: number;
   status: 'Finished' | 'Releasing' | 'Not Yet Aired';
   nextEpisode?: { number: number; airingAt: number };

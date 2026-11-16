@@ -12,7 +12,7 @@ import {
 import type { PlaybackOffer, ProviderAdapter } from './index';
 
 const A = 'reanime';
-const B = 'vidsrc';
+const B = 'vidlink';
 
 function offer(overrides: Partial<PlaybackOffer> = {}): PlaybackOffer {
   return {
@@ -79,11 +79,11 @@ test('fallback appends the configured order after the selection', () => {
     allowFallback: true,
     preferredOrder: [A, B, 'zoko'],
   });
-  assert.deepEqual(plan.order, [B, A]);
+  assert.deepEqual(plan.order, [B, A, 'zoko']);
 });
 
 test('a provider that cannot work in a browser is refused, not replaced', () => {
-  const plan = planAttempts({ selectedProvider: 'zoko', allowFallback: false });
+  const plan = planAttempts({ selectedProvider: 'animepahe', allowFallback: false });
   assert.equal(plan.ok, false);
   assert.equal(plan.reason, 'not_available_on_web');
 });

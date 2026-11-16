@@ -73,10 +73,13 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
           {SERVERS.map((server, index) => {
             const isChecked = enabledList.includes(server.id);
             return (
-              <div
+              <button
+                type="button"
                 key={server.id}
                 onClick={() => toggleServer(server.id)}
-                className={`flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                aria-pressed={isChecked}
+                disabled={isChecked && enabledList.length <= 1}
+                className={`flex w-full items-center justify-between px-4 py-3.5 rounded-2xl border transition-all cursor-pointer select-none disabled:cursor-not-allowed ${
                   isChecked
                     ? 'bg-[#181528] border-[var(--anilife-accent)]/30 hover:border-[var(--anilife-accent)]/50'
                     : 'bg-[#12101e]/60 border-white/5 opacity-60 hover:opacity-80'
@@ -98,7 +101,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
                     {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

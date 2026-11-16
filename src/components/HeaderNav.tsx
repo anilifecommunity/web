@@ -8,7 +8,6 @@ import {
   Bookmark,
   Download,
   Dices,
-  Bell,
   Settings,
   Tv,
   MessageSquare
@@ -23,7 +22,6 @@ export const HeaderNav: React.FC = () => {
     setShowProfileModal,
     setShowSettingsModal,
     setShowRandomModal,
-    setShowNotificationsModal,
     setShowAuthModal,
     settings,
   } = useApp();
@@ -44,7 +42,7 @@ export const HeaderNav: React.FC = () => {
 
   
   useEffect(() => {
-    if (!settings.autoHideNav || settings.navigationLayout !== 'sidebar' || !isDesktop) {
+    if (!settings.autoHideNav || !isDesktop) {
       setIsMouseNearEdge(true);
       return;
     }
@@ -165,15 +163,6 @@ export const HeaderNav: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setShowNotificationsModal(true)}
-            className="flex items-center gap-3.5 w-full p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors relative cursor-pointer"
-            title="Notifications"
-          >
-            <Bell className="w-5 h-5 shrink-0" />
-            {isExpanded && <span className="text-xs font-semibold truncate">Notifications</span>}
-          </button>
-
-          <button
             onClick={() => setShowSettingsModal(true)}
             className="flex items-center gap-3.5 w-full p-2.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             title="Settings"
@@ -251,7 +240,7 @@ export const HeaderNav: React.FC = () => {
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="hidden min-[520px]:inline">{item.label}</span>
+                  <span className="hidden min-[900px]:inline">{item.label}</span>
                 </button>
               );
             })}
@@ -266,14 +255,6 @@ export const HeaderNav: React.FC = () => {
             className="hidden min-[400px]:flex min-w-9 min-h-9 items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
           >
             <Dices className="w-4 h-4 text-[var(--anilife-accent)]" />
-          </button>
-
-          <button
-            onClick={() => setShowNotificationsModal(true)}
-            title="Notifications"
-            className="min-w-9 min-h-9 flex items-center justify-center p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-          >
-            <Bell className="w-4 h-4" />
           </button>
 
           <button

@@ -23,7 +23,10 @@ test('a numeric local id is treated as the AniList id', () => {
 });
 
 test('an absent server list enables every attemptable server', () => {
-  const all = webServerOptions().map((option) => option.id);
+  const options = webServerOptions();
+  const all = options.map((option) => option.id);
+  assert.deepEqual(all, ['zoko', 'reanime', 'animeembed', 'vidlink']);
+  assert.deepEqual(options.map((option) => option.name), ['Server 1', 'Server 2', 'Server 3', 'Server 4']);
   assert.deepEqual(enabledServerIds(undefined), all);
   assert.deepEqual(enabledServerIds([]), all);
 });
@@ -55,5 +58,5 @@ test('downstream registry is unique and only verified hosts are in use', () => {
   const ids = DOWNSTREAMS.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length);
   const inUse = DOWNSTREAMS.filter((item) => item.status === 'in-use').map((item) => item.id);
-  assert.deepEqual(inUse, ['flixcloud', 'vidsrc', 'vidlink']);
+  assert.deepEqual(inUse, ['flixcloud', 'vidlink']);
 });

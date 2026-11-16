@@ -4,7 +4,7 @@ import { readTextCapped, safeFetch } from '../guards';
 
 const BASE = 'https://api.ani.zip';
 const HOSTS = new Set(['api.ani.zip']);
-const MAX_JSON = 512_000;
+const MAX_JSON = 3 * 1024 * 1024;
 
 export interface AniZipEpisode {
   seasonNumber?: number;

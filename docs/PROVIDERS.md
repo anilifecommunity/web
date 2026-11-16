@@ -1,67 +1,54 @@
 # Providers
 
-The registry mirrors the 42 Android servers (the historical `xfdm`/lili entry is intentionally
-removed). Settings lists only servers that are verified for browser playback; unverified,
-native-only and unavailable entries stay registered but are never offered or queried.
+The registry mirrors the candidate catalogue supplied with Web V2. Only providers with a stable
+title/episode mapping and a dated browser test that started the correct media are selectable.
+Provider identities remain anonymous in the product UI as `Server 1`, `Server 2`, and so on.
 
-## Working
+## Catalogue v3
 
-| Provider | Path | Playback | Evidence |
-| --- | --- | --- | --- |
-| Reanime | Worker reads `/api/flix/{anilistId}/{episode}`, picks the sub/dub face | Flixcloud player in an iframe | 2026-11-08, Chromium: Solo Leveling and Overgeared play; Mark watched writes Continue Watching |
-| VidSrc | AniZip maps AniList id/episode to TMDB season/episode; Worker returns the VidSrc embed | VidSrc player in an iframe | 2026-11-08: mapping and embed URL verified, iframe loaded; media startup still needs a user test |
-| VidLink | AniZip TMDB mapping; Worker returns the VidLink embed | VidLink player in an iframe | 2026-11-08: Chromium loaded a video element with the correct title and timestamps |
-| 2Embed | AniZip IMDb mapping; Worker returns the 2Embed player | 2Embed iframe | 2026-11-08: player page exposes the embed; user playback test pending |
+| UI order | Integration | Playback evidence |
+| --- | --- | --- |
+| Server 1 | Zoko MAL iframe | 2026-11-15, Chromium: One Piece episode 1 sub and dub loaded the correct 24:37 media, played beyond five minutes, and emitted progress events. |
+| Server 2 | Reanime metadata to Flixcloud | 2026-11-15, Worker + Chromium: One Piece episode 1 sub and dub resolved and played beyond five minutes. |
+| Server 3 | AnimeEmbed AniList iframe | 2026-11-15, Chromium: One Piece episode 1 sub and dub loaded the correct 24:37 media, played beyond five minutes, and its versioned events persisted progress. |
+| Server 4 | VidLink through AniZip mapping | 2026-11-15, Chromium: One Piece episode 1 loaded the correct 24:37 media and playback advanced. Initial interactions opened advertising tabs, so the product displays a raw-player safety notice. |
 
-VidFast was removed from the server list: it stayed on "FETCHING, ONE MOMENT..." and never
-started media.
+Zoko is the default for a new viewer. An existing explicit choice is preserved when that server is
+still enabled. Automatic fallback follows the viewer's enabled order.
 
-These are automatic fallbacks after Reanime and separate anonymous `Server N` entries in the
-player. Reanime remains the default.
+Zoko and AnimeEmbed publish documented progress messages. The player accepts those messages only
+from the selected iframe window, exact origin, expected channel and supported version. Providers
+without a trustworthy progress contract never receive inferred completion.
 
-The iframe cannot report elapsed time, so progress is explicit: opening an episode records it as
-started, and **Mark watched** records completion.
+## Tested but excluded
 
-## Blocked by the source, not by code
-
-| Provider | Why |
+| Provider | Fresh result |
 | --- | --- |
-| Zoko | Master, variant and segment require `Referer: https://zokoanime.video/`; a browser cannot set it |
-| Miruro (14 ids) | The pipe refuses datacenter IPs and sends no CORS headers; a Worker cannot resolve it |
-| KAA | The CDN requires both `Referer` and `Origin` |
-| AnimeOnsen | DASH, and the CDN requires `Referer` |
-| AniChan | `/api/watch/servers` returns an empty list for every title tested |
-| AnimeHeaven | Full chain works from a residential client; worker egress receives a no-results page |
-| AnimeGG | Direct MP4 needs the embed cookie and Referer, and a direct file would be downloadable |
-| AniDB App | `play.anidb.app` no longer resolves in DNS |
-| AllAnime | CAPTCHA and proof-of-work |
-| AnimePahe, Hanime | WebView-only resolvers |
-| ToonHub / ToonStream | ToonStream presents a human-verification interstitial |
+| VidSrc | The outer player mapped the right episode, but its child collapsed to `about:blank`; no media started. |
+| 2Embed | The expected episode URL returned a rate-limit page instead of media. |
+| AniLink | Its documented route returned `stream-source-unavailable`. |
+| Vidy | The browser reached a Cloudflare challenge only. |
+| JustPlay | The player stayed at 0:00 and reported that media could not play. |
+| Aniweeb | The host returned 502. |
 
-## Unverified
-
-`anipm`, `rareanimes`, `anikoto`, `animekai`, `anizone`, `anineko`, `2dhive`, `animedekho`,
-`toonhub`, `uniquestream`, `animekhor`, `kartoons`, `animeav1`, `rift`, `hentaihaven`, `hstream`,
-`onepace`, plus the Miruro embed children (`nun`, `bun`, `cog`, `twin`, `telli`). HiAnime is
-documented as an unverified candidate in [SOURCES.md](SOURCES.md) but is not a registered server.
-
-These are registered but not offered for playback. Promoting one requires a dated browser check of
-the manifest, a variant and a segment with seek, not a metadata 200.
+Flixcloud is a downstream player used by Server 2, not a separate selectable server. The remaining
+matrix candidates have no stable permitted title/episode route, are native-only, adult-only,
+blocked by source protections, or otherwise fail the eligibility prerequisite. They remain
+inactive; Anilife does not bypass CAPTCHA, Cloudflare, DRM, authentication, framing policy or
+header requirements.
 
 ## Rules
 
-- Playback is automatic by default. The player sends the enabled server order; a failed server
-  falls through to the next enabled server within one bounded request. The player also offers an
-  optional anonymous Servers drawer so the viewer can pin a different server without leaving
-  playback.
-- The viewer's enabled set and priority are the primary source controls. Empty or absent settings
-  mean "all web-capable servers enabled"; an explicit disable is never reverted.
-- Server identities stay anonymous in the UI (`Server 1`, `Server 2`). Only Settings shows which
-  servers are enabled, and it lists just browser-verified entries.
-- Audio is never silently swapped. A dub request that only has a sub is an explicit failure.
-- Downstream player hosts (VidSrc, Vidstream, MegaCloud, Streamtape, Filemoon, Vidmoly, MP4Upload)
-  are not servers. They require a source-specific file/embed id and are tracked in
-  [SOURCES.md](SOURCES.md).
-- Never add a source without updating this file and the registry evidence.
-- A media relay requires a separate ADR covering rights, cost, abuse and takedown handling.
-- Episode downloads are disabled on web by product decision.
+- Playback is automatic by default and bounded to the enabled server order.
+- The viewer's explicit enable/disable choices survive catalogue migration.
+- Server identities and host names are never rendered in the product UI.
+- Audio is never silently swapped. A failed dub request remains a failure or falls through to a
+  provider that can satisfy dub.
+- Raw third-party players are unsandboxed so their controls can work. The product warns that they
+  may show ads or pop-ups and links to Brave, Firefox, uBlock Origin and uBlock Origin Lite.
+- New providers require dated evidence, registry metadata, a Worker adapter, CSP coverage, tests,
+  and an update to this document.
+- The Worker is a metadata control plane, not a media relay. Episode downloads remain disabled.
+
+The full 82-row reconciliation and browser evidence are kept in the ignored private release
+record. Public implementation status is also available from `GET /api/providers`.

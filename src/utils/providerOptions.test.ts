@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Anime } from '../types/anime';
 import { getAnimeAniListId } from './animeData';
-import { enabledServerIds, orderServerOptions, resolveServerOrder, webServerOptions } from './providerOptions';
+import { enabledServerIds, orderServerOptions, resolveServerOrder, serverFallbackNotice, webServerOptions } from './providerOptions';
 import { DOWNSTREAMS } from '../resolver';
 
 function sample(id: string, aniListId?: number): Anime {
@@ -44,6 +44,15 @@ test('resolve order puts the preferred server first and drops disabled servers',
   const enabled = [ids[1], ids[0]];
   assert.deepEqual(resolveServerOrder(options, ids[1], enabled), [ids[1], ids[0]]);
   assert.deepEqual(resolveServerOrder(options, ids[0], [ids[0]]), [ids[0]]);
+});
+
+test('automatic fallback explains the anonymous server switch', () => {
+  const options = webServerOptions();
+  assert.equal(
+    serverFallbackNotice(options, options[0].id, options[1].id),
+    'Server 1 did not have a playable copy, so we switched to Server 2.',
+  );
+  assert.equal(serverFallbackNotice(options, options[0].id, options[0].id), null);
 });
 
 test('priority reorders options without dropping any', () => {

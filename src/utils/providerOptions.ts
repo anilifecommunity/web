@@ -86,3 +86,16 @@ export function resolveServerOrder(
   if (!activeId || !enabled.includes(activeId)) return enabled;
   return [activeId, ...enabled.filter((id) => id !== activeId)];
 }
+
+/** Explains an automatic fallback without exposing provider identities. */
+export function serverFallbackNotice(
+  options: ServerOption[],
+  requestedId: string,
+  resolvedId: string
+): string | null {
+  if (requestedId === resolvedId) return null;
+  const requested = options.find((option) => option.id === requestedId);
+  const resolved = options.find((option) => option.id === resolvedId);
+  if (!requested || !resolved) return null;
+  return `${requested.name} did not have a playable copy, so we switched to ${resolved.name}.`;
+}

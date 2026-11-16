@@ -7,6 +7,7 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Fixed
 
+- Explained automatic server fallbacks instead of silently changing the selected server.
 - Centered the watch-status selector arrow consistently across browsers.
 - Replaced the basic watch-status selector with a clearer in-app menu.
 - Prevented episode thumbnails from overlapping titles on narrow screens.

@@ -28,6 +28,7 @@ import {
   orderServerOptions,
   preferredServerOption,
   resolveServerOrder,
+  serverFallbackNotice,
   webServerOptions,
 } from '../utils/providerOptions';
 import { resolveEpisode } from '../utils/workerApi';
@@ -117,9 +118,9 @@ export const VideoPlayer: React.FC<Props> = ({
   const canDub = switchableServers.some((server) => server.supportsDub);
   const notAiredError = /has not aired|not confirmed as available/i.test(error);
 
-  const showToast = useCallback((message: string) => {
+  const showToast = useCallback((message: string, durationMs = 2600) => {
     setToast(message);
-    window.setTimeout(() => setToast(''), 2600);
+    window.setTimeout(() => setToast(''), durationMs);
   }, []);
 
   const seek = useCallback((seconds: number) => {
@@ -202,6 +203,8 @@ export const VideoPlayer: React.FC<Props> = ({
       }
 
       const offer = result.offer;
+      const fallbackNotice = serverFallbackNotice(serverOptions, activeServer.id, offer.providerId);
+      if (fallbackNotice) showToast(fallbackNotice, 4800);
       const matchedServer = serverOptions.find((server) => server.id === offer.providerId);
       if (matchedServer) setActiveServer(matchedServer);
       if (settings.activeServer !== offer.providerId) updateSettings({ activeServer: offer.providerId });
@@ -429,7 +432,7 @@ export const VideoPlayer: React.FC<Props> = ({
         </div>
       </header>
 
-      {toast && <div className="fixed left-1/2 top-20 z-[120] -translate-x-1/2 rounded-full border border-[var(--anilife-accent)]/40 bg-black/90 px-4 py-2 text-xs font-bold shadow-2xl" role="status">{toast}</div>}
+      {toast && <div className="fixed left-1/2 top-20 z-[120] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-2xl border border-[var(--anilife-accent)]/40 bg-black/90 px-4 py-3 text-center text-xs font-bold leading-relaxed shadow-2xl" role="status">{toast}</div>}
 
       <main className="anilife-player-layout mx-auto max-w-[1680px] gap-4 p-3 sm:p-6 xl:h-[calc(100dvh-69px)] xl:overflow-hidden">
         <div className="space-y-4 xl:overflow-y-auto xl:pr-1 no-scrollbar">
@@ -542,7 +545,7 @@ export const VideoPlayer: React.FC<Props> = ({
 
             {panel === 'sources' && (
               <div className="space-y-2">
-                <p className="mb-4 text-sm leading-relaxed text-zinc-400">Anilife tries enabled servers in your preferred order. Provider names stay private.</p>
+                <p className="mb-4 text-sm leading-relaxed text-zinc-400">Anilife tries enabled servers in your preferred order and tells you when it switches. Provider names stay private.</p>
                 {switchableServers.map((server) => (
                   <button type="button" key={server.id} onClick={() => selectServer(server)} className={`flex w-full items-center justify-between rounded-xl border p-4 text-left ${server.id === activeServer.id ? 'border-[var(--anilife-accent)]/60 bg-[var(--anilife-accent)]/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
                     <span><span className="block text-sm font-bold">{server.name}</span><span className="mt-1 block text-xs text-zinc-500">{[server.supportsSub && 'Sub', server.supportsDub && 'Dub'].filter(Boolean).join(' / ') || 'Playback'}</span></span>

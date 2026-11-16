@@ -5,6 +5,13 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+### Fixed
+
+- Centered the watch-status selector arrow consistently across browsers.
+- Replaced the basic watch-status selector with a clearer in-app menu.
+- Prevented episode thumbnails from overlapping titles on narrow screens.
+- Removed the duplicate desktop player scrollbar by locking the background and keeping the episode list independently scrollable.
+
 ## [0.1.2] - 2026-11-16
 
 ### Added

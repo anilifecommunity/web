@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CalendarDays, Check, Clock3, Play, Search, Share2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, ChevronDown, Clock3, Play, Search, Share2 } from 'lucide-react';
 import type { Anime, Episode, WatchStatus } from '../types/anime';
 import { useApp } from '../context/AppContext';
 import { getAnimeAniListId } from '../utils/animeData';
@@ -34,6 +34,16 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   const [realEpisodes, setRealEpisodes] = useState<Episode[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
+  const watchStatusRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    const closeWatchStatus = (event: PointerEvent) => {
+      const menu = watchStatusRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    };
+    document.addEventListener('pointerdown', closeWatchStatus);
+    return () => document.removeEventListener('pointerdown', closeWatchStatus);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -183,10 +193,40 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
                   </span>
                 )}
 
-                <label className="sr-only" htmlFor="watch-status">Watch status</label>
-                <select id="watch-status" value={watchStatus} onChange={(event) => void setAnimeWatchStatus(anime.id, event.target.value as WatchStatus)} className="anilife-select">
-                  {STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
-                </select>
+                <details
+                  ref={watchStatusRef}
+                  className="group/watch-status relative min-w-[180px]"
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Escape' || !watchStatusRef.current?.open) return;
+                    watchStatusRef.current.open = false;
+                    watchStatusRef.current.querySelector('summary')?.focus();
+                  }}
+                >
+                  <summary aria-label={`Watch status: ${watchStatus}`} className="anilife-select flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                    <span className="font-semibold">{watchStatus}</span>
+                    <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-zinc-400 transition-transform group-open/watch-status:rotate-180" />
+                  </summary>
+                  <div className="absolute bottom-full left-0 z-40 mb-2 w-full min-w-[210px] rounded-xl border border-white/15 bg-zinc-950/95 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl" role="group" aria-label="Choose watch status">
+                    {STATUS_OPTIONS.map((status) => {
+                      const selected = status === watchStatus;
+                      return (
+                        <button
+                          type="button"
+                          key={status}
+                          aria-pressed={selected}
+                          onClick={() => {
+                            void setAnimeWatchStatus(anime.id, status);
+                            if (watchStatusRef.current) watchStatusRef.current.open = false;
+                          }}
+                          className={`flex min-h-11 w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${selected ? 'bg-[var(--anilife-accent)]/15 text-[var(--anilife-accent)]' : 'text-zinc-300 hover:bg-white/[0.07] hover:text-white'}`}
+                        >
+                          {status}
+                          {selected && <Check aria-hidden="true" className="h-4 w-4" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </details>
               </div>
 
               {progress !== null && currentEpisode && (
@@ -221,8 +261,8 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
             {filteredEpisodes.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredEpisodes.map((episode) => (
-                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(anime, episode.number)} className="group grid grid-cols-[124px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06]">
-                    <div className="relative aspect-video h-full min-h-[88px] overflow-hidden bg-zinc-900">
+                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(anime, episode.number)} className="group grid grid-cols-[112px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06] sm:grid-cols-[124px_minmax(0,1fr)]">
+                    <div className="relative min-h-[88px] min-w-0 w-full overflow-hidden bg-zinc-900">
                       {(episode.thumbnail || anime.posterImage) && <img src={episode.thumbnail || anime.posterImage} alt="" loading="lazy" className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]" />}
                       <span className="absolute left-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-bold">EP {episode.number}</span>
                     </div>

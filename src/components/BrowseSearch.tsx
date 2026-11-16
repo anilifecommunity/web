@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp, convertAniListToAnime } from '../context/AppContext';
 import { Anime } from '../types/anime';
 import { searchAniList } from '../utils/anilistApi';
-import { displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
+import { animeMatchesSearch, displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
 import {
   Search,
   SlidersHorizontal,
@@ -147,14 +147,7 @@ export const BrowseSearch: React.FC = () => {
       query.trim().length >= 2 && liveSearchResults.length > 0
         ? liveSearchResults
         : liveCatalog.filter((anime) => {
-            const lower = query.toLowerCase();
-            const matchQuery =
-              !query.trim() ||
-              anime.title.toLowerCase().includes(lower) ||
-              (anime.englishTitle && anime.englishTitle.toLowerCase().includes(lower)) ||
-              (anime.romajiTitle && anime.romajiTitle.toLowerCase().includes(lower)) ||
-              (anime.nativeTitle && anime.nativeTitle.toLowerCase().includes(lower)) ||
-              anime.genres.some((genre) => genre.toLowerCase().includes(lower));
+            const matchQuery = animeMatchesSearch(anime, query);
 
             let matchCategory = true;
             if (selectedCategory === 'Season') {
@@ -217,7 +210,7 @@ export const BrowseSearch: React.FC = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search anime by title, character, or genre..."
+            placeholder="Search anime or related manga in any title language..."
             className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-black/60 border border-[var(--anilife-accent)]/30 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-[var(--anilife-accent)] focus:ring-1 focus:ring-[var(--anilife-accent)] shadow-inner transition-all"
           />
           <Search className="w-5 h-5 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />

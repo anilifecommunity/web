@@ -10,6 +10,7 @@ import {
   savePendingOAuthState,
 } from './oauth';
 import { STORAGE_KEYS } from '../data/keys';
+import { mergeAniListSearchResults } from './animeConversion';
 
 export { clearOAuthToken, isAniListAuthError, loadOAuthToken, saveOAuthToken } from './oauth';
 
@@ -30,11 +31,15 @@ export const ANILIST_CLIENT_ID = String(
 export interface AniListMedia {
   id: number;
   isAdult?: boolean;
+  type?: 'ANIME' | 'MANGA';
+  siteUrl?: string;
+  countryOfOrigin?: string;
   title: {
     english?: string;
     romaji?: string;
     native?: string;
   };
+  synonyms?: string[];
   coverImage: {
     extraLarge?: string;
     large?: string;
@@ -65,6 +70,12 @@ export interface AniListMedia {
     episode: number;
     airingAt: number;
     timeUntilAiring: number;
+  };
+  relations?: {
+    edges: Array<{
+      relationType?: string;
+      node?: AniListMedia;
+    }>;
   };
 }
 
@@ -222,6 +233,7 @@ export async function fetchTrendingAnime(page: number = 1, perPage: number = 15)
         media(type: ANIME, sort: TRENDING_DESC) {
           id
           title { english romaji native }
+          synonyms
           isAdult
           coverImage { extraLarge large medium color }
           bannerImage
@@ -254,6 +266,7 @@ export async function fetchAniListMediaById(id: number): Promise<AniListMedia | 
       Media(id: $id, type: ANIME) {
         id
         title { english romaji native }
+        synonyms
         isAdult
         coverImage { extraLarge large medium color }
         bannerImage
@@ -269,6 +282,23 @@ export async function fetchAniListMediaById(id: number): Promise<AniListMedia | 
         duration
         studios(isMain: true) { nodes { name } }
         nextAiringEpisode { episode airingAt timeUntilAiring }
+        relations {
+          edges {
+            relationType
+            node {
+              id
+              type
+              format
+              countryOfOrigin
+              title { english romaji native }
+              synonyms
+              description(asHtml: false)
+              coverImage { extraLarge large medium color }
+              siteUrl
+              isAdult
+            }
+          }
+        }
       }
     }
   `;
@@ -288,6 +318,7 @@ export async function fetchPopularSeasonAnime(
         media(type: ANIME, sort: POPULARITY_DESC, season: $season, seasonYear: $seasonYear) {
           id
           title { english romaji native }
+          synonyms
           isAdult
           coverImage { extraLarge large medium color }
           bannerImage
@@ -325,6 +356,7 @@ export async function fetchTopRatedAnime(page: number = 1, perPage: number = 15)
         media(type: ANIME, sort: SCORE_DESC) {
           id
           title { english romaji native }
+          synonyms
           isAdult
           coverImage { extraLarge large medium color }
           bannerImage
@@ -355,6 +387,7 @@ export async function fetchPopularAllTimeAnime(page: number = 1, perPage: number
         media(type: ANIME, sort: POPULARITY_DESC) {
           id
           title { english romaji native }
+          synonyms
           isAdult
           coverImage { extraLarge large medium color }
           bannerImage
@@ -387,10 +420,11 @@ export async function searchAniList(
 ): Promise<AniListMedia[]> {
   const query = `
     query ($search: String, $genre: String, $page: Int, $perPage: Int) {
-      Page(page: $page, perPage: $perPage) {
+      AnimePage: Page(page: $page, perPage: $perPage) {
         media(type: ANIME, search: $search, genre: $genre, sort: SEARCH_MATCH) {
           id
           title { english romaji native }
+          synonyms
           isAdult
           coverImage { extraLarge large medium color }
           bannerImage
@@ -405,18 +439,49 @@ export async function searchAniList(
           studios(isMain: true) { nodes { name } }
         }
       }
+      MangaPage: Page(page: 1, perPage: 8) {
+        media(type: MANGA, search: $search, sort: SEARCH_MATCH) {
+          id
+          title { english romaji native }
+          synonyms
+          relations {
+            edges {
+              node {
+                id
+                type
+                title { english romaji native }
+                synonyms
+                isAdult
+                coverImage { extraLarge large medium color }
+                bannerImage
+                description(asHtml: false)
+                averageScore
+                popularity
+                format
+                episodes
+                status
+                seasonYear
+                season
+                genres
+                duration
+                studios(isMain: true) { nodes { name } }
+              }
+            }
+          }
+        }
+      }
     }
   `;
   const variables: Record<string, any> = { page, perPage };
   if (search && search.trim()) variables.search = search.trim();
   if (genre && genre !== 'All' && genre !== 'Season' && genre !== 'Movies') variables.genre = genre;
 
-  const data = await queryAniList<{ Page: { media: AniListMedia[] } }>(query, variables);
-  return data.Page.media;
+  const data = await queryAniList<{
+    AnimePage: { media: AniListMedia[] };
+    MangaPage: { media: AniListMedia[] };
+  }>(query, variables);
+  return mergeAniListSearchResults(data.AnimePage.media, data.MangaPage.media);
 }
-
-
-
 
 export async function fetchAiringSchedule(
   startAirSec: number,
@@ -434,6 +499,7 @@ export async function fetchAiringSchedule(
           media {
             id
             title { english romaji native }
+            synonyms
             isAdult
             coverImage { large extraLarge }
             format
@@ -490,6 +556,7 @@ export async function fetchUserAnimeList(
             media {
               id
               title { english romaji native }
+              synonyms
               isAdult
               coverImage { extraLarge large medium color }
               bannerImage

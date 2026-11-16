@@ -29,6 +29,21 @@ export interface RelatedAnime {
   episodesCount?: number;
 }
 
+export interface RelatedManga {
+  id: string;
+  title: string;
+  englishTitle?: string;
+  romajiTitle?: string;
+  nativeTitle?: string;
+  relationType: string;
+  relationLabel: string;
+  formatLabel: string;
+  description: string;
+  posterImage: string;
+  siteUrl: string;
+  isAdult?: boolean;
+}
+
 export interface Anime {
   id: string;
   anilistId?: number;
@@ -36,6 +51,7 @@ export interface Anime {
   englishTitle?: string;
   romajiTitle?: string;
   nativeTitle?: string;
+  alternativeTitles?: string[];
   isAdult?: boolean;
   bannerImage: string;
   posterImage: string;
@@ -56,6 +72,7 @@ export interface Anime {
   hasSub: boolean;
   seasons: Season[];
   related: RelatedAnime[];
+  relatedManga?: RelatedManga[];
   airSchedule?: {
     dayOfWeek: number; 
     airTime: string; 
@@ -161,6 +178,7 @@ export interface AppSettings {
   
   hideAdultContent: boolean;
   titleLanguage: 'romaji' | 'english' | 'native';
+  displayRelatedManga: boolean;
   blurSpoilers: boolean;
   onlyWatchableEpisodes: boolean;
 

@@ -20,3 +20,19 @@ export function displayAniListTitle(
 export function isAnimeVisible(anime: Pick<Anime, 'isAdult'>, hideAdultContent: boolean): boolean {
   return !hideAdultContent || anime.isAdult !== true;
 }
+
+export function animeMatchesSearch(
+  anime: Pick<Anime, 'title' | 'englishTitle' | 'romajiTitle' | 'nativeTitle' | 'alternativeTitles' | 'genres'>,
+  query: string
+): boolean {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (!normalized) return true;
+  return [
+    anime.title,
+    anime.englishTitle,
+    anime.romajiTitle,
+    anime.nativeTitle,
+    ...(anime.alternativeTitles ?? []),
+    ...anime.genres,
+  ].some((value) => value?.toLocaleLowerCase().includes(normalized));
+}

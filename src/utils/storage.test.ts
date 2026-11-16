@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
 import { DEFAULT_SETTINGS, loadActiveProfileId, loadSettings, mergeSettings, saveActiveProfileId, saveSettings, STORAGE_KEYS } from './storage';
 import { webServerOptions } from './providerOptions';
+import { CACHE_REFRESH_MARKER, runOneTimeCacheRefresh } from '../data/cacheRefresh';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();
@@ -152,12 +153,36 @@ test('every visible preference survives a browser reload', () => {
     discordRichPresence: false,
     hideAdultContent: false,
     titleLanguage: 'native' as const,
+    displayRelatedManga: false,
   };
   saveSettings(mergeSettings(DEFAULT_SETTINGS, preferences));
   const reloaded = loadSettings();
   for (const [key, value] of Object.entries(preferences)) {
     assert.deepEqual(reloaded[key as keyof typeof reloaded], value, key);
   }
+});
+
+test('one-time cache refresh removes stale caches without deleting user data', async () => {
+  const storage = memoryStorage();
+  storage.setItem(STORAGE_KEYS.SETTINGS, '{"titleLanguage":"romaji"}');
+  storage.setItem('anilife_live_catalog_cache_v5', '["stale"]');
+  storage.setItem('anilife_live_catalog_cache_v6', '["current"]');
+  const deleted: string[] = [];
+  const cacheStorage = {
+    keys: async () => ['anilife-shell-v4', 'unrelated-cache'],
+    delete: async (name: string) => {
+      deleted.push(name);
+      return true;
+    },
+  };
+
+  assert.equal(await runOneTimeCacheRefresh(storage, cacheStorage), true);
+  assert.equal(storage.getItem(STORAGE_KEYS.SETTINGS), '{"titleLanguage":"romaji"}');
+  assert.equal(storage.getItem('anilife_live_catalog_cache_v5'), null);
+  assert.equal(storage.getItem('anilife_live_catalog_cache_v6'), null);
+  assert.deepEqual(deleted, ['anilife-shell-v4']);
+  assert.equal(storage.getItem(CACHE_REFRESH_MARKER), '1');
+  assert.equal(await runOneTimeCacheRefresh(storage, cacheStorage), false);
 });
 
 test('the selected profile survives a browser reload', () => {

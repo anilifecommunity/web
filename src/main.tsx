@@ -7,8 +7,9 @@ import {
   requestPersistentStorage,
 } from './data/idb';
 import { recordDiagnostic } from './data/diagnostics';
+import { runOneTimeCacheRefresh } from './data/cacheRefresh';
 
-const SERVICE_WORKER_VERSION = '4';
+const SERVICE_WORKER_VERSION = '5';
 
 /**
  * Restore a missing localStorage from IndexedDB before React reads it, then mirror the current
@@ -16,6 +17,7 @@ const SERVICE_WORKER_VERSION = '4';
  * boot source, and the mirror is additive.
  */
 async function bootstrap(): Promise<void> {
+  await runOneTimeCacheRefresh();
   try {
     const hydration = await hydrateLocalStorageFromIdb();
     if (hydration.restored.length > 0) {

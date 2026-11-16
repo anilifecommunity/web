@@ -93,6 +93,8 @@ export function settingsToAndroid(settings: AppSettings): Record<string, unknown
     subtitles_with_dub: settings.subtitlesOnDub,
     subtitles_by_default: settings.showSubtitlesByDefault,
     hide_adult_content: settings.hideAdultContent,
+    title_language: settings.titleLanguage,
+    display_related_manga: settings.displayRelatedManga,
     preferred_provider: settings.activeServer,
     server_priority: (settings.serverPriority ?? []).join(','),
     disabled_providers: (settings.enabledServers ?? []).length > 0
@@ -129,6 +131,10 @@ export function settingsFromAndroid(source: Record<string, unknown>): Partial<Ap
   if (bool('subtitles_with_dub') !== undefined) out.subtitlesOnDub = bool('subtitles_with_dub');
   if (bool('subtitles_by_default') !== undefined) out.showSubtitlesByDefault = bool('subtitles_by_default');
   if (bool('hide_adult_content') !== undefined) out.hideAdultContent = bool('hide_adult_content');
+  if (['english', 'romaji', 'native'].includes(str('title_language') ?? '')) {
+    out.titleLanguage = str('title_language') as AppSettings['titleLanguage'];
+  }
+  if (bool('display_related_manga') !== undefined) out.displayRelatedManga = bool('display_related_manga');
   if (str('preferred_provider')) out.activeServer = str('preferred_provider');
   if (str('server_priority')) {
     out.serverPriority = str('server_priority')!.split(',').map((value) => value.trim()).filter(Boolean);

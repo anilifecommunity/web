@@ -5,6 +5,20 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+### Added
+
+- Added verified related manga, manhwa and other comics to anime details with cover artwork,
+  relationship labels and safe AniList links.
+- Expanded search across English, Romaji, native and alternative anime titles, plus verified anime
+  relationships found through manga titles and aliases.
+
+### Changed
+
+- Made the English, Romaji and native title preference update anime and manga titles immediately,
+  with one persistent Content setting controlling the related-manga shelf.
+- Added a one-time stale catalogue and app-shell cache refresh while preserving profiles, settings,
+  watch progress and sign-in data.
+
 ### Fixed
 
 - Explained automatic server fallbacks instead of silently changing the selected server.

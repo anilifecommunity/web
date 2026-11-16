@@ -103,12 +103,22 @@ test('settings mapping round-trips the shared keys', () => {
   assert.equal(android.autoplay, DEFAULT_SETTINGS.autoPlayNext);
   assert.equal(android.watched_threshold_percent, DEFAULT_SETTINGS.watchedThreshold);
   assert.equal(android.prefer_dub, false);
+  assert.equal(android.title_language, 'romaji');
+  assert.equal(android.display_related_manga, true);
 
   const back = settingsFromAndroid(android);
   assert.equal(back.autoPlayNext, DEFAULT_SETTINGS.autoPlayNext);
   assert.equal(back.watchedThreshold, DEFAULT_SETTINGS.watchedThreshold);
   assert.equal(back.defaultAudioMode, 'SUB');
+  assert.equal(back.titleLanguage, 'romaji');
+  assert.equal(back.displayRelatedManga, true);
   assert.deepEqual(back.serverPriority, DEFAULT_SETTINGS.serverPriority);
+});
+
+test('backup mapping preserves an explicitly disabled related manga preference', () => {
+  const restored = settingsFromAndroid({ display_related_manga: false, title_language: 'native' });
+  assert.equal(restored.displayRelatedManga, false);
+  assert.equal(restored.titleLanguage, 'native');
 });
 
 test('restoring merges history and watchlist without deleting local rows', () => {

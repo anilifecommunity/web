@@ -25,6 +25,7 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 - Centered the watch-status selector arrow consistently across browsers.
 - Replaced the basic watch-status selector with a clearer in-app menu.
 - Prevented episode thumbnails from overlapping titles on narrow screens.
+- Made desktop episode cards a consistent height so artwork cannot resize or cover their titles.
 - Removed the duplicate desktop player scrollbar by locking the background and keeping the episode list independently scrollable.
 
 ### Security and reliability
@@ -35,6 +36,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   to `/activity`.
 - Made first-visit sessions unique per browser, denied copied/tampered/expired watch sessions, and
   ensured share actions expose only public anime detail links.
+- Kept existing verified browsers working through the security migration and made each anime reuse
+  one persistent browser-bound authorization across episodes and restarts without four-hour prompts.
 
 ## [0.1.2] - 2026-11-16
 

@@ -34,10 +34,15 @@ open-source project; there is no bug bounty.
   access token. Deployments carry `APP_ENV=production`; without both gate secrets the resolve API
   fails closed with 503 instead of serving unprotected. Local and CI runs override `APP_ENV=test`.
 - Gate cookies include a signed random nonce, so each successful verification creates a distinct
-  anonymous browser session. Starting an episode creates a four-hour AES-GCM watch authorization
-  bound to that session, anime and episode. Its encrypted credential remains in `sessionStorage`;
-  the URL carries only a random reference and non-secret episode slug. `/api/resolve` requires both
-  the gate and watch authorization, so copying a watch URL to another session does not grant access.
+  anonymous browser session. The cookie lasts up to one year unless the viewer clears it or a
+  security rotation invalidates it; the migration also accepts still-valid one-day cookies issued
+  by the previous format. Each anime receives one stable opaque authorization derived by the
+  Worker from that browser session and reused across its released episodes. Browser storage holds
+  only the non-secret reference; the verified-session cookie remains HttpOnly. The URL carries only
+  that opaque reference and a non-secret episode slug. `/api/resolve` requires both the gate and
+  watch authorization, then
+  verifies the requested episode is released, so copying a watch URL to another session does not
+  grant access.
 - CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` and
   `X-Frame-Options: DENY` are applied to ordinary responses. Ordinary pages use
   `frame-ancestors 'none'`; the dedicated `/activity` route alone allows verified Discord

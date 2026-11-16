@@ -31,8 +31,8 @@ async function request(path: string, gate: string, init: RequestInit = {}): Prom
 test('watch routes mint, validate and reject copied or tampered sessions', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input) => {
-    const url = input instanceof Request ? input.url : String(input);
-    if (url.startsWith('https://graphql.anilist.co')) {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.origin === 'https://graphql.anilist.co') {
       return new Response(JSON.stringify({
         data: { Media: { status: 'FINISHED', episodes: 28, nextAiringEpisode: null } },
       }), { status: 200, headers: { 'Content-Type': 'application/json' } });

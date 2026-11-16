@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
-import { loadActiveProfileId, loadSettings, saveActiveProfileId, STORAGE_KEYS } from './storage';
+import { DEFAULT_SETTINGS, loadActiveProfileId, loadSettings, mergeSettings, saveActiveProfileId, saveSettings, STORAGE_KEYS } from './storage';
 import { webServerOptions } from './providerOptions';
 
 function memoryStorage(): Storage {
@@ -106,6 +106,58 @@ test('new viewers hide adult content while an explicit opt-in is preserved', () 
 
   withStoredSettings({ hideAdultContent: false });
   assert.equal(loadSettings().hideAdultContent, false);
+});
+
+test('disabling the default server selects the first enabled server by priority', () => {
+  const settings = {
+    ...DEFAULT_SETTINGS,
+    activeServer: webIds[2],
+    serverPriority: [webIds[1], webIds[0], webIds[2], ...webIds.slice(3)],
+    enabledServers: [webIds[0], webIds[1]],
+  };
+  const updated = mergeSettings(settings, { enabledServers: [webIds[0], webIds[1]] });
+  assert.equal(updated.activeServer, webIds[1]);
+});
+
+test('unrelated setting changes preserve an enabled default server', () => {
+  const settings = { ...DEFAULT_SETTINGS, activeServer: webIds[2] };
+  const updated = mergeSettings(settings, { autoPlayNext: false });
+  assert.equal(updated.activeServer, webIds[2]);
+  assert.equal(updated.autoPlayNext, false);
+});
+
+test('every visible preference survives a browser reload', () => {
+  withStoredSettings({});
+  const preferences = {
+    themePreset: 'Sakura' as const,
+    themePreferenceExplicit: true,
+    canvasBackground: 'dark' as const,
+    accentColor: '#F472B6',
+    backdropSource: 'custom' as const,
+    backdropImage: 'https://example.com/backdrop.jpg',
+    backdropDim: 'Light' as const,
+    backdropBlur: false,
+    playAppIntro: false,
+    navigationLayout: 'sidebar' as const,
+    autoHideNav: true,
+    autoPlayNext: false,
+    autoSkipIntro: false,
+    screenFit: 'Crop' as const,
+    defaultAudioMode: 'DUB' as const,
+    preferredSubLanguage: 'French',
+    activeServer: webIds[2],
+    serverPriority: [webIds[2], webIds[1], webIds[0], ...webIds.slice(3)],
+    enabledServers: [webIds[2], webIds[1]],
+    multiProfileEnabled: false,
+    discordRichPresence: false,
+    hideAdultContent: false,
+    titleLanguage: 'native' as const,
+  };
+  saveSettings(mergeSettings(DEFAULT_SETTINGS, preferences));
+  const reloaded = loadSettings();
+  for (const [key, value] of Object.entries(preferences)) {
+    assert.deepEqual(reloaded[key as keyof typeof reloaded], value, key);
+  }
 });
 
 test('the selected profile survives a browser reload', () => {

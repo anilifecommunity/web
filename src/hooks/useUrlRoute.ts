@@ -4,6 +4,7 @@ import { fetchAniListMediaById } from '../utils/anilistApi';
 import type { Anime } from '../types/anime';
 import { parseRoute, TAB_PATHS } from './urlRoute';
 import { canWatchEpisode } from '../utils/episodeAvailability';
+import { displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
 
 function findLocalAnime(id: string, catalog: Anime[]): Anime | undefined {
   return catalog.find((anime) => anime.id === id);
@@ -61,6 +62,12 @@ export function useUrlRoute(): void {
           window.history.replaceState(null, '', '/');
           return;
         }
+        if (!isAnimeVisible(anime, app.settings.hideAdultContent)) {
+          app.setRouteError('This title is hidden by your adult-content preference.');
+          app.setActiveTab('home');
+          window.history.replaceState(null, '', '/');
+          return;
+        }
         app.rememberAnime(anime);
         if (route.kind === 'anime') {
           app.setSelectedAnime(anime);
@@ -111,10 +118,10 @@ export function useUrlRoute(): void {
     let title = 'Anilife';
     if (app.activeVideo) {
       path = `/anime/${app.activeVideo.anime.id}/watch/${app.activeVideo.episodeNumber}`;
-      title = `${app.activeVideo.anime.title} · Episode ${app.activeVideo.episodeNumber}`;
+      title = `${displayAnimeTitle(app.activeVideo.anime, app.settings.titleLanguage)} · Episode ${app.activeVideo.episodeNumber}`;
     } else if (app.selectedAnime) {
       path = `/anime/${app.selectedAnime.id}`;
-      title = app.selectedAnime.title;
+      title = displayAnimeTitle(app.selectedAnime, app.settings.titleLanguage);
     } else if (app.showSettingsModal) {
       path = '/settings';
       title = 'Settings';
@@ -150,6 +157,7 @@ export function useUrlRoute(): void {
     app.activeVideo,
     app.showSettingsModal,
     app.showProfileModal,
+    app.settings.titleLanguage,
   ]);
 }
 

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useApp, convertAniListToAnime } from '../context/AppContext';
 import { Anime } from '../types/anime';
 import { searchAniList } from '../utils/anilistApi';
+import { displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
 import {
   Search,
   SlidersHorizontal,
@@ -30,7 +31,8 @@ export const BrowseSearch: React.FC = () => {
     addRecentSearch,
     removeRecentSearch,
     clearRecentSearches,
-    liveCatalog
+    liveCatalog,
+    settings,
   } = useApp();
 
   const [query, setQuery] = useState(() => initialParam('q', ''));
@@ -83,7 +85,9 @@ export const BrowseSearch: React.FC = () => {
             : undefined
         );
         if (requestRef.current !== requestId) return;
-        setLiveSearchResults(results.map(convertAniListToAnime));
+        setLiveSearchResults(
+          results.map(convertAniListToAnime).filter((anime) => isAnimeVisible(anime, settings.hideAdultContent))
+        );
       } catch {
         if (requestRef.current !== requestId) return;
         setLiveSearchResults([]);
@@ -93,7 +97,7 @@ export const BrowseSearch: React.FC = () => {
     }, 350);
 
     return () => clearTimeout(timeout);
-  }, [query, selectedCategory]);
+  }, [query, selectedCategory, settings.hideAdultContent]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -147,7 +151,9 @@ export const BrowseSearch: React.FC = () => {
             const matchQuery =
               !query.trim() ||
               anime.title.toLowerCase().includes(lower) ||
+              (anime.englishTitle && anime.englishTitle.toLowerCase().includes(lower)) ||
               (anime.romajiTitle && anime.romajiTitle.toLowerCase().includes(lower)) ||
+              (anime.nativeTitle && anime.nativeTitle.toLowerCase().includes(lower)) ||
               anime.genres.some((genre) => genre.toLowerCase().includes(lower));
 
             let matchCategory = true;
@@ -176,7 +182,7 @@ export const BrowseSearch: React.FC = () => {
         case 'Score':
           return b.score - a.score;
         case 'Title':
-          return a.title.localeCompare(b.title);
+          return displayAnimeTitle(a, settings.titleLanguage).localeCompare(displayAnimeTitle(b, settings.titleLanguage));
         case 'Newest':
           return b.year - a.year;
         case 'Popularity':
@@ -192,7 +198,8 @@ export const BrowseSearch: React.FC = () => {
     formatFilter,
     yearFilter,
     minScore,
-    sortBy
+    sortBy,
+    settings.titleLanguage
   ]);
 
   return (
@@ -402,7 +409,7 @@ export const BrowseSearch: React.FC = () => {
                 <div className="relative aspect-[3/4] w-full rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 group-hover:border-[var(--anilife-accent)]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[var(--anilife-accent-shadow)] bg-zinc-900">
                   <img
                     src={anime.posterImage}
-                    alt={anime.title}
+                    alt={displayAnimeTitle(anime, settings.titleLanguage)}
                     loading="lazy"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx158870-g875H3jE8wR8.jpg';
@@ -423,7 +430,7 @@ export const BrowseSearch: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[var(--anilife-accent)] transition-colors">
-                    {anime.title}
+                    {displayAnimeTitle(anime, settings.titleLanguage)}
                   </h3>
                   <p className="text-[11px] text-zinc-400 line-clamp-1">
                     {[anime.format, anime.year || null, ...anime.genres.slice(0, 2)].filter(Boolean).join(' / ')}

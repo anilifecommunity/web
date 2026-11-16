@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { getAnimeAniListId } from '../utils/animeData';
 import { fetchMediaIndexEpisodes } from '../utils/mediaIndexApi';
 import { selectAiredEpisodes } from '../utils/episodeAvailability';
+import { displayAnimeTitle } from '../utils/animePreferences';
 
 interface Props {
   anime: Anime;
@@ -27,6 +28,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
     playAnimeEpisode,
     setAnimeWatchStatus,
     setSelectedAnime,
+    settings,
     watchlist,
   } = useApp();
   const [episodeSearch, setEpisodeSearch] = useState('');
@@ -88,6 +90,9 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
     ? Math.min(100, Math.round((continueEntry.currentTimeSec / continueEntry.durationSec) * 100))
     : null;
   const watchStatus = watchlist.find((entry) => entry.animeId === anime.id)?.status || 'Plan to watch';
+  const displayTitle = displayAnimeTitle(anime, settings.titleLanguage);
+  const secondaryTitle = [anime.englishTitle, anime.romajiTitle, anime.nativeTitle, anime.title]
+    .find((title) => title && title !== displayTitle);
 
   const filteredEpisodes = airedEpisodes
     .filter((episode) => {
@@ -108,7 +113,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   const share = async () => {
     const url = new URL(`/anime/${anime.id}`, window.location.origin).toString();
     try {
-      if (navigator.share) await navigator.share({ title: anime.title, url });
+      if (navigator.share) await navigator.share({ title: displayTitle, url });
       else await navigator.clipboard.writeText(url);
       setNotice('Share link ready.');
     } catch (error) {
@@ -133,7 +138,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
           </button>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Title</p>
-            <p className="truncate text-sm font-semibold">{anime.title}</p>
+            <p className="truncate text-sm font-semibold">{displayTitle}</p>
           </div>
           <button type="button" onClick={() => void share()} className="anilife-icon-button" aria-label="Share title">
             <Share2 className="h-4 w-4" />
@@ -150,7 +155,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
 
           <div className="mx-auto grid min-h-[560px] max-w-[1500px] items-end gap-8 px-4 py-10 sm:px-7 lg:grid-cols-[240px_minmax(0,780px)] lg:py-16">
             <div className="hidden overflow-hidden rounded-xl border border-white/15 bg-zinc-900 shadow-2xl lg:block">
-              {anime.posterImage && <img src={anime.posterImage} alt={`${anime.title} poster`} className="aspect-[2/3] w-full object-cover" />}
+              {anime.posterImage && <img src={anime.posterImage} alt={`${displayTitle} poster`} className="aspect-[2/3] w-full object-cover" />}
             </div>
 
             <div className="space-y-5">
@@ -162,8 +167,8 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
               </div>
 
               <div>
-                <h1 className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">{anime.title}</h1>
-                {anime.romajiTitle && anime.romajiTitle !== anime.title && <p className="mt-3 text-sm text-zinc-400">{anime.romajiTitle}</p>}
+                <h1 className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">{displayTitle}</h1>
+                {secondaryTitle && <p className="mt-3 text-sm text-zinc-400">{secondaryTitle}</p>}
               </div>
 
               <div className="max-w-3xl">

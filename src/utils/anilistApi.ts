@@ -29,6 +29,7 @@ export const ANILIST_CLIENT_ID = String(
 
 export interface AniListMedia {
   id: number;
+  isAdult?: boolean;
   title: {
     english?: string;
     romaji?: string;
@@ -221,6 +222,7 @@ export async function fetchTrendingAnime(page: number = 1, perPage: number = 15)
         media(type: ANIME, sort: TRENDING_DESC) {
           id
           title { english romaji native }
+          isAdult
           coverImage { extraLarge large medium color }
           bannerImage
           description(asHtml: false)
@@ -252,6 +254,7 @@ export async function fetchAniListMediaById(id: number): Promise<AniListMedia | 
       Media(id: $id, type: ANIME) {
         id
         title { english romaji native }
+        isAdult
         coverImage { extraLarge large medium color }
         bannerImage
         description(asHtml: false)
@@ -285,6 +288,7 @@ export async function fetchPopularSeasonAnime(
         media(type: ANIME, sort: POPULARITY_DESC, season: $season, seasonYear: $seasonYear) {
           id
           title { english romaji native }
+          isAdult
           coverImage { extraLarge large medium color }
           bannerImage
           description(asHtml: false)
@@ -321,6 +325,7 @@ export async function fetchTopRatedAnime(page: number = 1, perPage: number = 15)
         media(type: ANIME, sort: SCORE_DESC) {
           id
           title { english romaji native }
+          isAdult
           coverImage { extraLarge large medium color }
           bannerImage
           description(asHtml: false)
@@ -350,6 +355,7 @@ export async function fetchPopularAllTimeAnime(page: number = 1, perPage: number
         media(type: ANIME, sort: POPULARITY_DESC) {
           id
           title { english romaji native }
+          isAdult
           coverImage { extraLarge large medium color }
           bannerImage
           description(asHtml: false)
@@ -385,6 +391,7 @@ export async function searchAniList(
         media(type: ANIME, search: $search, genre: $genre, sort: SEARCH_MATCH) {
           id
           title { english romaji native }
+          isAdult
           coverImage { extraLarge large medium color }
           bannerImage
           description(asHtml: false)
@@ -426,7 +433,8 @@ export async function fetchAiringSchedule(
           episode
           media {
             id
-            title { english romaji }
+            title { english romaji native }
+            isAdult
             coverImage { large extraLarge }
             format
             episodes
@@ -481,7 +489,8 @@ export async function fetchUserAnimeList(
             updatedAt
             media {
               id
-              title { english romaji }
+              title { english romaji native }
+              isAdult
               coverImage { extraLarge large medium color }
               bannerImage
               format

@@ -259,6 +259,7 @@ const AppContent: React.FC = () => {
           anime={activeVideo.anime}
           initialEpisodeNumber={activeVideo.episodeNumber}
           initialAudioMode={activeVideo.audioMode}
+          initialServerId={activeVideo.serverId}
           onClose={() => setActiveVideo(null)}
         />
       )}

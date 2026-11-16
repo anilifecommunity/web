@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Anime } from '../types/anime';
 import { Dices, Play, RefreshCw, X, Star, Info } from 'lucide-react';
+import { displayAnimeTitle } from '../utils/animePreferences';
 
 const RANDOM_CATEGORIES = [
   'Anything',
@@ -76,12 +77,7 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
     setPickedAnime(filtered[Math.floor(Math.random() * filtered.length)]);
   };
 
-  const displayTitle = pickedAnime && (
-    settings.titleLanguage === 'romaji'
-      ? pickedAnime.romajiTitle || pickedAnime.title
-      : settings.titleLanguage === 'native'
-      ? pickedAnime.nativeTitle || pickedAnime.romajiTitle || pickedAnime.title
-      : pickedAnime.title || pickedAnime.romajiTitle);
+  const displayTitle = pickedAnime && displayAnimeTitle(pickedAnime, settings.titleLanguage);
 
   return (
     <div

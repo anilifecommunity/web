@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { convertAniListToAnime } from '../utils/animeConversion';
+import { displayAnimeTitle, displayAniListTitle, isAnimeVisible } from '../utils/animePreferences';
 import type { AniListMedia } from '../utils/anilistApi';
 
 function media(overrides: Partial<AniListMedia> = {}): AniListMedia {
@@ -71,4 +72,18 @@ test('unknown releasing metadata stays honest', () => {
 test('unknown duration does not invent a 24 minute runtime', () => {
   const anime = convertAniListToAnime(media({ status: 'FINISHED', episodes: 1, duration: undefined }));
   assert.equal(anime.seasons[0].episodes[0].durationSec, 0);
+});
+
+test('title and adult preferences use AniList metadata with safe fallbacks', () => {
+  const source = media({
+    isAdult: true,
+    title: { english: 'English title', romaji: 'Romaji title', native: 'Native title' },
+  });
+  const anime = convertAniListToAnime(source);
+  assert.equal(displayAnimeTitle(anime, 'english'), 'English title');
+  assert.equal(displayAnimeTitle(anime, 'romaji'), 'Romaji title');
+  assert.equal(displayAnimeTitle(anime, 'native'), 'Native title');
+  assert.equal(displayAniListTitle(source.title, 'native'), 'Native title');
+  assert.equal(isAnimeVisible(anime, true), false);
+  assert.equal(isAnimeVisible(anime, false), true);
 });

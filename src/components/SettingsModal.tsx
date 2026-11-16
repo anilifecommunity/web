@@ -669,7 +669,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               <div className="flex items-center justify-between pt-2">
                 <div>
                   <h3 className="text-sm font-bold text-white">Server Priority Order</h3>
-                  <p className="text-xs text-zinc-400">Only browser-capable servers are listed. Order drives automatic lookup and failover.</p>
+                  <p className="text-xs text-zinc-400">Your default is tried first. This order controls automatic fallback.</p>
                 </div>
                 <button
                   onClick={() => {
@@ -706,9 +706,9 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-white truncate">Server {idx + 1}</span>
+                            <span className="font-bold text-xs text-white truncate">{server.name}</span>
                             {isDefault && (
-                              <span className="text-[10px] text-[var(--anilife-accent)] font-bold">Active Server</span>
+                              <span className="text-[10px] text-[var(--anilife-accent)] font-bold">Default</span>
                             )}
                           </div>
                           <p className="text-[10px] text-zinc-400 line-clamp-1">
@@ -732,13 +732,15 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         <button
                           onClick={() => moveServer(idx, 'up')}
                           disabled={idx === 0}
+                          aria-label={`Move ${server.name} earlier`}
                           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-20 cursor-pointer"
                         >
                           <ChevronUp className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => moveServer(idx, 'down')}
-                          disabled={idx === (settings.serverPriority || []).length - 1}
+                          disabled={idx === priorityIds.length - 1}
+                          aria-label={`Move ${server.name} later`}
                           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-20 cursor-pointer"
                         >
                           <ChevronDown className="w-3.5 h-3.5" />
@@ -751,6 +753,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                             isEnabled ? 'bg-[var(--anilife-accent)]/30 text-[var(--anilife-accent)]' : 'bg-zinc-800 text-zinc-500'
                           }`}
                           title={isEnabled ? 'Disable server' : 'Enable server'}
+                          aria-label={`${isEnabled ? 'Disable' : 'Enable'} ${server.name}`}
                         >
                           {isEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                         </button>
@@ -1030,7 +1033,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
                 <button
                   onClick={() => {
-                    [STORAGE_KEYS.LIVE_CATALOG_CACHE, 'anilife_live_catalog_cache_v4', 'anilife_live_catalog_cache_v3', 'anilife_live_catalog_cache_v2']
+                    [STORAGE_KEYS.LIVE_CATALOG_CACHE, 'anilife_live_catalog_cache_v5', 'anilife_live_catalog_cache_v4', 'anilife_live_catalog_cache_v3', 'anilife_live_catalog_cache_v2']
                       .forEach((key) => localStorage.removeItem(key));
                     showNotice('Cache cleared. Reloading catalogue...');
                     setTimeout(() => window.location.reload(), 1000);

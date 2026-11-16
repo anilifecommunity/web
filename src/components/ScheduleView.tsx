@@ -6,9 +6,10 @@ import {
   Clock,
   Loader2
 } from 'lucide-react';
+import { displayAniListTitle, isAnimeVisible } from '../utils/animePreferences';
 
 export const ScheduleView: React.FC = () => {
-  const { setSelectedAnime, setRouteError, liveCatalog } = useApp();
+  const { setSelectedAnime, setRouteError, liveCatalog, settings } = useApp();
 
   
   const now = new Date();
@@ -41,6 +42,9 @@ export const ScheduleView: React.FC = () => {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
 
   const selectedDay = days[selectedDayIdx];
+  const visibleScheduleItems = scheduleItems.filter((item) =>
+    isAnimeVisible(item.media, settings.hideAdultContent)
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -104,7 +108,7 @@ export const ScheduleView: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400">
           <span>Releases on {selectedDay.label}</span>
-          {!isLoadingSchedule && <span>{scheduleItems.length} episodes</span>}
+          {!isLoadingSchedule && <span>{visibleScheduleItems.length} episodes</span>}
         </div>
 
         {isLoadingSchedule ? (
@@ -112,16 +116,16 @@ export const ScheduleView: React.FC = () => {
             <Loader2 className="w-8 h-8 text-[var(--anilife-accent)] animate-spin mx-auto" />
             <p className="text-sm text-zinc-400">Fetching broadcast schedule from AniList...</p>
           </div>
-        ) : scheduleItems.length === 0 ? (
+        ) : visibleScheduleItems.length === 0 ? (
           <div className="text-center py-14 bg-white/5 rounded-2xl border border-white/10 text-zinc-400 text-sm">
             No scheduled broadcasts found for this date.
           </div>
         ) : (
           <div className="space-y-3">
-            {scheduleItems.map((item) => {
+            {visibleScheduleItems.map((item) => {
               const airDate = new Date(item.airingAt * 1000);
               const airTime = airDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              const animeTitle = item.media.title.english || item.media.title.romaji || 'Anime';
+              const animeTitle = displayAniListTitle(item.media.title, settings.titleLanguage);
               const coverImg = item.media.coverImage.extraLarge || item.media.coverImage.large || '';
 
               return (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { safeImageUrl } from '../utils/safeUrl';
 import { useApp } from '../context/AppContext';
 import { WatchStatus } from '../types/anime';
-import { displayAnimeTitle } from '../utils/animePreferences';
+import { animeMatchesSearch, displayAnimeTitle } from '../utils/animePreferences';
 import {
   RotateCcw,
   BarChart3,
@@ -46,7 +46,7 @@ export const MyListView: React.FC = () => {
     .filter(Boolean) as { entry: any; anime: any }[];
 
   const filteredEntries = resolvedList.filter(({ anime, entry }) => {
-    const matchText = !filterQuery.trim() || displayAnimeTitle(anime, settings.titleLanguage).toLowerCase().includes(filterQuery.toLowerCase());
+    const matchText = animeMatchesSearch(anime, filterQuery);
     const matchFormat = selectedFormat === 'Any format' || anime.format === selectedFormat;
     let matchTab = true;
     if (activeTab === 'Watching') matchTab = entry.status === 'Watching';

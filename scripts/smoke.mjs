@@ -91,7 +91,7 @@ await check('service worker', async () => {
   const response = await fetch(`${base}/sw.js`);
   assert(response.ok, `status ${response.status}`);
   const text = await response.text();
-  assert(text.includes("anilife-shell-v4"), 'current shell cache missing');
+  assert(text.includes("anilife-shell-v5"), 'current shell cache missing');
   return `status ${response.status}`;
 });
 

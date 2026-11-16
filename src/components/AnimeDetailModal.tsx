@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, CalendarDays, Check, ChevronDown, Clock3, Play, Search, Share2 } from 'lucide-react';
-import type { Anime, Episode, WatchStatus } from '../types/anime';
+import { ArrowLeft, BookOpen, CalendarDays, Check, ChevronDown, Clock3, ExternalLink, Play, Search, Share2 } from 'lucide-react';
+import type { Anime, Episode, RelatedManga, WatchStatus } from '../types/anime';
 import { useApp } from '../context/AppContext';
 import { getAnimeAniListId } from '../utils/animeData';
 import { fetchMediaIndexEpisodes } from '../utils/mediaIndexApi';
+import { fetchAniListMediaById } from '../utils/anilistApi';
 import { selectAiredEpisodes } from '../utils/episodeAvailability';
 import { displayAnimeTitle } from '../utils/animePreferences';
+import { convertAniListRelatedManga } from '../utils/animeConversion';
+import { safeImageUrl } from '../utils/safeUrl';
 
 interface Props {
   anime: Anime;
@@ -34,6 +37,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   const [episodeSearch, setEpisodeSearch] = useState('');
   const [newestFirst, setNewestFirst] = useState(false);
   const [realEpisodes, setRealEpisodes] = useState<Episode[]>([]);
+  const [relatedManga, setRelatedManga] = useState<RelatedManga[]>(anime.relatedManga ?? []);
   const [notice, setNotice] = useState<string | null>(null);
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
   const watchStatusRef = useRef<HTMLDetailsElement>(null);
@@ -71,6 +75,23 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
     };
   }, [anime]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const aniListId = getAnimeAniListId(anime);
+    if (!aniListId) {
+      setRelatedManga([]);
+      return;
+    }
+    fetchAniListMediaById(aniListId)
+      .then((media) => {
+        if (!cancelled) setRelatedManga(media ? convertAniListRelatedManga(media) : []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [anime]);
+
   const availabilityAnime = useMemo(() => {
     if (!realEpisodes.length) return anime;
     const seasons = anime.seasons.length
@@ -93,6 +114,9 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   const displayTitle = displayAnimeTitle(anime, settings.titleLanguage);
   const secondaryTitle = [anime.englishTitle, anime.romajiTitle, anime.nativeTitle, anime.title]
     .find((title) => title && title !== displayTitle);
+  const visibleRelatedManga = settings.displayRelatedManga
+    ? relatedManga.filter((manga) => !settings.hideAdultContent || manga.isAdult !== true)
+    : [];
 
   const filteredEpisodes = airedEpisodes
     .filter((episode) => {
@@ -173,6 +197,9 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
 
               <div className="max-w-3xl">
                 <p className={`text-sm leading-7 text-zinc-300 sm:text-base ${synopsisExpanded ? '' : 'line-clamp-6 sm:line-clamp-none'}`}>{anime.synopsis || 'Synopsis unavailable.'}</p>
+                {settings.titleLanguage !== 'english' && anime.synopsis && (
+                  <p className="mt-2 text-[11px] text-zinc-500">Description supplied by AniList; translated variants are unavailable.</p>
+                )}
                 {anime.synopsis && (
                   <button type="button" onClick={() => setSynopsisExpanded((value) => !value)} className="mt-2 text-xs font-bold text-[var(--anilife-accent)] sm:hidden">
                     {synopsisExpanded ? 'Show less' : 'Read full synopsis'}
@@ -281,6 +308,64 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
               </div>
             )}
           </section>
+
+          {visibleRelatedManga.length > 0 && (
+            <section aria-labelledby="related-manga-title" className="space-y-5 border-t border-white/10 pt-10">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                <div>
+                  <p className="anilife-eyebrow">From screen to page</p>
+                  <h2 id="related-manga-title" className="anilife-section-title">Related Manga</h2>
+                </div>
+                <p className="max-w-lg text-xs leading-relaxed text-zinc-500">
+                  Descriptions are shown as supplied by AniList and may not match your selected title language.
+                </p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {visibleRelatedManga.map((manga) => {
+                  const mangaTitle = displayAnimeTitle(manga, settings.titleLanguage);
+                  return (
+                    <article key={manga.id} className="group grid min-h-52 grid-cols-[108px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] transition-colors hover:border-[var(--anilife-accent)]/45 hover:bg-white/[0.055] sm:grid-cols-[124px_minmax(0,1fr)]">
+                      <div className="min-h-full bg-zinc-900">
+                        {manga.posterImage ? (
+                          <img
+                            src={safeImageUrl(manga.posterImage, '')}
+                            alt={`${mangaTitle} cover`}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.025]"
+                          />
+                        ) : (
+                          <div className="flex h-full min-h-52 items-center justify-center text-zinc-600" aria-label="Cover unavailable">
+                            <BookOpen aria-hidden="true" className="h-7 w-7" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-col p-4">
+                        <div className="flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide">
+                          <span className="rounded bg-[var(--anilife-accent)]/15 px-2 py-1 text-[var(--anilife-accent)]">{manga.relationLabel}</span>
+                          <span className="rounded bg-white/[0.07] px-2 py-1 text-zinc-400">{manga.formatLabel}</span>
+                        </div>
+                        <h3 className="mt-3 line-clamp-2 text-base font-bold leading-snug text-white">{mangaTitle}</h3>
+                        <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-zinc-400">
+                          {manga.description || 'AniList has not supplied a description for this related work.'}
+                        </p>
+                        <a
+                          href={manga.siteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-auto inline-flex min-h-11 items-center gap-2 self-start pt-3 text-sm font-bold text-[var(--anilife-accent)] underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                        >
+                          View manga
+                          <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                          <span className="sr-only"> on AniList</span>
+                        </a>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <section aria-labelledby="details-title" className="grid gap-8 border-t border-white/10 pt-10 lg:grid-cols-[1fr_1.4fr]">
             <div><p className="anilife-eyebrow">About</p><h2 id="details-title" className="anilife-section-title">Series details</h2></div>

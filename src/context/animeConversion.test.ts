@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { convertAniListToAnime } from '../utils/animeConversion';
-import { displayAnimeTitle, displayAniListTitle, isAnimeVisible } from '../utils/animePreferences';
+import { convertAniListRelatedManga, convertAniListToAnime, mergeAniListSearchResults } from '../utils/animeConversion';
+import { animeMatchesSearch, displayAnimeTitle, displayAniListTitle, isAnimeVisible } from '../utils/animePreferences';
 import type { AniListMedia } from '../utils/anilistApi';
 
 function media(overrides: Partial<AniListMedia> = {}): AniListMedia {
@@ -86,4 +86,45 @@ test('title and adult preferences use AniList metadata with safe fallbacks', () 
   assert.equal(displayAniListTitle(source.title, 'native'), 'Native title');
   assert.equal(isAnimeVisible(anime, true), false);
   assert.equal(isAnimeVisible(anime, false), true);
+});
+
+test('alternate anime titles remain searchable in English, Romaji and native script', () => {
+  const anime = convertAniListToAnime(media({
+    title: { english: 'The Apothecary Diaries', romaji: 'Kusuriya no Hitorigoto', native: '薬屋のひとりごと' },
+    synonyms: ['The Pharmacist Monologues'],
+  }));
+  assert.equal(animeMatchesSearch(anime, 'apothecary'), true);
+  assert.equal(animeMatchesSearch(anime, 'kusuriya'), true);
+  assert.equal(animeMatchesSearch(anime, '薬屋'), true);
+  assert.equal(animeMatchesSearch(anime, 'pharmacist monologues'), true);
+});
+
+test('verified manga relations are deduplicated, source-first and safely linked', () => {
+  const source = media({
+    relations: {
+      edges: [
+        { relationType: 'SPIN_OFF', node: media({ id: 2, type: 'MANGA', format: 'MANGA', countryOfOrigin: 'KR', title: { english: 'Side comic', romaji: 'Side Comic' } }) },
+        { relationType: 'ADAPTATION', node: media({ id: 1, type: 'MANGA', format: 'MANGA', title: { english: 'Main comic', romaji: 'Main Comic' } }) },
+        { relationType: 'SOURCE', node: media({ id: 1, type: 'MANGA', format: 'MANGA', title: { english: 'Main comic', romaji: 'Main Comic' } }) },
+        { relationType: 'SOURCE', node: media({ id: 3, type: 'ANIME', title: { english: 'Another anime' } }) },
+      ],
+    },
+  });
+  const related = convertAniListRelatedManga(source);
+  assert.deepEqual(related.map((item) => item.id), ['1', '2']);
+  assert.equal(related[0].relationLabel, 'Source material');
+  assert.equal(related[0].siteUrl, 'https://anilist.co/manga/1');
+  assert.equal(related[1].formatLabel, 'Manhwa');
+  assert.equal(displayAnimeTitle(related[0], 'romaji'), 'Main Comic');
+});
+
+test('manga search contributes only verified related anime without duplicates', () => {
+  const direct = media({ id: 10, type: 'ANIME' });
+  const related = media({ id: 11, type: 'ANIME' });
+  const manga = media({
+    id: 20,
+    type: 'MANGA',
+    relations: { edges: [{ node: direct }, { node: related }, { node: media({ id: 21, type: 'MANGA' }) }] },
+  });
+  assert.deepEqual(mergeAniListSearchResults([direct], [manga]).map((item) => item.id), [10, 11]);
 });

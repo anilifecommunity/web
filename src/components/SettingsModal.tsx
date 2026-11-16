@@ -498,36 +498,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                       className="w-5 h-5 accent-[var(--anilife-accent)] rounded cursor-pointer shrink-0"
                     />
                   </label>
-
-                  {}
-                  <div className="pt-3 border-t border-white/5 space-y-2">
-                    <div className="text-sm font-bold text-white">
-                      Title display language
-                    </div>
-                    <div className="text-xs text-zinc-400">
-                      Choose which AniList title to show across browse, search, library and the player.
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      {(['english', 'romaji', 'native'] as const).map((lang) => {
-                        const isSelected = settings.titleLanguage === lang;
-                        const label = lang === 'english' ? 'English' : lang === 'romaji' ? 'Romaji' : 'Native';
-                        return (
-                          <button
-                            key={lang}
-                            type="button"
-                            onClick={() => updateSettings({ titleLanguage: lang })}
-                            className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                              isSelected
-                                ? 'bg-[var(--anilife-accent)] text-black border-[var(--anilife-accent)] shadow-[0_0_12px_var(--anilife-accent-shadow)]'
-                                : 'bg-transparent border-zinc-700 text-zinc-300 hover:border-zinc-500'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -958,21 +928,40 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
               </label>
 
               <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                <div className="text-sm font-semibold text-white">Preferred Title Display</div>
+                <div className="text-sm font-semibold text-white">Title display language</div>
+                <div className="text-xs text-zinc-400">Applies to anime and manga titles throughout Anilife.</div>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['english', 'romaji', 'native'] as const).map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => updateSettings({ titleLanguage: lang })}
-                      className={`py-2 rounded-xl text-xs font-bold capitalize ${
-                        settings.titleLanguage === lang ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'bg-white/5 text-zinc-400'
-                      }`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
+                  {(['english', 'romaji', 'native'] as const).map((lang) => {
+                    const label = lang === 'english' ? 'English' : lang === 'romaji' ? 'Romaji' : 'Native';
+                    return (
+                      <button
+                        key={lang}
+                        type="button"
+                        aria-pressed={settings.titleLanguage === lang}
+                        onClick={() => updateSettings({ titleLanguage: lang })}
+                        className={`min-h-11 rounded-xl text-xs font-bold ${
+                          settings.titleLanguage === lang ? 'bg-[var(--anilife-accent)] text-black' : 'bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
+              <label className="flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/5 p-3.5 cursor-pointer">
+                <span>
+                  <span className="block text-sm font-semibold text-white">Display Related Manga</span>
+                  <span className="mt-0.5 block text-xs text-zinc-400">Show manga, manhwa and other related comics on anime detail pages.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={settings.displayRelatedManga}
+                  onChange={(event) => updateSettings({ displayRelatedManga: event.target.checked })}
+                  className="h-5 w-5 shrink-0 rounded accent-[var(--anilife-accent)]"
+                />
+              </label>
 
             </div>
           )}

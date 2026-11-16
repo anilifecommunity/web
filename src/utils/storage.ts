@@ -111,6 +111,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   
   hideAdultContent: true,
   titleLanguage: 'romaji',
+  displayRelatedManga: true,
   blurSpoilers: false,
   onlyWatchableEpisodes: false,
 

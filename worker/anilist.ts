@@ -2,6 +2,8 @@ import { readJsonCapped, safeFetch } from './guards';
 
 const GRAPHQL = 'https://graphql.anilist.co';
 const HOSTS = new Set(['graphql.anilist.co']);
+const MEDIA_INDEX = 'https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/data';
+const MEDIA_INDEX_HOSTS = new Set(['cdn.jsdelivr.net']);
 const MAX_JSON = 131_072;
 const TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 500;
@@ -36,6 +38,41 @@ const AVAILABILITY_QUERY = `query ($id: Int) {
   }
 }`;
 
+async function mediaIndexAvailableBefore(
+  aniListId: number,
+  timeoutMs: number,
+  now = Date.now()
+): Promise<number> {
+  try {
+    const shard = Math.floor(aniListId / 1000);
+    const response = await safeFetch(
+      `${MEDIA_INDEX}/anime/${shard}/${aniListId}/episodes.json`,
+      { headers: { Accept: 'application/json' } },
+      { allowedHosts: MEDIA_INDEX_HOSTS, timeoutMs, maxBytes: MAX_JSON }
+    );
+    if (!response.ok) return 0;
+    const episodes = await readJsonCapped(response, MAX_JSON) as Array<{
+      number?: number;
+      airDate?: string;
+      air_date?: string;
+    }>;
+    if (!Array.isArray(episodes)) return 0;
+    let latest = 0;
+    for (const entry of episodes) {
+      const airDate = entry.airDate ?? entry.air_date;
+      const airedAt = typeof airDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(airDate)
+        ? Date.parse(`${airDate}T00:00:00Z`)
+        : Number.NaN;
+      if (Number.isSafeInteger(entry.number) && entry.number! > latest && airedAt <= now) {
+        latest = entry.number!;
+      }
+    }
+    return latest > 0 ? latest + 1 : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function isAniListEpisodeAvailable(
   aniListId: number,
   episode: number,
@@ -45,16 +82,23 @@ export async function isAniListEpisodeAvailable(
   if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
     return episode < cached.availableBefore || (cached.finishedEpisodes > 0 && episode <= cached.finishedEpisodes);
   }
-  const response = await safeFetch(
-    GRAPHQL,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ query: AVAILABILITY_QUERY, variables: { id: aniListId } }),
-    },
-    { allowedHosts: HOSTS, timeoutMs, maxBytes: MAX_JSON }
-  );
-  if (!response.ok) return false;
+  let response: Response | null = null;
+  try {
+    response = await safeFetch(
+      GRAPHQL,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ query: AVAILABILITY_QUERY, variables: { id: aniListId } }),
+      },
+      { allowedHosts: HOSTS, timeoutMs, maxBytes: MAX_JSON }
+    );
+  } catch {}
+  if (!response?.ok) {
+    const availableBefore = await mediaIndexAvailableBefore(aniListId, timeoutMs);
+    availabilityCache.set(aniListId, { availableBefore, finishedEpisodes: 0, fetchedAt: Date.now() });
+    return episode < availableBefore;
+  }
   const data = (await readJsonCapped(response, MAX_JSON)) as {
     data?: {
       Media?: {

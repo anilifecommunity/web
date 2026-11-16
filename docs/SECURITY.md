@@ -33,8 +33,16 @@ open-source project; there is no bug bounty.
   present the same signed gate token in `X-Anilife-Gate` after the Worker verifies its Discord
   access token. Deployments carry `APP_ENV=production`; without both gate secrets the resolve API
   fails closed with 503 instead of serving unprotected. Local and CI runs override `APP_ENV=test`.
+- Gate cookies include a signed random nonce, so each successful verification creates a distinct
+  anonymous browser session. Starting an episode creates a four-hour AES-GCM watch authorization
+  bound to that session, anime and episode. Its encrypted credential remains in `sessionStorage`;
+  the URL carries only a random reference and non-secret episode slug. `/api/resolve` requires both
+  the gate and watch authorization, so copying a watch URL to another session does not grant access.
 - CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` and
-  `X-Frame-Options: DENY` are applied to every response. Preview hosts are `noindex`.
+  `X-Frame-Options: DENY` are applied to ordinary responses. Ordinary pages use
+  `frame-ancestors 'none'`; the dedicated `/activity` route alone allows verified Discord
+  ancestors and omits the conflicting legacy header. Protected watch routes use `no-referrer`.
+  Preview hosts are `noindex`.
 - Provider media plays in a cross-origin iframe. The app does not host, proxy or expose a
   downloadable episode URL, and episode downloads are disabled by product decision.
 - Discord Rich Presence uses the official Embedded App SDK only inside a Discord Activity. The
@@ -46,7 +54,8 @@ open-source project; there is no bug bounty.
 
 - No secret belongs in source, the bundle, `VITE_*`, Git history, an issue or a log.
 - AniList uses the public implicit flow; there is no client secret.
-- Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET` and `GATE_SIGNING_KEY`.
+- Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET`, `GATE_SIGNING_KEY` and
+  `WATCH_TOKEN_KEY`. `WATCH_TOKEN_PREVIOUS_KEY` is used only during an intentional key rotation.
 - The historical AniList client secret that shipped in the old web source was revoked by the
   application owner on 2026-11-08. Removing a secret from HEAD is not a rotation; revoke it at the
   provider first, then remove it from history if appropriate.

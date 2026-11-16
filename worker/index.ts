@@ -12,6 +12,9 @@ import { createGateToken, gateCookie, GATE_COOKIE, readCookie, verifyGateToken, 
 import { GuardError, safeFetch } from './guards';
 import { fail, json, parseInteger } from './http';
 import { hit } from './rateLimit';
+import { isAniListEpisodeAvailable } from './anilist';
+import { protectedRequestAllowed, securityHeaders } from './security';
+import { createWatchSession, verifyWatchSession, type WatchFailure } from './watchSession';
 import {
   getStableReleaseIndex,
   publishStableReleaseIndex,
@@ -19,11 +22,15 @@ import {
 } from './releaseIndex';
 
 export interface Env extends ReleaseIndexEnv {
-  ASSETS: Fetcher;
+  ASSETS: { fetch(request: Request): Promise<Response> };
   /** Turnstile secret key. When unset, the first-visit gate is disabled (local development). */
   TURNSTILE_SECRET?: string;
   /** HMAC key for the first-visit gate cookie. Required whenever TURNSTILE_SECRET is set. */
   GATE_SIGNING_KEY?: string;
+  /** AES-GCM source secret for session-bound watch authorizations. */
+  WATCH_TOKEN_KEY?: string;
+  /** Previous source secret accepted only while rotating WATCH_TOKEN_KEY. */
+  WATCH_TOKEN_PREVIOUS_KEY?: string;
   APP_ENV?: string;
   DISCORD_CLIENT_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
@@ -54,11 +61,21 @@ async function gateEnabled(env: Env): Promise<boolean> {
 }
 
 async function gatePassed(request: Request, env: Env): Promise<boolean> {
-  if (!(await gateEnabled(env))) return true;
+  return Boolean(await gateSessionToken(request, env));
+}
+
+async function gateSessionToken(request: Request, env: Env): Promise<string | undefined> {
+  if (!(await gateEnabled(env))) return env.APP_ENV === 'production' ? undefined : 'local-development';
   const secret = env.GATE_SIGNING_KEY as string;
-  if (await verifyGateToken(secret, readCookie(request, GATE_COOKIE))) return true;
+  const cookie = readCookie(request, GATE_COOKIE);
+  if (cookie && await verifyGateToken(secret, cookie)) return cookie;
   const header = request.headers.get('X-Anilife-Gate') ?? undefined;
-  return verifyGateToken(secret, header);
+  return header && await verifyGateToken(secret, header) ? header : undefined;
+}
+
+function watchSecrets(env: Env): string[] {
+  const current = env.WATCH_TOKEN_KEY ?? (env.APP_ENV === 'production' ? '' : 'local-watch-session-key');
+  return [current, env.WATCH_TOKEN_PREVIOUS_KEY ?? ''].filter(Boolean);
 }
 
 function clientKey(request: Request): string {
@@ -138,6 +155,97 @@ function parseProviderList(raw: string | null): string[] | null | undefined {
   return [...new Set(ids)];
 }
 
+const WATCH_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const WATCH_TAG = /^[0-9a-f]{12}$/;
+
+function watchFailure(reason: WatchFailure): Response {
+  if (reason === 'expired') return fail(410, 'watch_session_expired');
+  if (reason === 'wrong_session') return fail(403, 'watch_session_wrong_viewer');
+  return fail(403, 'watch_session_invalid');
+}
+
+async function readWatchBody(request: Request): Promise<{
+  reference: string;
+  tag: string;
+  token: string;
+  episode: number;
+} | null> {
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+    const reference = typeof body.reference === 'string' ? body.reference : '';
+    const tag = typeof body.tag === 'string' ? body.tag : '';
+    const token = typeof body.token === 'string' ? body.token : '';
+    const episode = typeof body.episode === 'number' ? body.episode : 0;
+    if (
+      !WATCH_REFERENCE.test(reference) ||
+      !WATCH_TAG.test(tag) ||
+      token.length < 20 || token.length > 4096 ||
+      !Number.isSafeInteger(episode) || episode < 1 || episode > 100_000
+    ) return null;
+    return { reference, tag, token, episode };
+  } catch {
+    return null;
+  }
+}
+
+async function handleWatchCreate(request: Request, env: Env): Promise<Response> {
+  if (!protectedRequestAllowed(request)) return fail(403, 'cross_origin_denied');
+  const sessionToken = await gateSessionToken(request, env);
+  if (!sessionToken) return fail(401, 'verification_required');
+  const [secret] = watchSecrets(env);
+  if (!secret) return fail(503, 'watch_sessions_not_configured');
+  const limited = hit(`watch:create:${clientKey(request)}`, 20, 60_000);
+  if (!limited.allowed) {
+    return json({ ok: false, error: 'rate_limited' }, 429, { 'Retry-After': String(limited.retryAfterSec) });
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return fail(400, 'invalid_body');
+  }
+  const aniListId = typeof body.aniListId === 'number' ? body.aniListId : 0;
+  const episode = typeof body.episode === 'number' ? body.episode : 0;
+  if (
+    !Number.isSafeInteger(aniListId) || aniListId < 1 || aniListId > 1_000_000_000 ||
+    !Number.isSafeInteger(episode) || episode < 1 || episode > 100_000
+  ) return fail(400, 'invalid_watch_target');
+  if (!(await isAniListEpisodeAvailable(aniListId, episode, 8_000))) {
+    return fail(409, 'episode_unavailable');
+  }
+  const created = await createWatchSession(secret, sessionToken, aniListId, episode);
+  return json({
+    ok: true,
+    ...created,
+    aniListId,
+    episode,
+    path: `/watch/${created.reference}/episode-${episode}-${created.tag}`,
+  });
+}
+
+async function handleWatchValidate(request: Request, env: Env): Promise<Response> {
+  if (!protectedRequestAllowed(request)) return fail(403, 'cross_origin_denied');
+  const sessionToken = await gateSessionToken(request, env);
+  if (!sessionToken) return fail(401, 'verification_required');
+  const body = await readWatchBody(request);
+  if (!body) return fail(400, 'invalid_watch_session');
+  const secrets = watchSecrets(env);
+  if (secrets.length === 0) return fail(503, 'watch_sessions_not_configured');
+  const verified = await verifyWatchSession(
+    secrets,
+    sessionToken,
+    body.token,
+    { reference: body.reference, tag: body.tag, episode: body.episode }
+  );
+  if (!verified.ok) return watchFailure(verified.reason);
+  return json({
+    ok: true,
+    aniListId: verified.claims.aniListId,
+    episode: verified.claims.episode,
+    expiresAt: verified.claims.expiresAt,
+  });
+}
+
 async function handleResolve(request: Request, env: Env, url: URL): Promise<Response> {
   if (env.APP_ENV === 'production' && !(await gateEnabled(env))) {
     return fail(503, 'gate_not_configured');
@@ -145,6 +253,7 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
   if (!(await gatePassed(request, env))) {
     return fail(403, 'gate_required');
   }
+  if (!protectedRequestAllowed(request)) return fail(403, 'cross_origin_denied');
   const limited = hit(`resolve:${clientKey(request)}`, 30, 60_000);
   if (!limited.allowed) {
     return json(
@@ -156,6 +265,28 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
 
   const parsed = parseResolveRequest(url);
   if ('error' in parsed) return fail(400, parsed.error);
+
+  const sessionToken = await gateSessionToken(request, env);
+  const watchToken = request.headers.get('X-Anilife-Watch') ?? '';
+  const reference = request.headers.get('X-Anilife-Watch-Reference') ?? '';
+  const tag = request.headers.get('X-Anilife-Watch-Tag') ?? '';
+  if (!sessionToken || !WATCH_REFERENCE.test(reference) || !WATCH_TAG.test(tag) || !watchToken) {
+    return fail(401, 'watch_session_required');
+  }
+  const secrets = watchSecrets(env);
+  if (secrets.length === 0) return fail(503, 'watch_sessions_not_configured');
+  const verified = await verifyWatchSession(
+    secrets,
+    sessionToken,
+    watchToken,
+    {
+      reference,
+      tag,
+      aniListId: parsed.request.aniListId,
+      episode: Number(parsed.request.episodeRef),
+    }
+  );
+  if (!verified.ok) return watchFailure(verified.reason);
 
   try {
     const result = await resolvePlayback({
@@ -432,6 +563,14 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return handleDiscordToken(request, env);
   }
 
+  if (path === '/api/watch/session' && request.method === 'POST') {
+    return handleWatchCreate(request, env);
+  }
+
+  if (path === '/api/watch/session/validate' && request.method === 'POST') {
+    return handleWatchValidate(request, env);
+  }
+
   if (path === '/api/providers' && request.method === 'GET') {
     return json({ ok: true, providers: publicProviders(), downstreams: DOWNSTREAMS });
   }
@@ -446,38 +585,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   }
 
   return env.ASSETS.fetch(request);
-}
-
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "frame-ancestors 'self' https://discord.com https://*.discordsays.com",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "media-src 'self' blob: https:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://graphql.anilist.co https://cdn.jsdelivr.net https://raw.githubusercontent.com https://api.aniskip.com https://challenges.cloudflare.com",
-  "worker-src 'self' blob:",
-  "frame-src 'self' https://animeembed.com https://*.animeembed.com https://zokoanime.video https://*.zokoanime.video https://flixcloud.cc https://*.flixcloud.cc https://vidlink.pro https://*.vidlink.pro https://challenges.cloudflare.com",
-  "form-action 'self' https://anilist.co",
-  "manifest-src 'self'",
-].join('; ');
-
-function securityHeaders(request: Request): Record<string, string> {
-  const url = new URL(request.url);
-  const preview = url.hostname.endsWith('.workers.dev');
-  return {
-    'Content-Security-Policy': CONTENT_SECURITY_POLICY,
-    'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
-    ...(preview ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
-    ...(url.protocol === 'https:'
-      ? { 'Strict-Transport-Security': 'max-age=31536000; includeSubDomains' }
-      : {}),
-  };
 }
 
 /** Applies the security policy to every response, including static assets. */
@@ -496,6 +603,10 @@ function withSecurityHeaders(response: Response, request: Request): Response {
     headers.set('Cache-Control', 'no-cache');
   }
   if (new URL(request.url).pathname.startsWith('/auth/callback')) {
+    headers.set('Cache-Control', 'no-store');
+  }
+  const path = new URL(request.url).pathname;
+  if (path.startsWith('/watch/') || path.startsWith('/activity/watch/')) {
     headers.set('Cache-Control', 'no-store');
   }
   return new Response(response.body, {

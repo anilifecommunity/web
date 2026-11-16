@@ -12,7 +12,8 @@ Use the Anilife Discord application:
 - Client ID: `1567279187893551185`
 - **OAuth2 redirect URI: `https://127.0.0.1`** (a placeholder; the Embedded App SDK performs the real
   Activity redirect, so this exact value is what the official Activity tutorial uses)
-- Activity URL mapping: `/` -> `https://anilife.cc`
+- Activity URL mapping: `/` -> `https://anilife.cc` (the launch query is canonicalized to the
+  isolated `/activity` route before in-app navigation)
 - Scopes requested at runtime: `identify`, `rpc.activities.write`
 - Enable **Activities** and the default **Launch** entry point in the Developer Portal.
 
@@ -69,8 +70,10 @@ No Discord user token, message content, guild list or friend list is stored or l
 
 ## Security notes
 
-- `frame-ancestors` allows only `anilife.cc` itself, `discord.com` and `*.discordsays.com`.
-- `X-Frame-Options` is not sent because it cannot express an allowlist; the CSP directive is the
-  enforced clickjacking control.
+- Only `/activity` (and the initial Discord launch request carrying both Activity identifiers)
+  allows `discord.com` and `*.discordsays.com` as frame ancestors. Ordinary Anilife pages use
+  `frame-ancestors 'none'` and `X-Frame-Options: DENY`.
+- `X-Frame-Options` is omitted only on the Activity response because it cannot express an
+  allowlist; CSP remains the enforced clickjacking control there.
 - The Discord access token is held in memory only for the Activity session.
 - The Worker keeps a fixed `discord.com` upstream, an 8 second timeout and a 16 KiB response cap.

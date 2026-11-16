@@ -52,7 +52,7 @@ await check('resolve refuses an arbitrary destination', async () => {
     referer: 'https://evil.example/',
   });
   const response = await fetch(`${base}/api/resolve?${query}`);
-  assert([400, 403, 404].includes(response.status), `status ${response.status}`);
+  assert([400, 401, 403, 404].includes(response.status), `status ${response.status}`);
   const data = await response.json();
   assert(data.ok === false, 'expected a JSON failure');
   return `${response.status} ${data.error}`;
@@ -63,8 +63,26 @@ await check('app shell', async () => {
   assert(response.ok, `status ${response.status}`);
   const html = await response.text();
   assert(html.includes('Anilife'), 'branding missing');
-  assert(response.headers.get('content-security-policy'), 'CSP missing');
+  assert(response.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), 'anti-frame CSP missing');
+  assert(response.headers.get('x-frame-options') === 'DENY', 'X-Frame-Options missing');
   assert(response.headers.get('x-content-type-options') === 'nosniff', 'nosniff missing');
+  return `status ${response.status}`;
+});
+
+await check('Discord framing is isolated to the Activity route', async () => {
+  const response = await fetch(`${base}/activity?frame_id=smoke&instance_id=smoke`);
+  assert(response.ok, `status ${response.status}`);
+  assert(response.headers.get('content-security-policy')?.includes('https://*.discordsays.com'), 'Discord ancestor missing');
+  assert(!response.headers.has('x-frame-options'), 'Activity has a conflicting X-Frame-Options header');
+  return `status ${response.status}`;
+});
+
+await check('protected watch routes do not leak referrers', async () => {
+  const response = await fetch(`${base}/watch/01a1dff1-a48d-71ff-8931-4f1c0ae8e860/episode-1-cf01ae4cd9ba`);
+  assert(response.ok, `status ${response.status}`);
+  assert(response.headers.get('referrer-policy') === 'no-referrer', 'watch referrer policy missing');
+  assert(response.headers.get('cache-control') === 'no-store', 'watch cache policy missing');
+  assert(response.headers.get('x-robots-tag') === 'noindex, nofollow', 'watch indexing policy missing');
   return `status ${response.status}`;
 });
 

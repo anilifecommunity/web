@@ -17,11 +17,17 @@ test('expired and tampered gate tokens are refused', async () => {
   assert.equal(await verifyGateToken(SECRET, token, now), false);
 
   const good = await createGateToken(SECRET, now);
-  const [expires, signature] = good.split('.');
-  const tampered = `${Number(expires) + 3600}.${signature}`;
+  const [expires, nonce, signature] = good.split('.');
+  const tampered = `${Number(expires) + 3600}.${nonce}.${signature}`;
   assert.equal(await verifyGateToken(SECRET, tampered, now), false);
   assert.equal(await verifyGateToken(SECRET, undefined, now), false);
   assert.equal(await verifyGateToken(SECRET, 'garbage', now), false);
+});
+
+test('gate tokens are unique even when issued in the same second', async () => {
+  const first = await createGateToken(SECRET, 1_000);
+  const second = await createGateToken(SECRET, 1_000);
+  assert.notEqual(first, second);
 });
 
 test('gate cookie carries HttpOnly, Secure and SameSite', () => {

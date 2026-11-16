@@ -83,7 +83,7 @@ const AppContent: React.FC = () => {
   );
 
   return (
-    <div className="relative min-h-screen text-zinc-100 flex flex-col font-sans selection:bg-[var(--anilife-accent)] selection:text-black">
+    <div className={`relative text-zinc-100 flex flex-col font-sans selection:bg-[var(--anilife-accent)] selection:text-black ${hasBlockingOverlay ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       {}
       <div
         className="fixed inset-0 z-0 pointer-events-none transition-colors duration-500"
@@ -246,7 +246,7 @@ const AppContent: React.FC = () => {
       {}
       {hasSelectedProfileSession && (
         <Suspense fallback={<LoadingSurface />}>
-      {selectedAnime && (
+      {selectedAnime && !activeVideo && (
         <AnimeDetailModal
           anime={selectedAnime}
           onClose={() => setSelectedAnime(null)}

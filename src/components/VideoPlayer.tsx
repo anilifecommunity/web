@@ -411,7 +411,7 @@ export const VideoPlayer: React.FC<Props> = ({
   );
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-[100] overflow-y-auto bg-black text-white">
+    <div ref={containerRef} className="fixed inset-0 z-[100] overflow-y-auto bg-black text-white xl:overflow-hidden">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1680px] items-center justify-between gap-3 px-3 py-3 sm:px-6">
           <button type="button" onClick={onClose} className="anilife-icon-button" aria-label="Back to anime details">
@@ -431,8 +431,8 @@ export const VideoPlayer: React.FC<Props> = ({
 
       {toast && <div className="fixed left-1/2 top-20 z-[120] -translate-x-1/2 rounded-full border border-[var(--anilife-accent)]/40 bg-black/90 px-4 py-2 text-xs font-bold shadow-2xl" role="status">{toast}</div>}
 
-      <main className="anilife-player-layout mx-auto max-w-[1680px] gap-4 p-3 sm:p-6">
-        <div className="space-y-4">
+      <main className="anilife-player-layout mx-auto max-w-[1680px] gap-4 p-3 sm:p-6 xl:h-[calc(100dvh-69px)] xl:overflow-hidden">
+        <div className="space-y-4 xl:overflow-y-auto xl:pr-1 no-scrollbar">
           <section className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl sm:rounded-2xl" aria-label="Video player">
             {embedUrl ? (
               <iframe ref={iframeRef} src={embedUrl} title={`${anime.title} episode ${currentEpisodeNumber}`} className="absolute inset-0 h-full w-full bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
@@ -513,12 +513,12 @@ export const VideoPlayer: React.FC<Props> = ({
           </section>
         </div>
 
-        <aside className="min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] xl:sticky xl:top-20 xl:h-[calc(100vh-6.5rem)]">
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] xl:h-full">
           <div className="flex items-center justify-between border-b border-white/10 p-4">
             <div><p className="anilife-eyebrow">Season 1</p><h2 className="mt-1 font-bold">Episodes</h2></div>
             <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-zinc-400">{activeEpisodes.length}</span>
           </div>
-          <div className="grid max-h-[52vh] gap-2 overflow-y-auto p-3 sm:grid-cols-2 xl:max-h-[calc(100vh-12rem)] xl:grid-cols-1">
+          <div className="grid max-h-[52vh] min-h-0 gap-2 overflow-y-auto p-3 sm:grid-cols-2 xl:max-h-none xl:flex-1 xl:grid-cols-1">
             {activeEpisodes.map((episode) => {
               const active = episode.number === currentEpisodeNumber;
               return (

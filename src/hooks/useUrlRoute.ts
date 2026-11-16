@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { convertAniListToAnime, useApp } from '../context/AppContext';
-import { ANIME_CATALOG } from '../utils/animeData';
 import { fetchAniListMediaById } from '../utils/anilistApi';
 import type { Anime } from '../types/anime';
 import { parseRoute, TAB_PATHS } from './urlRoute';
+import { canWatchEpisode } from '../utils/episodeAvailability';
 
 function findLocalAnime(id: string, catalog: Anime[]): Anime | undefined {
-  return catalog.find((anime) => anime.id === id) || ANIME_CATALOG.find((anime) => anime.id === id);
+  return catalog.find((anime) => anime.id === id);
 }
 
 /**
@@ -65,12 +65,22 @@ export function useUrlRoute(): void {
         if (route.kind === 'anime') {
           app.setSelectedAnime(anime);
         } else {
-          app.setActiveVideo({
-            anime,
-            episodeNumber: route.episode,
-            audioMode: app.settings.defaultAudioMode ?? 'SUB',
-            serverId: app.settings.activeServer,
-          });
+          if (!canWatchEpisode(anime, route.episode)) {
+            app.setRouteError(
+              anime.nextEpisode?.number === route.episode
+                ? `Episode ${route.episode} has not aired yet.`
+                : `Episode ${route.episode} is not confirmed as available yet.`
+            );
+            app.setSelectedAnime(anime);
+            window.history.replaceState(null, '', `/anime/${anime.id}`);
+          } else {
+            app.setActiveVideo({
+              anime,
+              episodeNumber: route.episode,
+              audioMode: app.settings.defaultAudioMode ?? 'SUB',
+              serverId: app.settings.activeServer,
+            });
+          }
         }
       } else {
         app.setActiveTab('home');

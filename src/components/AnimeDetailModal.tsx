@@ -1,599 +1,271 @@
-import React, { useState, useEffect } from 'react';
-import { Anime, Episode, WatchStatus } from '../types/anime';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, Clock3, Play, Search, Share2 } from 'lucide-react';
+import type { Anime, Episode, WatchStatus } from '../types/anime';
 import { useApp } from '../context/AppContext';
 import { getAnimeAniListId } from '../utils/animeData';
 import { fetchMediaIndexEpisodes } from '../utils/mediaIndexApi';
-import {
-  ArrowLeft,
-  Search,
-  Eye,
-  EyeOff,
-  Play,
-  Share2,
-  ChevronDown,
-  ArrowUpDown,
-  LayoutGrid,
-  List,
-  Lock,
-  Clock,
-  Check
-} from 'lucide-react';
+import { selectAiredEpisodes } from '../utils/episodeAvailability';
 
 interface Props {
   anime: Anime;
   onClose: () => void;
 }
 
+const STATUS_OPTIONS: WatchStatus[] = [
+  'Watching',
+  'Plan to watch',
+  'Completed',
+  'Paused',
+  'Rewatching',
+  'Dropped',
+];
+
 export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   const {
+    continueWatching,
+    liveCatalog,
     playAnimeEpisode,
-    watchlist,
     setAnimeWatchStatus,
-    continueWatching
+    setSelectedAnime,
+    watchlist,
   } = useApp();
-
-  const [activeTab, setActiveTab] = useState<'Home' | 'Episodes' | 'Related'>('Home');
-  const [selectedSeasonIdx, setSelectedSeasonIdx] = useState(0);
   const [episodeSearch, setEpisodeSearch] = useState('');
-  const [sortOldest, setSortOldest] = useState(true);
-  const [isGridView, setIsGridView] = useState(false);
-  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
-  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
-  const [watchedEpisodes, setWatchedEpisodes] = useState<Record<number, boolean>>({});
+  const [newestFirst, setNewestFirst] = useState(false);
   const [realEpisodes, setRealEpisodes] = useState<Episode[]>([]);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
 
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3000);
-  };
-
-  
-  const isEpisodeUnreleased = (ep: Episode): boolean => {
-    if (anime.status === 'Not Yet Aired') return true;
-    if (anime.nextEpisode && ep.number >= anime.nextEpisode.number) return true;
-    if ('isUnreleased' in ep && ep.isUnreleased) return true;
-    if (ep.airedDate) {
-      const airDate = new Date(ep.airedDate);
-      if (!isNaN(airDate.getTime()) && airDate.getTime() > Date.now()) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  
   useEffect(() => {
-    const numId = getAnimeAniListId(anime);
-    if (numId) {
-      fetchMediaIndexEpisodes(numId).then((eps) => {
-        if (eps && eps.length > 0) {
-          const mapped: Episode[] = eps.map((e: any) => {
-            const airedDate = e.airDate || e.air_date;
-            const isUnreleased = !!(airedDate && new Date(airedDate).getTime() > Date.now());
-            return {
-              id: `${anime.id}-ep-${e.number}`,
-              number: e.number,
-              title: e.title || `Episode ${e.number}`,
-              durationSec: e.length ? e.length * 60 : (e.runtime ? e.runtime * 60 : 0),
-              thumbnail: isUnreleased ? '' : (e.image || e.still || anime.bannerImage || anime.posterImage),
-              videoUrl: '',
-              synopsis: e.description || e.overview,
-              airedDate,
-              isUnreleased
-            };
-          });
-          setRealEpisodes(mapped);
-        }
-      });
-    }
+    let cancelled = false;
+    const aniListId = getAnimeAniListId(anime);
+    if (!aniListId) return;
+
+    fetchMediaIndexEpisodes(aniListId).then((episodes) => {
+      if (cancelled || !episodes?.length) return;
+      setRealEpisodes(episodes.map((entry: any) => ({
+        id: `${anime.id}-ep-${entry.number}`,
+        number: entry.number,
+        title: entry.title || `Episode ${entry.number}`,
+        durationSec: (entry.length || entry.runtime || anime.durationMins || 0) * 60,
+        thumbnail: entry.image || entry.still || anime.bannerImage || anime.posterImage,
+        videoUrl: '',
+        synopsis: entry.description || entry.overview,
+        airedDate: entry.airDate || entry.air_date,
+      })));
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [anime]);
 
-  const currentWatchlistEntry = watchlist.find(w => w.animeId === anime.id);
-  const watchStatus: WatchStatus = currentWatchlistEntry?.status || 'Watching';
+  const availabilityAnime = useMemo(() => {
+    if (!realEpisodes.length) return anime;
+    const seasons = anime.seasons.length
+      ? anime.seasons.map((season, index) => index === 0 ? { ...season, episodes: realEpisodes } : season)
+      : [{ id: `${anime.id}-s1`, number: 1, title: 'Season 1', year: anime.year, episodes: realEpisodes }];
+    return { ...anime, seasons };
+  }, [anime, realEpisodes]);
 
-  const continueEntry = continueWatching.find(c => c.animeId === anime.id);
-  const currentEpNum = continueEntry?.episodeNumber || 1;
-  const progressPercent = continueEntry
-    ? Math.round((continueEntry.currentTimeSec / (continueEntry.durationSec || 1440)) * 100)
-    : 15;
+  const airedEpisodes = useMemo(
+    () => selectAiredEpisodes(availabilityAnime),
+    [availabilityAnime]
+  );
+  const continueEntry = continueWatching.find((entry) => entry.animeId === anime.id);
+  const currentEpisode = airedEpisodes.find((episode) => episode.number === continueEntry?.episodeNumber)
+    || airedEpisodes[0];
+  const progress = continueEntry && continueEntry.durationSec > 0
+    ? Math.min(100, Math.round((continueEntry.currentTimeSec / continueEntry.durationSec) * 100))
+    : null;
+  const watchStatus = watchlist.find((entry) => entry.animeId === anime.id)?.status || 'Plan to watch';
 
-  const activeSeason = anime.seasons[selectedSeasonIdx] || anime.seasons[0];
-  const allEpisodes = realEpisodes.length > 0 ? realEpisodes : (activeSeason?.episodes || []);
+  const filteredEpisodes = airedEpisodes
+    .filter((episode) => {
+      const query = episodeSearch.trim().toLowerCase();
+      return !query
+        || episode.title.toLowerCase().includes(query)
+        || String(episode.number).includes(query);
+    })
+    .sort((a, b) => newestFirst ? b.number - a.number : a.number - b.number);
 
-  const filteredEpisodes = allEpisodes
-    .filter(ep => !episodeSearch.trim() || ep.title.toLowerCase().includes(episodeSearch.toLowerCase()) || `ep ${ep.number}`.includes(episodeSearch.toLowerCase()))
-    .sort((a, b) => sortOldest ? a.number - b.number : b.number - a.number);
+  const nextAiring = anime.nextEpisode && anime.nextEpisode.airingAt * 1000 > Date.now()
+    ? new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(anime.nextEpisode.airingAt * 1000))
+    : null;
 
-  const toggleEpisodeWatched = (epNumber: number) => {
-    setWatchedEpisodes(prev => ({
-      ...prev,
-      [epNumber]: !prev[epNumber]
-    }));
+  const share = async () => {
+    const url = new URL(`/anime/${anime.id}`, window.location.origin).toString();
+    try {
+      if (navigator.share) await navigator.share({ title: anime.title, url });
+      else await navigator.clipboard.writeText(url);
+      setNotice('Share link ready.');
+    } catch (error) {
+      if ((error as DOMException).name !== 'AbortError') setNotice('Could not share this title.');
+    }
   };
 
-  const statusList: WatchStatus[] = ['Watching', 'Plan to watch', 'Completed', 'Paused', 'Rewatching', 'Dropped'];
+  const openRelated = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    const related = liveCatalog.find((entry) => entry.id === id);
+    if (!related) return;
+    event.preventDefault();
+    setSelectedAnime(related);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black text-white animate-fadeIn font-sans">
-      {}
-      {toastMsg && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-black/90 border border-[var(--anilife-accent)]/50 shadow-2xl text-xs sm:text-sm font-bold text-white flex items-center gap-2 animate-bounce">
-          <Clock className="w-4 h-4 text-[var(--anilife-accent)]" />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
-      {}
-      <div className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-8 py-3.5 bg-black/80 backdrop-blur-xl border-b border-white/10">
-        <button
-          onClick={onClose}
-          className="p-2 -ml-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-sm sm:text-base font-bold text-white truncate max-w-xs sm:max-w-md">
-          {anime.title}
-        </h2>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => showToast(`Share link copied for ${anime.title}!`)}
-            className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-            title="Share"
-          >
-            <Share2 className="w-4 h-4" />
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--anilife-canvas)] text-white animate-fadeIn">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-black/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-3 px-4 sm:px-7">
+          <button type="button" onClick={onClose} className="anilife-icon-button" aria-label="Back">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Title</p>
+            <p className="truncate text-sm font-semibold">{anime.title}</p>
+          </div>
+          <button type="button" onClick={() => void share()} className="anilife-icon-button" aria-label="Share title">
+            <Share2 className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {}
-        <div className="relative rounded-3xl overflow-hidden aspect-[16/9] sm:aspect-[21/9] border border-[var(--anilife-accent)]/30 shadow-2xl">
-          <img
-            src={anime.bannerImage || anime.posterImage}
-            alt={anime.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+      <main>
+        <section className="relative isolate min-h-[560px] overflow-hidden border-b border-white/10 lg:min-h-[650px]">
+          {(anime.bannerImage || anime.posterImage) && (
+            <img src={anime.bannerImage || anime.posterImage} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
+          )}
+          <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#050506_0%,rgba(5,5,6,.92)_38%,rgba(5,5,6,.38)_78%),linear-gradient(0deg,#050506_0%,transparent_58%)]" />
 
-          {}
-          <div className="absolute bottom-4 left-4 flex items-end gap-4">
-            <div className="relative w-20 sm:w-28 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/20 shadow-xl shrink-0 group">
-              <img
-                src={anime.posterImage}
-                alt={anime.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Search className="w-5 h-5 text-white" />
+          <div className="mx-auto grid min-h-[560px] max-w-[1500px] items-end gap-8 px-4 py-10 sm:px-7 lg:grid-cols-[240px_minmax(0,780px)] lg:py-16">
+            <div className="hidden overflow-hidden rounded-xl border border-white/15 bg-zinc-900 shadow-2xl lg:block">
+              {anime.posterImage && <img src={anime.posterImage} alt={`${anime.title} poster`} className="aspect-[2/3] w-full object-cover" />}
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-2 text-xs font-medium text-zinc-300">
+                <span className="rounded-md bg-white/10 px-2.5 py-1">{anime.format}</span>
+                <span className="rounded-md bg-white/10 px-2.5 py-1">{anime.status}</span>
+                {anime.year > 0 && <span className="rounded-md bg-white/10 px-2.5 py-1">{anime.year}</span>}
+                {anime.score > 0 && <span className="rounded-md bg-white/10 px-2.5 py-1">{anime.score}% AniList</span>}
               </div>
-            </div>
 
-            <div className="space-y-1 mb-1">
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--anilife-accent)]/20 border border-[var(--anilife-accent)]/40 text-[var(--anilife-accent)]">
-                {anime.studio}
-              </span>
-              <h1 className="text-xl sm:text-3xl font-black text-white">{anime.title}</h1>
-              <p className="text-xs sm:text-sm text-zinc-300">
-                {anime.score}% score • {(anime.membersCount / 1000).toFixed(1)}K members • {allEpisodes.length} episodes
-              </p>
-            </div>
-          </div>
-        </div>
+              <div>
+                <h1 className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl">{anime.title}</h1>
+                {anime.romajiTitle && anime.romajiTitle !== anime.title && <p className="mt-3 text-sm text-zinc-400">{anime.romajiTitle}</p>}
+              </div>
 
-        {}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {}
-          <div className="relative">
-            <button
-              onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[var(--anilife-accent)]/20 hover:bg-[var(--anilife-accent)]/30 border border-[var(--anilife-accent)]/40 text-xs sm:text-sm font-semibold text-[var(--anilife-accent)] transition-all cursor-pointer shadow-md"
-            >
-              <span>{watchStatus}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-[var(--anilife-accent)]" />
-            </button>
-
-            {isStatusDropdownOpen && (
-              <div className="absolute top-full left-0 mt-2 w-48 rounded-2xl bg-[#0e0c18] border border-[var(--anilife-accent)]/40 p-1.5 shadow-2xl z-30 space-y-1">
-                {statusList.map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => {
-                      setAnimeWatchStatus(anime.id, st);
-                      setIsStatusDropdownOpen(false);
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
-                      watchStatus === st ? 'bg-[var(--anilife-accent)] text-black font-bold' : 'hover:bg-white/10 text-zinc-300'
-                    }`}
-                  >
-                    <span>{st}</span>
-                    {watchStatus === st && <Check className="w-3.5 h-3.5 text-black" />}
+              <div className="max-w-3xl">
+                <p className={`text-sm leading-7 text-zinc-300 sm:text-base ${synopsisExpanded ? '' : 'line-clamp-6 sm:line-clamp-none'}`}>{anime.synopsis || 'Synopsis unavailable.'}</p>
+                {anime.synopsis && (
+                  <button type="button" onClick={() => setSynopsisExpanded((value) => !value)} className="mt-2 text-xs font-bold text-[var(--anilife-accent)] sm:hidden">
+                    {synopsisExpanded ? 'Show less' : 'Read full synopsis'}
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {}
-          <button
-            onClick={() => toggleEpisodeWatched(currentEpNum)}
-            className="p-2.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-            title="Toggle watched"
-          >
-            {watchedEpisodes[currentEpNum] ? (
-              <Eye className="w-4 h-4 text-[var(--anilife-accent)]" />
-            ) : (
-              <EyeOff className="w-4 h-4" />
-            )}
-          </button>
-
-          {}
-          <button
-            onClick={() => {
-              onClose();
-              playAnimeEpisode(anime, currentEpNum);
-            }}
-            className="flex-1 min-w-[160px] flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs sm:text-sm transition-all shadow-lg shadow-[var(--anilife-accent-shadow)] cursor-pointer"
-          >
-            <Play className="w-4 h-4 fill-black" />
-            <span>Continue {currentEpNum}</span>
-          </button>
-        </div>
-
-        {}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Episode {currentEpNum} of {allEpisodes.length}</span>
-            <span className="text-[var(--anilife-accent)]">{progressPercent}%</span>
-          </div>
-          <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div
-              className="h-full bg-[var(--anilife-accent)] rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {}
-        <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-          {(['Home', 'Episodes', 'Related'] as const).map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[var(--anilife-accent)] text-black shadow-md shadow-[var(--anilife-accent-shadow)]'
-                    : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white'
-                }`}
-              >
-                {tab}
-              </button>
-            );
-          })}
-        </div>
-
-        {}
-        {activeTab === 'Home' && (
-          <div className="space-y-6 animate-fadeIn">
-            {}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
-                <div className="font-bold text-sm sm:text-base text-white">{anime.status}</div>
-                <div className="text-[11px] text-zinc-400 uppercase tracking-wider mt-0.5">Status</div>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
-                <div className="font-bold text-sm sm:text-base text-white">{anime.format}</div>
-                <div className="text-[11px] text-zinc-400 uppercase tracking-wider mt-0.5">Format</div>
-              </div>
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-center">
-                <div className="font-bold text-sm sm:text-base text-white">{anime.year}</div>
-                <div className="text-[11px] text-zinc-400 uppercase tracking-wider mt-0.5">Year</div>
-              </div>
-            </div>
-
-            {}
-            <div className="flex flex-wrap gap-2">
-              {anime.genres.map((g) => (
-                <span
-                  key={g}
-                  className="px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-[var(--anilife-accent)]/20 text-xs font-medium text-zinc-300"
-                >
-                  {g}
-                </span>
-              ))}
-            </div>
-
-            {}
-            <div className="space-y-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-300">Overview</h3>
-              <p className={`text-sm text-zinc-300 leading-relaxed ${isOverviewExpanded ? '' : 'line-clamp-3'}`}>
-                {anime.synopsis}
-              </p>
-              <button
-                onClick={() => setIsOverviewExpanded(!isOverviewExpanded)}
-                className="text-xs font-semibold text-[var(--anilife-accent)] hover:underline cursor-pointer"
-              >
-                {isOverviewExpanded ? 'Show less' : 'More'}
-              </button>
-            </div>
-
-            {}
-            <div className="divide-y divide-white/10 text-xs sm:text-sm">
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-zinc-400">Start date</span>
-                <span className="font-medium text-white">{anime.startDate}</span>
-              </div>
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-zinc-400">Season</span>
-                <span className="font-medium text-white">{anime.seasonName} {anime.year}</span>
-              </div>
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-zinc-400">Members</span>
-                <span className="font-medium text-white">{anime.membersCount.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {}
-        {activeTab === 'Episodes' && (
-          <div className="space-y-5 animate-fadeIn">
-            {}
-            <div className="flex gap-2">
-              {anime.seasons.map((s, idx) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedSeasonIdx(idx)}
-                  className={`px-4 py-2 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                    selectedSeasonIdx === idx
-                      ? 'bg-[var(--anilife-accent)] text-black shadow-md shadow-[var(--anilife-accent-shadow)]'
-                      : 'bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/5'
-                  }`}
-                >
-                  <div>{s.title}</div>
-                  <div className="text-[10px] text-zinc-400">{s.year}</div>
-                </button>
-              ))}
-            </div>
-
-            {}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 min-w-[200px]">
-                <input
-                  type="text"
-                  value={episodeSearch}
-                  onChange={(e) => setEpisodeSearch(e.target.value)}
-                  placeholder="Filter episodes..."
-                  className="w-full pl-9 pr-3 py-2 rounded-2xl bg-white/5 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[var(--anilife-accent)]"
-                />
-                <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                )}
               </div>
 
-              <button
-                onClick={() => setSortOldest(!sortOldest)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-300 font-medium transition-colors cursor-pointer"
-              >
-                <ArrowUpDown className="w-3.5 h-3.5 text-[var(--anilife-accent)]" />
-                <span>{sortOldest ? 'Oldest' : 'Newest'}</span>
-              </button>
-
-              <button
-                onClick={() => setIsGridView(!isGridView)}
-                className="p-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                title="Toggle Grid / List"
-              >
-                {isGridView ? <List className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
-              </button>
-            </div>
-
-            {}
-            <div className="space-y-3">
-              <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">
-                {allEpisodes.length === 0 ? 'Not yet aired' : `${allEpisodes.length} episodes`}
-              </div>
-
-              {allEpisodes.length === 0 && (
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-zinc-400">
-                  This anime has not aired yet, so there are no episodes to play.
+              {anime.genres.length > 0 && (
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-zinc-400">
+                  {anime.genres.map((genre) => <span key={genre}>{genre}</span>)}
                 </div>
               )}
 
-              <div className={isGridView ? 'grid grid-cols-2 sm:grid-cols-3 gap-3' : 'space-y-2'}>
-                {filteredEpisodes.map((ep) => {
-                  const isEpWatched = !!watchedEpisodes[ep.number];
-                  const unreleased = isEpisodeUnreleased(ep);
+              <div className="flex flex-wrap items-center gap-3">
+                {currentEpisode ? (
+                  <button type="button" onClick={() => playAnimeEpisode(anime, currentEpisode.number, continueEntry?.audioMode || 'SUB')} className="anilife-button anilife-button-primary">
+                    <Play className="h-4 w-4 fill-current" />
+                    {continueEntry ? `Continue episode ${currentEpisode.number}` : `Watch episode ${currentEpisode.number}`}
+                  </button>
+                ) : (
+                  <span className="inline-flex min-h-11 items-center rounded-lg border border-white/10 bg-white/5 px-4 text-sm font-semibold text-zinc-300">
+                    {anime.status === 'Not Yet Aired' ? 'Upcoming - no episodes aired' : 'Release status not confirmed'}
+                  </span>
+                )}
 
-                  
-                  const durationDisplay = ep.durationSec && ep.durationSec > 0
-                    ? `${Math.round(ep.durationSec / 60)}m`
-                    : (ep.airedDate ? ep.airedDate : '');
-
-                  return (
-                    <div
-                      key={ep.id}
-                      onClick={() => {
-                        if (unreleased) {
-                          showToast(`Episode ${ep.number} has not aired yet!`);
-                          return;
-                        }
-                        onClose();
-                        playAnimeEpisode(anime, ep.number);
-                      }}
-                      className={`group flex ${
-                        isGridView ? 'flex-col' : 'items-center'
-                      } justify-between gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${
-                        unreleased
-                          ? 'bg-white/[0.02] border-white/5 opacity-60 hover:opacity-75'
-                          : 'bg-white/5 border-white/10 hover:border-[var(--anilife-accent)]/40 hover:bg-white/10'
-                      }`}
-                    >
-                      <div className={`flex ${isGridView ? 'flex-col' : 'items-center'} gap-3 flex-1 min-w-0`}>
-                        {}
-                        <div className="relative aspect-video w-full sm:w-36 rounded-xl overflow-hidden shrink-0 bg-zinc-900 flex items-center justify-center">
-                          {unreleased ? (
-                            <div className="flex flex-col items-center justify-center text-zinc-500 p-2 text-center space-y-1">
-                              <Lock className="w-5 h-5 text-zinc-500" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">Unreleased</span>
-                            </div>
-                          ) : (
-                            <img
-                              src={ep.thumbnail || anime.posterImage}
-                              alt={ep.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = anime.posterImage;
-                              }}
-                            />
-                          )}
-
-                          <span className={`absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                            unreleased ? 'bg-zinc-800/90 text-zinc-400' : 'bg-black/80 text-white'
-                          }`}>
-                            EP {ep.number}
-                          </span>
-
-                          {}
-                          {isEpWatched && !unreleased && (
-                            <div className="absolute bottom-0 inset-x-0 h-1 bg-[var(--anilife-accent)]" />
-                          )}
-                        </div>
-
-                        {}
-                        <div className="min-w-0 flex-1">
-                          <h4 className={`font-semibold text-sm truncate ${
-                            unreleased ? 'text-zinc-400' : 'text-white group-hover:text-[var(--anilife-accent)] transition-colors'
-                          }`}>
-                            {ep.title}
-                          </h4>
-                          <p className="text-xs text-zinc-400 mt-0.5">
-                            {unreleased ? (
-                              <span className="text-[var(--anilife-accent)]/80 font-medium flex items-center gap-1">
-                                <Clock className="w-3 h-3 inline" /> Airing {ep.airedDate || 'Soon'}
-                              </span>
-                            ) : (
-                              <>Episode {ep.number} {durationDisplay ? `• ${durationDisplay}` : ''}</>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-
-                      {}
-                      {!unreleased && (
-                        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleEpisodeWatched(ep.number);
-                            }}
-                            className={`p-2 rounded-full hover:bg-white/10 transition-colors ${
-                              isEpWatched ? 'text-[var(--anilife-accent)]' : 'text-zinc-500 hover:text-white'
-                            }`}
-                            title={isEpWatched ? 'Mark as unwatched' : 'Mark as watched'}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                <label className="sr-only" htmlFor="watch-status">Watch status</label>
+                <select id="watch-status" value={watchStatus} onChange={(event) => void setAnimeWatchStatus(anime.id, event.target.value as WatchStatus)} className="anilife-select">
+                  {STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
+                </select>
               </div>
-            </div>
-          </div>
-        )}
 
-        {}
-        {activeTab === 'Related' && (
-          <div className="space-y-6 animate-fadeIn">
-            {}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-300">Seasons</h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[var(--anilife-accent)]/10 border border-[var(--anilife-accent)]/40">
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[var(--anilife-accent)] text-black font-bold flex items-center justify-center text-xs">
-                      1
-                    </div>
-                    <img
-                      src={anime.posterImage}
-                      alt={anime.title}
-                      className="w-10 h-14 object-cover rounded-lg"
-                    />
-                    <div>
-                      <h4 className="font-semibold text-sm text-white">{anime.title}</h4>
-                      <p className="text-xs text-zinc-400">Season 1 • {anime.year} • {allEpisodes.length} eps</p>
-                      <span className="text-[11px] text-[var(--anilife-accent)] font-semibold">Current Season</span>
-                    </div>
-                  </div>
-                  <Play className="w-4 h-4 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
+              {progress !== null && currentEpisode && (
+                <div className="max-w-md" aria-label={`${progress}% watched`}>
+                  <div className="mb-2 flex justify-between text-xs text-zinc-400"><span>Episode {currentEpisode.number}</span><span>{progress}%</span></div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-[var(--anilife-accent)]" style={{ width: `${progress}%` }} /></div>
                 </div>
-
-                {anime.related
-                  .filter(r => r.relation.includes('Season'))
-                  .map((rel, idx) => (
-                    <div
-                      key={rel.id}
-                      onClick={() => showToast(`Opening ${rel.title}`)}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-[var(--anilife-accent)]/30 transition-all hover:bg-white/10 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-full bg-white/10 text-zinc-400 font-bold flex items-center justify-center text-xs">
-                          {idx + 2}
-                        </div>
-                        <img
-                          src={rel.poster}
-                          alt={rel.title}
-                          className="w-10 h-14 object-cover rounded-lg"
-                        />
-                        <div>
-                          <h4 className="font-semibold text-sm text-white">{rel.title}</h4>
-                          <p className="text-xs text-zinc-400">{rel.relation}</p>
-                        </div>
-                      </div>
-                      <Play className="w-4 h-4 text-zinc-400" />
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            {}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-300">More Like This</h3>
-              <div className="space-y-2">
-                {anime.related
-                  .filter(r => r.relation === 'More like this')
-                  .map((rel) => (
-                    <div
-                      key={rel.id}
-                      onClick={() => showToast(`Opening ${rel.title}`)}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-[var(--anilife-accent)]/30 transition-all hover:bg-white/10 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={rel.poster}
-                          alt={rel.title}
-                          className="w-10 h-14 object-cover rounded-lg"
-                        />
-                        <div>
-                          <h4 className="font-semibold text-sm text-white">{rel.title}</h4>
-                          <p className="text-xs text-zinc-400">{rel.format} • {rel.year}</p>
-                        </div>
-                      </div>
-                      <Play className="w-4 h-4 text-zinc-400" />
-                    </div>
-                  ))}
-              </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        </section>
+
+        <div className="mx-auto max-w-[1500px] space-y-12 px-4 py-10 sm:px-7 lg:py-14">
+          {nextAiring && anime.nextEpisode && (
+            <section className="anilife-status-card" aria-labelledby="next-airing-title">
+              <CalendarDays className="h-5 w-5 text-[var(--anilife-accent)]" />
+              <div><h2 id="next-airing-title" className="font-semibold">Episode {anime.nextEpisode.number} airs next</h2><p className="mt-1 text-sm text-zinc-400">{nextAiring} in your local time. Streaming availability may follow later.</p></div>
+            </section>
+          )}
+
+          <section aria-labelledby="episodes-title" className="space-y-5">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div><p className="anilife-eyebrow">Released episodes</p><h2 id="episodes-title" className="anilife-section-title">{airedEpisodes.length ? `${airedEpisodes.length} available` : 'Nothing released yet'}</h2></div>
+              {airedEpisodes.length > 0 && (
+                <div className="flex gap-2">
+                  <label className="relative"><span className="sr-only">Filter episodes</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" /><input value={episodeSearch} onChange={(event) => setEpisodeSearch(event.target.value)} placeholder="Find episode" className="anilife-input pl-9" /></label>
+                  <button type="button" onClick={() => setNewestFirst((value) => !value)} className="anilife-button anilife-button-secondary">{newestFirst ? 'Newest' : 'Oldest'}</button>
+                </div>
+              )}
+            </div>
+
+            {filteredEpisodes.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredEpisodes.map((episode) => (
+                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(anime, episode.number)} className="group grid grid-cols-[124px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06]">
+                    <div className="relative aspect-video h-full min-h-[88px] overflow-hidden bg-zinc-900">
+                      {(episode.thumbnail || anime.posterImage) && <img src={episode.thumbnail || anime.posterImage} alt="" loading="lazy" className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]" />}
+                      <span className="absolute left-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-bold">EP {episode.number}</span>
+                    </div>
+                    <div className="min-w-0 self-center p-3"><h3 className="line-clamp-2 text-sm font-semibold">{episode.title}</h3><p className="mt-2 flex items-center gap-1 text-xs text-zinc-500"><Clock3 className="h-3.5 w-3.5" />{episode.durationSec > 0 ? `${Math.round(episode.durationSec / 60)} min` : 'Duration unavailable'}</p></div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.025] p-8 text-sm text-zinc-400">
+                {airedEpisodes.length === 0 ? 'Episodes will appear here only after their release is confirmed.' : 'No released episodes match this search.'}
+              </div>
+            )}
+          </section>
+
+          <section aria-labelledby="details-title" className="grid gap-8 border-t border-white/10 pt-10 lg:grid-cols-[1fr_1.4fr]">
+            <div><p className="anilife-eyebrow">About</p><h2 id="details-title" className="anilife-section-title">Series details</h2></div>
+            <dl className="grid gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-zinc-500">Status</dt><dd className="mt-1 font-medium">{anime.status}</dd></div>
+              <div><dt className="text-zinc-500">Format</dt><dd className="mt-1 font-medium">{anime.format}</dd></div>
+              {anime.year > 0 && <div><dt className="text-zinc-500">Year</dt><dd className="mt-1 font-medium">{anime.year}</dd></div>}
+              {anime.studio && <div><dt className="text-zinc-500">Studio</dt><dd className="mt-1 font-medium">{anime.studio}</dd></div>}
+              {anime.membersCount > 0 && <div><dt className="text-zinc-500">AniList popularity</dt><dd className="mt-1 font-medium">{anime.membersCount.toLocaleString()}</dd></div>}
+              {anime.durationMins > 0 && <div><dt className="text-zinc-500">Episode length</dt><dd className="mt-1 font-medium">About {anime.durationMins} min</dd></div>}
+            </dl>
+          </section>
+
+          {anime.related.length > 0 && (
+            <section aria-labelledby="related-title" className="space-y-5 border-t border-white/10 pt-10">
+              <div><p className="anilife-eyebrow">Keep exploring</p><h2 id="related-title" className="anilife-section-title">Related titles</h2></div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {anime.related.map((related) => (
+                  <a key={related.id} href={`/anime/${related.id}`} onClick={(event) => openRelated(event, related.id)} className="flex min-h-24 gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3 transition hover:border-[var(--anilife-accent)]/50">
+                    {related.poster && <img src={related.poster} alt="" loading="lazy" className="aspect-[2/3] w-12 rounded-md object-cover" />}
+                    <div className="min-w-0 self-center"><h3 className="line-clamp-2 text-sm font-semibold">{related.title}</h3><p className="mt-1 text-xs text-zinc-500">{related.relation}</p></div>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
+
+      {notice && <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-white/15 bg-zinc-950 px-4 py-3 text-sm shadow-2xl" role="status" aria-live="polite"><Check className="h-4 w-4 text-[var(--anilife-accent)]" />{notice}</div>}
     </div>
   );
 };
-

@@ -69,14 +69,14 @@ await check('app shell', async () => {
 });
 
 await check('deep links serve the shell', async () => {
-  for (const path of ['/anime/151807', '/discover', '/settings']) {
+  for (const path of ['/anime/151807', '/discover', '/downloads', '/settings']) {
     const response = await fetch(`${base}${path}`);
     assert(response.ok, `${path} status ${response.status}`);
     assert(response.headers.get('content-type')?.includes('text/html'), `${path} is not HTML`);
     const html = await response.text();
     assert(html.includes('id="root"'), `${path} shell missing`);
   }
-  return 'anime, discover, settings';
+  return 'anime, discover, downloads, settings';
 });
 
 await check('PWA manifest', async () => {
@@ -91,7 +91,7 @@ await check('service worker', async () => {
   const response = await fetch(`${base}/sw.js`);
   assert(response.ok, `status ${response.status}`);
   const text = await response.text();
-  assert(text.includes('anilife-shell'), 'shell cache missing');
+  assert(text.includes("anilife-shell-v4"), 'current shell cache missing');
   return `status ${response.status}`;
 });
 

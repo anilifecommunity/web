@@ -102,11 +102,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   subtitleOffsetSec: 0,
 
   
-  activeServer: 'reanime',
+  activeServer: 'zoko',
   serverPriority: [...WEB_PROVIDER_IDS],
   enabledServers: [...WEB_PROVIDER_IDS],
   serverOrderVersion: 2,
-  serverCatalogVersion: 2,
+  serverCatalogVersion: 3,
 
   
   hideAdultContent: true,
@@ -161,8 +161,13 @@ function normalizeProviderLists(settings: AppSettings): AppSettings {
 
   // One-time catalogue migration: existing viewers should see newly added fallback servers.
   // After the version is stored, an explicit disable is preserved.
-  if ((settings.serverCatalogVersion ?? 0) !== 2) {
-    const additions = ['vidsrc', 'vidlink', '2embed'].filter((id) => known.has(id));
+  const catalogVersion = settings.serverCatalogVersion ?? 0;
+  if (catalogVersion < 3) {
+    const additions = [
+      ...(catalogVersion < 2 ? ['vidsrc', 'vidlink', '2embed'] : []),
+      'zoko',
+      'animeembed',
+    ].filter((id) => known.has(id));
     enabled = [...new Set([...enabled, ...additions])];
   }
 
@@ -171,7 +176,7 @@ function normalizeProviderLists(settings: AppSettings): AppSettings {
     serverPriority: priority,
     enabledServers: enabled,
     serverOrderVersion: 2,
-    serverCatalogVersion: 2,
+    serverCatalogVersion: 3,
   };
 }
 
@@ -202,13 +207,19 @@ export function loadSettings(): AppSettings {
       };
     }
     const stored = JSON.parse(raw) as Partial<AppSettings>;
-    return normalizeProviderLists({
+    const normalized = normalizeProviderLists({
       ...DEFAULT_SETTINGS,
       ...stored,
       themePreferenceExplicit: stored.themePreferenceExplicit ?? true,
       serverOrderVersion: stored.serverOrderVersion ?? 0,
       serverCatalogVersion: stored.serverCatalogVersion ?? 0,
     });
+    try {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(normalized));
+    } catch {
+      // Storage can be blocked in private browsing; keep the safe in-memory migration.
+    }
+    return normalized;
   } catch {
     return DEFAULT_SETTINGS;
   }

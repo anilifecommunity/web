@@ -16,7 +16,6 @@ const AnimeDetailModal = lazy(() => import('./components/AnimeDetailModal').then
 const VideoPlayer = lazy(() => import('./components/VideoPlayer').then((module) => ({ default: module.VideoPlayer })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then((module) => ({ default: module.SettingsModal })));
 const RandomPickModal = lazy(() => import('./components/RandomPickModal').then((module) => ({ default: module.RandomPickModal })));
-const NotificationsModal = lazy(() => import('./components/NotificationsModal').then((module) => ({ default: module.NotificationsModal })));
 const CrunchyrollProfileScreen = lazy(() => import('./components/CrunchyrollProfileScreen').then((module) => ({ default: module.CrunchyrollProfileScreen })));
 const AniListAuthModal = lazy(() => import('./components/AniListAuthModal').then((module) => ({ default: module.AniListAuthModal })));
 const AppIntro = lazy(() => import('./components/AppIntro').then((module) => ({ default: module.AppIntro })));
@@ -43,8 +42,6 @@ const AppContent: React.FC = () => {
     setShowSettingsModal,
     showRandomModal,
     setShowRandomModal,
-    showNotificationsModal,
-    setShowNotificationsModal,
     showProfileModal,
     setShowProfileModal,
     showAuthModal,
@@ -79,7 +76,6 @@ const AppContent: React.FC = () => {
       activeVideo ||
       showSettingsModal ||
       showRandomModal ||
-      showNotificationsModal ||
       showAuthModal ||
       showProfileModal ||
       routeError ||
@@ -131,9 +127,11 @@ const AppContent: React.FC = () => {
           settings.navigationLayout === 'sidebar' ? 'md:pl-16' : ''
         }`}
       >
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[250] focus:rounded-full focus:bg-[var(--anilife-accent)] focus:px-4 focus:py-2 focus:font-bold focus:text-black">
+          Skip to content
+        </a>
         <HeaderNav />
-
-        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-5">
+        <main id="main-content" tabIndex={-1} className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-5">
           <Suspense fallback={<LoadingSurface />}>
             {activeTab === 'home' && <HomeFeed />}
             {activeTab === 'search' && <BrowseSearch />}
@@ -172,13 +170,13 @@ const AppContent: React.FC = () => {
       {routeError && (
         <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#12101e] p-6 text-center shadow-2xl">
-            <h2 className="text-lg font-bold text-white">Title not found</h2>
+            <h2 className="text-lg font-bold text-white">Unable to open this page</h2>
             <p className="mt-2 text-sm text-zinc-400">{routeError}</p>
             <button
               onClick={() => setRouteError(null)}
               className="mt-5 rounded-full bg-[var(--anilife-accent)] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
             >
-              Back to Home
+              Close
             </button>
           </div>
         </div>
@@ -276,10 +274,6 @@ const AppContent: React.FC = () => {
       )}
 
       {}
-      {showNotificationsModal && (
-        <NotificationsModal onClose={() => setShowNotificationsModal(false)} />
-      )}
-
       {}
       {showAuthModal && (
         <AniListAuthModal onClose={() => setShowAuthModal(false)} />

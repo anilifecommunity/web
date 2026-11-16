@@ -5,6 +5,45 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-15
+
+### Added
+
+- Added a first-class `/downloads` route for the six signed Android and Android TV APKs from the
+  validated stable release index, including responsive navigation and fail-closed retry states.
+- Added Zoko and AnimeEmbed player adapters with strict, origin-checked progress events.
+- Added a visible Help link to `docs.anilife.cc` and raw-player safety guidance for Brave, Firefox,
+  uBlock Origin and uBlock Origin Lite.
+
+### Changed
+
+- Reworked the Home, Discover, Library, Schedule, details and player experiences into one compact,
+  artwork-led responsive design for desktop, tablet and phone.
+- Added restrained gradients, highlights and accent glows to primary actions and selected states.
+- Rebuilt playback around four browser-proven anonymous sources. Zoko is Server 1 and the default;
+  existing explicit source choices remain preserved.
+- Replaced invented episode totals, runtimes, badges, progress and demo catalogue entries with
+  AniList-backed or explicitly unknown states.
+
+### Fixed
+
+- Prevented upcoming, unknown and stale episode links from opening unrelated or unaired media.
+- Removed inert notifications, context menus and profile entrances, and made visible navigation,
+  details, sharing, filtering and source controls functional and keyboard accessible.
+- Fixed the intro preference lookup, mobile header behavior, deep-route recovery and catalogue
+  migrations for the v3 source list.
+- Persisted the v3 server migration back to browser storage, fixed the service-worker registration
+  race, and reloads once when a new worker takes control so Brave cannot remain on an old bundle.
+
+### Security and reliability
+
+- Kept all playback resolution behind fixed provider ids and fixed HTTPS origins; no arbitrary
+  proxy or browser-side GitHub API access was introduced.
+- Preserved the HMAC-authenticated release-index publisher, byte-identical public endpoint and
+  D1-backed 75 percent R2 usage hard stop.
+- Verified TypeScript, 120 tests, production build, Worker smoke, responsive accessibility checks,
+  Firefox and WebKit behavior before release.
+
 ## [0.1.0] - 2026-11-13
 
 First stable Anilife Web release, aligned with Anilife Android/TV 0.1.0. This release covers the
@@ -91,5 +130,6 @@ browser and PWA client at `https://anilife.cc`.
 - AniList does not issue refresh tokens; reauthentication is expected.
 - Episode downloads are disabled by product decision.
 
-[Unreleased]: https://github.com/anilifecommunity/web/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/anilifecommunity/web/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/anilifecommunity/web/releases/tag/v0.1.2
 [0.1.0]: https://github.com/anilifecommunity/web/releases/tag/v0.1.0

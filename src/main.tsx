@@ -8,6 +8,8 @@ import {
 } from './data/idb';
 import { recordDiagnostic } from './data/diagnostics';
 
+const SERVICE_WORKER_VERSION = '4';
+
 /**
  * Restore a missing localStorage from IndexedDB before React reads it, then mirror the current
  * document back. A failure here must never stop the app from rendering: localStorage is still the
@@ -29,7 +31,20 @@ async function bootstrap(): Promise<void> {
   createRoot(document.getElementById('root')!).render(<App />);
 
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    const registerServiceWorker = () => {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          const reloadKey = `anilife_sw_reload_v${SERVICE_WORKER_VERSION}`;
+          try {
+            if (sessionStorage.getItem(reloadKey)) return;
+            sessionStorage.setItem(reloadKey, '1');
+          } catch {
+            // A controller changes only once per deployed worker, so a storage failure cannot loop.
+          }
+          window.location.reload();
+        }, { once: true });
+      }
+
       navigator.serviceWorker
         .getRegistrations()
         .then((registrations) =>
@@ -48,12 +63,15 @@ async function bootstrap(): Promise<void> {
         .catch(() => undefined);
 
       navigator.serviceWorker
-        .register('/sw.js?v=3', { updateViaCache: 'none' })
+        .register(`/sw.js?v=${SERVICE_WORKER_VERSION}`, { updateViaCache: 'none' })
         .then((registration) => registration.update().catch(() => undefined))
         .catch((error) => {
           console.warn('[pwa] service worker registration failed', error);
         });
-    });
+    };
+
+    if (document.readyState === 'complete') registerServiceWorker();
+    else window.addEventListener('load', registerServiceWorker, { once: true });
   }
 }
 

@@ -4,6 +4,8 @@ import { resolveAnimeHeaven } from './animeheaven';
 import { resolveReanime } from './reanime';
 import { resolveVidSrc } from './vidsrc';
 import { resolveEmbedAggregator } from './embedAggregators';
+import { resolveZoko } from './zoko';
+import { resolveAnimeEmbed } from './animeEmbed';
 
 /**
  * Adapters implemented in this Worker. Keyed by provider id; a provider absent here is not
@@ -11,6 +13,8 @@ import { resolveEmbedAggregator } from './embedAggregators';
  */
 export const ADAPTERS: Record<string, ProviderAdapter> = {
   anichan: resolveAnichan,
+  zoko: resolveZoko,
+  animeembed: resolveAnimeEmbed,
   animeheaven: resolveAnimeHeaven,
   reanime: resolveReanime,
   vidsrc: resolveVidSrc,

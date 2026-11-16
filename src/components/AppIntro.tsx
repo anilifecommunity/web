@@ -5,34 +5,21 @@ interface AppIntroProps {
 }
 
 export const AppIntro: React.FC<AppIntroProps> = ({ onFinish }) => {
-  const [progress, setProgress] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [imgSrc, setImgSrc] = useState('/assets/images/Anilife-Animated-Logo-V4.gif');
 
   useEffect(() => {
-    const startTime = Date.now();
-    const duration = 2200; 
+    const finishTimer = window.setTimeout(() => {
+      setIsFadingOut(true);
+      window.setTimeout(() => {
+        try {
+          sessionStorage.setItem('anilife_intro_seen', '1');
+        } catch {}
+        onFinish();
+      }, 350);
+    }, 2200);
 
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const pct = Math.min(100, Math.round((elapsed / duration) * 100));
-      setProgress(pct);
-
-      if (pct >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setIsFadingOut(true);
-          setTimeout(() => {
-            try {
-              sessionStorage.setItem('anilife_intro_seen', '1');
-            } catch {}
-            onFinish();
-          }, 350);
-        }, 150);
-      }
-    }, 25);
-
-    return () => clearInterval(interval);
+    return () => window.clearTimeout(finishTimer);
   }, [onFinish]);
 
   return (
@@ -56,16 +43,8 @@ export const AppIntro: React.FC<AppIntroProps> = ({ onFinish }) => {
         </div>
 
         {}
-        <div className="w-56 sm:w-64 flex flex-col items-center space-y-2">
-          <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
-            <div
-              className="h-full bg-[var(--anilife-accent)] rounded-full transition-all duration-75 shadow-[0_0_12px_var(--anilife-accent)]"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="text-[11px] font-medium text-zinc-500 tracking-wider">
-            Loading Anilife...
-          </div>
+        <div className="text-[11px] font-medium text-zinc-500 tracking-wider">
+          Welcome to Anilife
         </div>
       </div>
     </div>

@@ -40,7 +40,35 @@ test('a releasing anime only exposes episodes before the next airing', () => {
 });
 
 test('a finished anime exposes its full episode count', () => {
-  const anime = convertAniListToAnime(media({ status: 'FINISHED', episodes: 12 }));
+  const anime = convertAniListToAnime(media({ status: 'FINISHED', episodes: 134 }));
   assert.equal(anime.status, 'Finished');
-  assert.equal(anime.seasons[0].episodes.length, 12);
+  assert.equal(anime.seasons[0].episodes.length, 134);
+});
+
+test('unknown releasing metadata stays honest', () => {
+  const anime = convertAniListToAnime(media({
+    averageScore: undefined,
+    duration: undefined,
+    episodes: 24,
+    genres: undefined,
+    popularity: undefined,
+    season: undefined,
+    seasonYear: undefined,
+    status: 'RELEASING',
+    format: undefined,
+  }));
+  assert.equal(anime.seasons[0].episodes.length, 0);
+  assert.equal(anime.score, 0);
+  assert.equal(anime.year, 0);
+  assert.equal(anime.durationMins, 0);
+  assert.equal(anime.format, 'Unknown');
+  assert.deepEqual(anime.genres, []);
+  assert.equal(anime.membersCount, 0);
+  assert.equal(anime.hasDub, false);
+  assert.equal(anime.hasSub, false);
+});
+
+test('unknown duration does not invent a 24 minute runtime', () => {
+  const anime = convertAniListToAnime(media({ status: 'FINISHED', episodes: 1, duration: undefined }));
+  assert.equal(anime.seasons[0].episodes[0].durationSec, 0);
 });

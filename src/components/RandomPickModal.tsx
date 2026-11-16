@@ -10,23 +10,17 @@ const RANDOM_CATEGORIES = [
   'Comedy',
   'Drama',
   'Fantasy',
-  'Isekai',
   'Romance',
   'Sci-Fi',
   'Slice of Life',
   'Supernatural',
   'Mystery',
-  'Psychological',
   'Sports',
-  'Shounen',
-  'Seinen',
   'Dubbed',
   'Top Rated'
 ] as const;
 
 type RandomCategory = (typeof RANDOM_CATEGORIES)[number];
-
-const ANIME_FALLBACK_IMAGE = 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587-n2hr0omr9adP.jpg';
 
 export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { playAnimeEpisode, setSelectedAnime, liveCatalog, settings } = useApp();
@@ -45,13 +39,17 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
   }, [liveCatalog, selectedFilter]);
 
   const [pickedAnime, setPickedAnime] = useState<Anime>(() => {
-    const list = availableAnime.length > 0 ? availableAnime : liveCatalog;
-    return list[Math.floor(Math.random() * list.length)] || liveCatalog[0];
+    return availableAnime[Math.floor(Math.random() * availableAnime.length)];
   });
 
   const rollDice = () => {
     setIsRolling(true);
-    const candidates = availableAnime.length > 0 ? availableAnime : liveCatalog;
+    const candidates = availableAnime;
+
+    if (candidates.length === 0) {
+      setIsRolling(false);
+      return;
+    }
 
     setTimeout(() => {
       let nextPick = candidates[Math.floor(Math.random() * candidates.length)];
@@ -75,18 +73,15 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
         a.genres && a.genres.some((g) => g.toLowerCase() === category.toLowerCase())
       );
     }
-    const pool = filtered.length > 0 ? filtered : liveCatalog;
-    setPickedAnime(pool[Math.floor(Math.random() * pool.length)]);
+    setPickedAnime(filtered[Math.floor(Math.random() * filtered.length)]);
   };
 
-  if (!pickedAnime) return null;
-
-  const displayTitle =
+  const displayTitle = pickedAnime && (
     settings.titleLanguage === 'romaji'
       ? pickedAnime.romajiTitle || pickedAnime.title
       : settings.titleLanguage === 'native'
       ? pickedAnime.nativeTitle || pickedAnime.romajiTitle || pickedAnime.title
-      : pickedAnime.title || pickedAnime.romajiTitle;
+      : pickedAnime.title || pickedAnime.romajiTitle);
 
   return (
     <div
@@ -135,35 +130,32 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
         {/* Anime Showcase Card */}
         <div className="relative rounded-2xl overflow-hidden aspect-video bg-zinc-900 border border-zinc-800 shadow-xl group">
-          <img
-            src={pickedAnime.bannerImage || pickedAnime.posterImage || ANIME_FALLBACK_IMAGE}
+          {pickedAnime && (pickedAnime.bannerImage || pickedAnime.posterImage) ? <img
+            src={pickedAnime.bannerImage || pickedAnime.posterImage}
             alt={displayTitle}
-            onError={(e) => {
-              e.currentTarget.src = ANIME_FALLBACK_IMAGE;
-            }}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          /> : <div className="flex h-full items-center justify-center px-6 text-center text-sm text-zinc-400">{pickedAnime ? 'Artwork is unavailable for this title.' : 'No titles match this filter.'}</div>}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
           {/* Top badges */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between">
             <span className="px-2.5 py-1 rounded-lg bg-black/75 backdrop-blur-md text-[11px] font-bold text-white flex items-center gap-1">
               <Star className="w-3 h-3 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
-              <span>{pickedAnime.score || 75}%</span>
+              {pickedAnime?.score > 0 && <span>{pickedAnime.score}%</span>}
             </span>
             <span className="px-2 py-0.5 rounded-md bg-[var(--anilife-accent)] text-black text-[10px] font-bold">
-              {pickedAnime.format || 'TV'}
+              {pickedAnime?.format || 'Unknown'}
             </span>
           </div>
 
           {/* Bottom details */}
           <div className="absolute bottom-0 inset-x-0 p-4 space-y-1.5">
-            <h3 className="text-xl font-bold text-white line-clamp-1">{displayTitle}</h3>
+            {pickedAnime && <h3 className="text-xl font-bold text-white line-clamp-1">{displayTitle}</h3>}
             <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed">
-              {pickedAnime.synopsis}
+              {pickedAnime?.synopsis}
             </p>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {pickedAnime.genres?.slice(0, 3).map((g) => (
+              {pickedAnime?.genres?.slice(0, 3).map((g) => (
                 <span
                   key={g}
                   className="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-semibold text-zinc-300"
@@ -179,7 +171,7 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
         <div className="flex items-center gap-3 pt-2">
           <button
             onClick={rollDice}
-            disabled={isRolling}
+            disabled={isRolling || availableAnime.length === 0}
             className="flex-1 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isRolling ? 'animate-spin' : ''}`} />
@@ -188,9 +180,11 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
           <button
             onClick={() => {
+              if (!pickedAnime) return;
               onClose();
               setSelectedAnime(pickedAnime);
             }}
+            disabled={!pickedAnime}
             className="px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             title="Details"
           >
@@ -199,9 +193,11 @@ export const RandomPickModal: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
           <button
             onClick={() => {
+              if (!pickedAnime) return;
               onClose();
               playAnimeEpisode(pickedAnime, 1);
             }}
+            disabled={!pickedAnime}
             className="flex-1 py-3 rounded-xl bg-[var(--anilife-accent)] hover:bg-[var(--anilife-accent-hover)] text-black font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-[0_0_12px_var(--anilife-accent-shadow)] cursor-pointer"
           >
             <Play className="w-4 h-4 fill-black" />

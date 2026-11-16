@@ -9,6 +9,7 @@ import {
   createOAuthState,
   savePendingOAuthState,
 } from './oauth';
+import { STORAGE_KEYS } from '../data/keys';
 
 export { clearOAuthToken, isAniListAuthError, loadOAuthToken, saveOAuthToken } from './oauth';
 
@@ -560,7 +561,7 @@ export async function deleteUserMediaListEntry(token: string, id: number): Promi
 
 
 
-const CATALOG_CACHE_KEY = 'anilife_live_catalog_cache_v4';
+const CATALOG_CACHE_KEY = STORAGE_KEYS.LIVE_CATALOG_CACHE;
 const USER_DATA_CACHE_KEY = 'anilife_anilist_data_v3';
 
 export function loadCachedCatalog(): any[] | null {

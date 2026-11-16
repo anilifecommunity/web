@@ -1,75 +1,49 @@
 # Source and downstream research
 
-Evidence date: 2026-11-08. A host name is not a working integration. Only Reanime is promoted to
-playback. Everything else is registered, documented and inactive unless a dated browser test shows
-a permitted stream starting.
+Evidence date: 2026-11-15. A reachable page is not a working integration. Anilife enables a source
+only after a permitted, stable title/episode route starts the correct media in a real browser.
 
-## Anime catalogue / discovery candidates
+## Enabled source paths
 
-| Candidate | Role | Status | Dated evidence |
+| Source path | Role | Status | Evidence |
 | --- | --- | --- | --- |
-| Reanime | Catalogue + Flixcloud embed | **ENABLED** | `/api/flix/{aniListId}/{episode}` returns a per-audio embed; Chromium playback and Mark watched verified. |
-| AniChan | Worker metadata | **INACTIVE** | `/api/watch/servers` returns an empty list for every tested title; adapter kept for re-test but not offered. |
-| AnimePahe | Catalogue + native player | **BLOCKED** | Homepage returned 403 from Cloudflare with `X-Frame-Options: SAMEORIGIN`; its resolver is WebView-only. No bypass attempted. |
-| KickAssAnime | Catalogue + CDN | **UNAVAILABLE** | `kickassanime.am` returned 410 Gone; the CDN needs `Referer` and `Origin`, which a browser cannot forge. |
-| AllAnime | Catalogue + native player | **BLOCKED** | CAPTCHA and proof-of-work gates; registered as native-only. No bypass attempted. |
-| HiAnime | Catalogue | **UNVERIFIED** | No response to a plain homepage probe and no permitted public API identified. No adapter added and no guessed endpoint hardcoded. |
-| Miruro (and child ids) | Catalogue / pipe | **UNAVAILABLE** | The pipe refuses datacenter IPs and sends no CORS headers; embeds remain unverified. |
-| ToonHub | WordPress catalogue | **UNVERIFIED** | WordPress REST search answers, but the player host and iframe policy were not confirmed. Inactive. |
+| Zoko | MAL episode iframe | **ENABLED** | One Piece episode 1 sub and dub loaded 24:37 media, played beyond five minutes, and emitted documented progress events in Chromium. |
+| Reanime to Flixcloud | Catalogue metadata + player host | **ENABLED** | The Worker resolved One Piece episode 1 sub and dub; Chromium played both beyond five minutes. |
+| AnimeEmbed | AniList episode iframe | **ENABLED** | One Piece episode 1 sub and dub loaded 24:37 media, played beyond five minutes, and emitted versioned progress events. |
+| AniZip to VidLink | AniList-to-TMDB mapping + embed index | **ENABLED** | One Piece episode 1 mapped to the correct 24:37 player and media advanced. First interactions opened third-party advertising tabs. |
 
-## Downstream embed indexes and player hosts
+Flixcloud is downstream-only and is never exposed as a separate server. The product shows all four
+source paths anonymously as Server 1 through Server 4.
 
-These are not selectable servers. A catalogue adapter must first produce a title/episode-specific
-id for the host. The same registry is served read-only at `GET /api/providers` as `downstreams`.
+## Fresh browser failures
 
-| Host | Role | Status | Observed on 2026-11-08 |
-| --- | --- | --- | --- |
-| Flixcloud | Player host | **IN USE** | Reanime embed loads and plays in Chromium; no `X-Frame-Options` or blocking `frame-ancestors`. |
-| VidSrc | Embed index | **IN USE (fallback)** | AniZip maps AniList id/episode to TMDB; embed page 200, no frame blocking. Iframe loads; media startup needs a user test. |
-| Vidstream | Player host | Embeddable, unmapped | Homepage 200, no frame blocking. Requires a host-specific id from a source. |
-| VidCloud / VidWish | Player host | Unverified | No current first-party origin confirmed; alias claims were not treated as fact. |
-| MegaCloud | Player host | Iframe blocked | Homepage 200 with `X-Frame-Options: SAMEORIGIN`. |
-| Streamtape | Player host | Embeddable, unmapped | Homepage 200, no frame blocking. Approved API scope and rights not established. |
-| Filemoon | Player host | Embeddable, unmapped | Homepage 200, no frame blocking. Requires a file or embed id. |
-| Vidmoly | Player host | Requires auth | Homepage 401. Authentication was not bypassed. |
-| MP4Upload | Player host | Iframe blocked | Homepage 200 with `X-Frame-Options: SAMEORIGIN`. |
+| Candidate | Result |
+| --- | --- |
+| VidSrc | Correct outer episode route, but the child player became `about:blank`; no media. |
+| 2Embed | Expected episode route returned a rate-limit page; no media. |
+| AniLink | Documented route returned `stream-source-unavailable`. |
+| Vidy | Cloudflare challenge only. |
+| JustPlay | Player reported it could not play media and remained at 0:00. |
+| Aniweeb | Host returned 502. |
 
-## VidSrc-style embed aggregators
+## Other inactive categories
 
-These accept a TMDB or IMDb id. AniZip supplies the mapping. They are separate anonymous fallback
-servers, not defaults.
+The rest of the Web V2 matrix remains inactive where it lacks a stable permitted episode mapping,
+requires a native app or WebView, is adult-only, is unreachable, or is blocked by authentication,
+CAPTCHA, Cloudflare, DRM, framing or header requirements. Anilife does not forge `Referer` or
+`Origin`, reuse clearance cookies, proxy arbitrary destinations, or guess private endpoints.
 
-| Aggregator | Status | Evidence |
-| --- | --- | --- |
-| VidSrc | **ENABLED** | AniZip -> TMDB; embed page 200, no frame blocking; iframe loads. User playback test pending. |
-| VidLink | **ENABLED** | AniZip -> TMDB; Chromium loaded a video element with the correct title and timestamps. |
-| VidFast | **REMOVED** | Stayed on "FETCHING, ONE MOMENT..." in Chromium and never started media; not offered. |
-| 2Embed | **ENABLED** | AniZip -> IMDb; 2embed.skin exposes the player embed. User playback test pending. |
-| VidNest | **BLOCKED** | Browser tunnel failed with `ERR_TUNNEL_CONNECTION_FAILED`; not added. |
-| VixSrc | **BLOCKED** | Player page opened an ad/popunder redirect in the test browser; not added. |
-| MultiEmbed / SuperEmbed | Unverified | Redirects to `streamingnow.mov` with a generated play token; not added. |
-| SmashyStream, AutoEmbed, MoviesAPI, Embed.su | Unreachable | Plain fetch failed; no adapter. |
-| Frembed | Unverified | API endpoint returned 401/Loading; no adapter. |
+Downstream hosts are not selectable servers by themselves. A verified catalogue adapter must first
+produce a title/episode-specific id, and the resulting player must pass a media-start browser test.
 
-## WCostream
+## Promotion checklist
 
-`wcostream.tv` was tested on 2026-11-08. The plain Worker request receives Cloudflare's 403
-"Just a moment" challenge, and the page sets `X-Frame-Options: SAMEORIGIN`. A real browser can load
-the page and exposes an embed such as
-`https://embed.wcostream.com/inc/embed/index.php?file=...&h=...&t=...`, but the `h`/`t` values are
-page-generated and the embed is not constructible from an AniList id. Using a browser clearance
-cookie or a proxy would bypass Cloudflare, so no adapter was added. Its Chromecast player does not
-change that: the app still needs the signed per-episode page first.
+Promoting a source requires all of the following:
 
-## Why only one additional adapter was added
+1. A stable permitted title and episode mapping.
+2. Correct sub/dub behavior without silently changing audio.
+3. Successful media startup and seek in a current browser.
+4. A bounded Worker adapter with fixed HTTPS origins and validated redirects.
+5. Registry evidence, CSP updates, tests, and documentation.
 
-VidSrc was added because AniZip supplies a real AniList-to-TMDB episode mapping and the embed page
-is reachable without bypassing a challenge. The other hosts above either require a source-specific
-file id, block framing, require authentication, or have no permitted mapping.
-
-The assignment permits a new adapter only where usage is allowed and a real test demonstrates
-successful permitted playback. None of the remaining candidates produced that evidence without
-bypassing a challenge, forging headers or inventing an endpoint. The resolver therefore keeps its
-existing adapters and marks the rest honestly. Adding an adapter later means updating
-`worker/adapters/index.ts`, the registry evidence and this table, then proving media startup in a
-browser.
+See [PROVIDERS.md](PROVIDERS.md) for the active catalogue and product behavior.

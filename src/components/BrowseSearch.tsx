@@ -409,10 +409,12 @@ export const BrowseSearch: React.FC = () => {
                     }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-[var(--anilife-accent)] flex items-center gap-1">
-                    <Star className="w-2.5 h-2.5 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
-                    <span>{anime.score}%</span>
-                  </div>
+                  {anime.score > 0 && (
+                    <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-bold text-[var(--anilife-accent)] flex items-center gap-1">
+                      <Star className="w-2.5 h-2.5 fill-[var(--anilife-accent)] text-[var(--anilife-accent)]" />
+                      <span>{anime.score}%</span>
+                    </div>
+                  )}
                   {anime.hasDub && (
                     <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-[9px] font-bold text-amber-300">
                       DUB
@@ -424,7 +426,7 @@ export const BrowseSearch: React.FC = () => {
                     {anime.title}
                   </h3>
                   <p className="text-[11px] text-zinc-400 line-clamp-1">
-                    {anime.format} • {anime.year} • {anime.genres.slice(0, 2).join(', ')}
+                    {[anime.format, anime.year || null, ...anime.genres.slice(0, 2)].filter(Boolean).join(' / ')}
                   </p>
                 </div>
               </button>

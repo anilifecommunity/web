@@ -2,8 +2,8 @@ import type { AdapterContext, PlaybackOffer, ResolveRequest } from '../../src/re
 import { ResolverError } from '../../src/resolver';
 import { readJsonCapped, safeFetch } from '../guards';
 
-const BASE = 'https://reanime.to';
-const HOSTS = new Set(['reanime.to']);
+const BASE = 'https://reanime.cz';
+const HOSTS = new Set(['reanime.cz']);
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 const MAX_JSON = 262_144;

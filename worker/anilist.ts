@@ -19,6 +19,7 @@ interface CachedTitles {
 }
 
 const cache = new Map<number, CachedTitles>();
+const availabilityCache = new Map<number, { availableBefore: number; finishedEpisodes: number; fetchedAt: number }>();
 
 const QUERY = `query ($id: Int) {
   Media(id: $id) {
@@ -26,6 +27,53 @@ const QUERY = `query ($id: Int) {
     title { english romaji native }
   }
 }`;
+
+const AVAILABILITY_QUERY = `query ($id: Int) {
+  Media(id: $id, type: ANIME) {
+    status
+    episodes
+    nextAiringEpisode { episode airingAt }
+  }
+}`;
+
+export async function isAniListEpisodeAvailable(
+  aniListId: number,
+  episode: number,
+  timeoutMs: number
+): Promise<boolean> {
+  const cached = availabilityCache.get(aniListId);
+  if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
+    return episode < cached.availableBefore || (cached.finishedEpisodes > 0 && episode <= cached.finishedEpisodes);
+  }
+  const response = await safeFetch(
+    GRAPHQL,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: AVAILABILITY_QUERY, variables: { id: aniListId } }),
+    },
+    { allowedHosts: HOSTS, timeoutMs, maxBytes: MAX_JSON }
+  );
+  if (!response.ok) return false;
+  const data = (await readJsonCapped(response, MAX_JSON)) as {
+    data?: {
+      Media?: {
+        status?: string;
+        episodes?: number | null;
+        nextAiringEpisode?: { episode?: number; airingAt?: number } | null;
+      };
+    };
+  };
+  const media = data?.data?.Media;
+  if (!media || media.status === 'NOT_YET_RELEASED' || media.status === 'CANCELLED') return false;
+  const nextEpisode = media.nextAiringEpisode?.episode;
+  const availableBefore = Number.isSafeInteger(nextEpisode) ? Number(nextEpisode) : 0;
+  const finishedEpisodes = media.status === 'FINISHED' && Number.isSafeInteger(media.episodes)
+    ? Number(media.episodes)
+    : 0;
+  availabilityCache.set(aniListId, { availableBefore, finishedEpisodes, fetchedAt: Date.now() });
+  return episode < availableBefore || (finishedEpisodes > 0 && episode <= finishedEpisodes);
+}
 
 /**
  * Reads the three canonical titles and the MAL id for a media id.
@@ -79,4 +127,5 @@ export async function fetchAniListTitles(
 
 export function resetAniListCache(): void {
   cache.clear();
+  availabilityCache.clear();
 }

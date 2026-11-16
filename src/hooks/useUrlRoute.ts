@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import { convertAniListToAnime, useApp } from '../context/AppContext';
 import { fetchAniListMediaById } from '../utils/anilistApi';
 import type { Anime } from '../types/anime';
-import { parseRoute, TAB_PATHS } from './urlRoute';
-import { canWatchEpisode } from '../utils/episodeAvailability';
+import { parseRoute, shouldPushRoute, TAB_PATHS } from './urlRoute';
 import { displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
+import { isDiscordActivity } from '../discord/activity';
+import { loadWatchSession, removeWatchSession, validateWatchSession, watchSessionPath } from '../utils/workerApi';
 
 function findLocalAnime(id: string, catalog: Anime[]): Anime | undefined {
   return catalog.find((anime) => anime.id === id);
@@ -26,76 +27,96 @@ export function useUrlRoute(): void {
     const apply = async () => {
       suppress.current = true;
       const route = parseRoute(window.location.pathname);
-
-      app.setRouteError(null);
-      app.setShowSettingsModal(false);
-      app.setShowProfileModal(false);
-      app.setSelectedAnime(null);
-      app.setActiveVideo(null);
-
-      if (route.kind === 'tab') {
-        app.setActiveTab(route.tab);
-        const canonical = TAB_PATHS[route.tab];
-        if (window.location.pathname !== canonical) {
-          window.history.replaceState(null, '', canonical);
-        }
-      } else if (route.kind === 'settings') {
-        app.setShowSettingsModal(true);
-      } else if (route.kind === 'profiles') {
-        app.setShowProfileModal(true);
-      } else if (route.kind === 'anime' || route.kind === 'watch') {
-        let anime = findLocalAnime(route.id, app.liveCatalog);
-        if (/^\d+$/.test(route.id)) {
-          const media = await fetchAniListMediaById(Number(route.id)).catch(() => null);
+      const activityPrefix = isDiscordActivity() ? '/activity' : '';
+      const withActivity = (path: string) => activityPrefix + (path === '/' ? '' : path);
+      const loadAnime = async (id: string): Promise<Anime | undefined> => {
+        let anime = findLocalAnime(id, app.liveCatalog);
+        if (/^\d+$/.test(id)) {
+          const media = await fetchAniListMediaById(Number(id)).catch(() => null);
           if (media) anime = convertAniListToAnime(media);
         }
-        if (!anime) {
-          const media = await fetchAniListMediaById(Number(route.id)).catch(() => null);
-          if (media) anime = convertAniListToAnime(media);
-        }
-        if (cancelled) return;
-        if (!anime) {
-          app.setRouteError(
-            'That title could not be found. Check the link or search for the anime again.'
-          );
-          app.setActiveTab('home');
-          window.history.replaceState(null, '', '/');
-          return;
-        }
-        if (!isAnimeVisible(anime, app.settings.hideAdultContent)) {
-          app.setRouteError('This title is hidden by your adult-content preference.');
-          app.setActiveTab('home');
-          window.history.replaceState(null, '', '/');
-          return;
-        }
-        app.rememberAnime(anime);
-        if (route.kind === 'anime') {
-          app.setSelectedAnime(anime);
-        } else {
-          if (!canWatchEpisode(anime, route.episode)) {
-            app.setRouteError(
-              anime.nextEpisode?.number === route.episode
-                ? `Episode ${route.episode} has not aired yet.`
-                : `Episode ${route.episode} is not confirmed as available yet.`
-            );
-            app.setSelectedAnime(anime);
-            window.history.replaceState(null, '', `/anime/${anime.id}`);
-          } else {
-            app.setActiveVideo({
-              anime,
-              episodeNumber: route.episode,
-              audioMode: app.settings.defaultAudioMode ?? 'SUB',
-              serverId: app.settings.activeServer,
-            });
+        return anime;
+      };
+
+      try {
+        app.setRouteError(null);
+        app.setShowSettingsModal(false);
+        app.setShowProfileModal(false);
+        app.setSelectedAnime(null);
+        app.setActiveVideo(null);
+
+        if (route.kind === 'tab') {
+          app.setActiveTab(route.tab);
+          const canonical = withActivity(TAB_PATHS[route.tab]);
+          if (window.location.pathname !== canonical) {
+            window.history.replaceState(null, '', canonical);
           }
+        } else if (route.kind === 'settings') {
+          app.setShowSettingsModal(true);
+        } else if (route.kind === 'profiles') {
+          app.setShowProfileModal(true);
+        } else if (route.kind === 'watch') {
+          const session = loadWatchSession(route.reference);
+          if (!session || session.episode !== route.episode || session.tag !== route.tag) {
+            app.setRouteError('This protected watch link is unavailable in this browser session. Open the anime page to start a new session.');
+            return;
+          }
+          const validation = await validateWatchSession(session);
+          if (!validation.ok || validation.aniListId !== session.aniListId || validation.episode !== route.episode) {
+            if (validation.status === 403 || validation.status === 410) removeWatchSession(route.reference);
+            const recoveryAnime = await loadAnime(String(session.aniListId));
+            if (recoveryAnime) app.setSelectedAnime(recoveryAnime);
+            app.setRouteError(
+              validation.status === 410
+                ? 'Your watch link has expired. Close this message and start the episode again from the anime page.'
+                : 'This protected watch link is invalid for the current browser session.'
+            );
+            return;
+          }
+          const anime = await loadAnime(String(validation.aniListId));
+          if (cancelled) return;
+          if (!anime || !isAnimeVisible(anime, app.settings.hideAdultContent)) {
+            app.setRouteError('This title is unavailable or hidden by your content preference.');
+            return;
+          }
+          app.rememberAnime(anime);
+          app.setActiveVideo({
+            anime,
+            episodeNumber: route.episode,
+            audioMode: app.settings.defaultAudioMode ?? 'SUB',
+            serverId: app.settings.activeServer,
+            watchSession: session,
+          });
+        } else if (route.kind === 'anime' || route.kind === 'legacyWatch') {
+          const anime = await loadAnime(route.id);
+          if (cancelled) return;
+          if (!anime) {
+            app.setRouteError(
+              'That title could not be found. Check the link or search for the anime again.'
+            );
+            app.setActiveTab('home');
+            window.history.replaceState(null, '', withActivity('/'));
+            return;
+          }
+          if (!isAnimeVisible(anime, app.settings.hideAdultContent)) {
+            app.setRouteError('This title is hidden by your adult-content preference.');
+            app.setActiveTab('home');
+            window.history.replaceState(null, '', withActivity('/'));
+            return;
+          }
+          app.rememberAnime(anime);
+          app.setSelectedAnime(anime);
+          if (route.kind === 'legacyWatch') {
+            window.history.replaceState(null, '', withActivity(`/anime/${anime.id}`));
+          }
+        } else {
+          app.setActiveTab('home');
         }
-      } else {
-        app.setActiveTab('home');
+      } finally {
+        window.setTimeout(() => {
+          suppress.current = false;
+        }, 0);
       }
-
-      window.setTimeout(() => {
-        suppress.current = false;
-      }, 0);
     };
 
     void apply();
@@ -117,7 +138,7 @@ export function useUrlRoute(): void {
     let path: string;
     let title = 'Anilife';
     if (app.activeVideo) {
-      path = `/anime/${app.activeVideo.anime.id}/watch/${app.activeVideo.episodeNumber}`;
+      path = watchSessionPath(app.activeVideo.watchSession);
       title = `${displayAnimeTitle(app.activeVideo.anime, app.settings.titleLanguage)} · Episode ${app.activeVideo.episodeNumber}`;
     } else if (app.selectedAnime) {
       path = `/anime/${app.selectedAnime.id}`;
@@ -144,12 +165,12 @@ export function useUrlRoute(): void {
                 : 'Anilife';
     }
 
+    if (isDiscordActivity()) path = `/activity${path === '/' ? '' : path}`;
+
     document.title = `${title} · Anilife`;
 
     if (path === window.location.pathname) return;
-    const deeper =
-      path.split('/').filter(Boolean).length > window.location.pathname.split('/').filter(Boolean).length;
-    if (deeper) window.history.pushState(null, '', path);
+    if (shouldPushRoute(window.location.pathname, path)) window.history.pushState(null, '', path);
     else window.history.replaceState(null, '', path);
   }, [
     app.activeTab,

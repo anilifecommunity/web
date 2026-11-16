@@ -27,6 +27,15 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 - Prevented episode thumbnails from overlapping titles on narrow screens.
 - Removed the duplicate desktop player scrollbar by locking the background and keeping the episode list independently scrollable.
 
+### Security and reliability
+
+- Replaced public watch URLs with opaque, session-bound routes whose encrypted authorization stays
+  out of the URL and is required by the playback resolver.
+- Blocked third-party framing by default while isolating the verified Discord Activity exception
+  to `/activity`.
+- Made first-visit sessions unique per browser, denied copied/tampered/expired watch sessions, and
+  ensured share actions expose only public anime detail links.
+
 ## [0.1.2] - 2026-11-16
 
 ### Added

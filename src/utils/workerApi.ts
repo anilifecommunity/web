@@ -13,6 +13,16 @@ export interface ResolveParams {
   fallback?: boolean;
   order?: string[];
   enabled?: string[];
+  watchSession?: WatchSession;
+}
+
+export interface WatchSession {
+  reference: string;
+  tag: string;
+  token: string;
+  aniListId: number;
+  episode: number;
+  expiresAt: number;
 }
 
 export interface ResolveAttempt {
@@ -34,6 +44,72 @@ export function setGateToken(token: string | null): void {
 
 function gateHeaders(): Record<string, string> {
   return gateToken ? { 'X-Anilife-Gate': gateToken } : {};
+}
+
+function watchStorageKey(reference: string): string {
+  return `anilife_watch_session_${reference}`;
+}
+
+export function watchSessionPath(session: WatchSession, activity = false): string {
+  const prefix = activity ? '/activity' : '';
+  return `${prefix}/watch/${session.reference}/episode-${session.episode}-${session.tag}`;
+}
+
+export function loadWatchSession(reference: string): WatchSession | null {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(watchStorageKey(reference)) ?? 'null') as Partial<WatchSession> | null;
+    if (
+      !parsed || parsed.reference !== reference || typeof parsed.tag !== 'string' ||
+      typeof parsed.token !== 'string' || !Number.isSafeInteger(parsed.aniListId) ||
+      !Number.isSafeInteger(parsed.episode) || !Number.isSafeInteger(parsed.expiresAt)
+    ) return null;
+    return parsed as WatchSession;
+  } catch {
+    return null;
+  }
+}
+
+export function removeWatchSession(reference: string): void {
+  try {
+    sessionStorage.removeItem(watchStorageKey(reference));
+  } catch {}
+}
+
+export async function createWatchSession(aniListId: number, episode: number): Promise<WatchSession | null> {
+  try {
+    const response = await fetch('/api/watch/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...gateHeaders() },
+      body: JSON.stringify({ aniListId, episode }),
+    });
+    const data = (await response.json()) as Partial<WatchSession> & { ok?: boolean };
+    if (!response.ok || data.ok !== true) return null;
+    const session = data as WatchSession;
+    sessionStorage.setItem(watchStorageKey(session.reference), JSON.stringify(session));
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+export async function validateWatchSession(session: WatchSession): Promise<{
+  ok: boolean;
+  status: number;
+  error?: string;
+  aniListId?: number;
+  episode?: number;
+}> {
+  try {
+    const response = await fetch('/api/watch/session/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...gateHeaders() },
+      body: JSON.stringify(session),
+    });
+    const data = (await response.json()) as { ok?: boolean; error?: string; aniListId?: number; episode?: number };
+    return { ...data, ok: response.ok && data.ok === true, status: response.status };
+  } catch {
+    return { ok: false, status: 0, error: 'network' };
+  }
 }
 
 function toQuery(params: ResolveParams): string {
@@ -61,7 +137,14 @@ export async function resolveEpisode(params: ResolveParams, signal?: AbortSignal
   try {
     const response = await fetch(`/api/resolve?${toQuery(params)}`, {
       signal,
-      headers: gateHeaders(),
+      headers: {
+        ...gateHeaders(),
+        ...(params.watchSession ? {
+          'X-Anilife-Watch': params.watchSession.token,
+          'X-Anilife-Watch-Reference': params.watchSession.reference,
+          'X-Anilife-Watch-Tag': params.watchSession.tag,
+        } : {}),
+      },
     });
     const data = (await response.json()) as ResolveResponse;
     if (!response.ok && data.ok !== false) {

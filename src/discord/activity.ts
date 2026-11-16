@@ -57,6 +57,7 @@ export function subscribeDiscord(listener: (next: DiscordState) => void): () => 
 
 export function isDiscordActivity(): boolean {
   if (typeof window === 'undefined') return false;
+  if (window.location.pathname === '/activity' || window.location.pathname.startsWith('/activity/')) return true;
   if (ACTIVITY_AT_BOOT) return true;
   const params = new URLSearchParams(window.location.search);
   return params.has('frame_id') && params.has('instance_id');

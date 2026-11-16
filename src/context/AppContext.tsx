@@ -8,7 +8,8 @@ import {
   WatchStatus,
   ThemePresetName
 } from '../types/anime';
-import { SERVERS } from '../utils/animeData';
+import { getAnimeAniListId, SERVERS } from '../utils/animeData';
+import { createWatchSession, type WatchSession } from '../utils/workerApi';
 import {
   DEFAULT_PROFILES,
   DEFAULT_SETTINGS,
@@ -58,6 +59,7 @@ export interface VideoPlaybackTarget {
   episodeNumber: number;
   audioMode: 'SUB' | 'DUB';
   serverId: string;
+  watchSession: WatchSession;
 }
 
 import { convertAniListToAnime } from '../utils/animeConversion';
@@ -109,7 +111,7 @@ interface AppContextType {
   updateWatchProgress: (animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number, audioMode: 'SUB' | 'DUB') => void;
   removeFromContinueWatching: (animeId: string) => void;
   setAnimeWatchStatus: (animeId: string, status: WatchStatus) => Promise<void>;
-  playAnimeEpisode: (anime: Anime, episodeNum?: number, audioMode?: 'SUB' | 'DUB') => void;
+  playAnimeEpisode: (anime: Anime, episodeNum?: number, audioMode?: 'SUB' | 'DUB') => Promise<void>;
   /** Keeps a title available locally so history rows can resolve it later. */
   rememberAnime: (anime: Anime) => void;
 
@@ -585,7 +587,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const playAnimeEpisode = (anime: Anime, episodeNum: number = 1, audioMode?: 'SUB' | 'DUB') => {
+  const playAnimeEpisode = async (anime: Anime, episodeNum: number = 1, audioMode?: 'SUB' | 'DUB') => {
     if (!isAnimeVisible(anime, settings.hideAdultContent)) {
       setSelectedAnime(null);
       setRouteError('This title is hidden by your adult-content preference.');
@@ -600,12 +602,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       return;
     }
+    const aniListId = getAnimeAniListId(anime);
+    if (!Number.isSafeInteger(aniListId)) {
+      setRouteError('This title cannot create a protected watch session because its AniList id is unavailable.');
+      return;
+    }
+    const watchSession = await createWatchSession(aniListId, episodeNum);
+    if (!watchSession) {
+      setRouteError('A protected watch session could not be created. Verify your browser and try again.');
+      return;
+    }
     setSelectedAnime(null);
     setActiveVideo({
       anime,
       episodeNumber: episodeNum,
       audioMode: audioMode || settings.defaultAudioMode || 'SUB',
-      serverId: settings.activeServer || 'zoko'
+      serverId: settings.activeServer || 'zoko',
+      watchSession,
     });
   };
 

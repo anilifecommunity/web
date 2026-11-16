@@ -20,10 +20,16 @@ Set once per Worker:
 ```bash
 npx wrangler secret put TURNSTILE_SECRET
 npx wrangler secret put GATE_SIGNING_KEY
+npx wrangler secret put WATCH_TOKEN_KEY
 ```
 
 `GATE_SIGNING_KEY` should be at least 32 random bytes, base64url encoded. Rotating it invalidates
 existing gate cookies (visitors see the check once more).
+
+`WATCH_TOKEN_KEY` should also be at least 32 random bytes and is used only by the Worker. For a
+zero-downtime rotation, first set the old value as `WATCH_TOKEN_PREVIOUS_KEY`, replace
+`WATCH_TOKEN_KEY`, deploy, wait four hours (the maximum watch-session lifetime), then delete the
+previous secret. Never put either value in a `VITE_*` variable, URL, log or browser store.
 
 Local development reads the same names from gitignored `.dev.vars`.
 
@@ -67,15 +73,18 @@ npx wrangler deployments list
 npx wrangler rollback <version-id>
 ```
 
-Rolling back code does not roll back browser data. IndexedDB and localStorage schemas must stay
+Rolling back code does not roll back browser data. If rolling back across the secure-watch
+cutover, keep `WATCH_TOKEN_KEY` configured until the previous deployment is stable; viewers may
+need to reopen an anime page to obtain a route understood by the restored version. IndexedDB and localStorage schemas must stay
 backward compatible with the previous code; the current storage layer only adds a mirror and never
 deletes legacy keys.
 
 ## Rate limits
 
-The Worker applies per-isolate limits: 30 resolver calls per minute, 10 gate verifications per
-minute and 60 AniList requests per minute per client IP. Add Cloudflare edge rate limiting for a
-public launch if traffic warrants it.
+The Worker applies per-isolate limits: 30 resolver calls per minute, 20 watch-session creations per
+minute, 10 gate verifications per minute and 60 AniList requests per minute per client IP. The
+Cloudflare Free plan has one edge rate-limiting rule; production edge configuration is documented
+separately from these fail-closed application checks.
 
 ## Monitoring
 

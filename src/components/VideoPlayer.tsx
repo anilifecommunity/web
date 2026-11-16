@@ -16,7 +16,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp, type VideoPlaybackTarget } from '../context/AppContext';
 import { recordDiagnostic } from '../data/diagnostics';
 import { messageFor } from '../resolver';
 import { Anime, Episode, ServerOption } from '../types/anime';
@@ -39,6 +39,7 @@ interface Props {
   initialEpisodeNumber: number;
   initialAudioMode?: 'SUB' | 'DUB';
   initialServerId?: string;
+  watchSession: VideoPlaybackTarget['watchSession'];
   onClose: () => void;
 }
 
@@ -49,9 +50,10 @@ export const VideoPlayer: React.FC<Props> = ({
   initialEpisodeNumber,
   initialAudioMode = 'SUB',
   initialServerId,
+  watchSession,
   onClose,
 }) => {
-  const { settings, updateSettings, updateWatchProgress } = useApp();
+  const { settings, updateSettings, updateWatchProgress, playAnimeEpisode } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -82,6 +84,12 @@ export const VideoPlayer: React.FC<Props> = ({
   const [selectedSubLanguage, setSelectedSubLanguage] = useState(settings.preferredSubLanguage || 'English');
   const [qualityLevels, setQualityLevels] = useState<Array<{ index: number; label: string }>>([]);
   const [qualityLevel, setQualityLevel] = useState(-1);
+
+  useEffect(() => setCurrentEpisodeNumber(initialEpisodeNumber), [initialEpisodeNumber]);
+
+  const changeEpisode = useCallback((episode: number) => {
+    if (episode !== currentEpisodeNumber) void playAnimeEpisode(anime, episode, audioMode);
+  }, [anime, audioMode, currentEpisodeNumber, playAnimeEpisode]);
 
   const serverOptions = useMemo(
     () => orderServerOptions(webServerOptions(settings.hideAdultContent), settings.serverPriority),
@@ -198,6 +206,7 @@ export const VideoPlayer: React.FC<Props> = ({
         order: resolveServerOrder(serverOptions, activeServer.id, enabledIds),
         enabled: enabledIds,
         fallback: true,
+        watchSession,
       }, abort.signal);
       if (cancelled) return;
       if (!result.ok) {
@@ -253,6 +262,7 @@ export const VideoPlayer: React.FC<Props> = ({
     selectedSubLanguage,
     serverNonce,
     serverOptions,
+    watchSession,
   ]);
 
   useEffect(() => {
@@ -278,7 +288,7 @@ export const VideoPlayer: React.FC<Props> = ({
         setIsPlaying(false);
         if (nextDuration > 0) updateWatchProgress(anime.id, currentEpisodeNumber, nextDuration, nextDuration, audioMode);
         const next = activeEpisodes.find((episode) => episode.number === currentEpisodeNumber + 1);
-        if (next && settings.autoPlayNext) setCurrentEpisodeNumber(next.number);
+        if (next && settings.autoPlayNext) changeEpisode(next.number);
       }
     };
     window.addEventListener('message', onMessage);
@@ -309,7 +319,7 @@ export const VideoPlayer: React.FC<Props> = ({
         const finalDuration = nextDuration > 0 ? nextDuration : duration;
         if (finalDuration > 0) updateWatchProgress(anime.id, currentEpisodeNumber, finalDuration, finalDuration, audioMode);
         const next = activeEpisodes.find((episode) => episode.number === currentEpisodeNumber + 1);
-        if (next && settings.autoPlayNext) setCurrentEpisodeNumber(next.number);
+        if (next && settings.autoPlayNext) changeEpisode(next.number);
       }
     };
     window.addEventListener('message', onMessage);
@@ -457,7 +467,7 @@ export const VideoPlayer: React.FC<Props> = ({
                 onEnded={() => {
                   setIsPlaying(false);
                   const next = activeEpisodes.find((episode) => episode.number === currentEpisodeNumber + 1);
-                  if (next && settings.autoPlayNext) setCurrentEpisodeNumber(next.number);
+                  if (next && settings.autoPlayNext) changeEpisode(next.number);
                 }}
                 onError={() => {
                   recordDiagnostic('PLAY-01', { episode: currentEpisodeNumber });
@@ -528,7 +538,7 @@ export const VideoPlayer: React.FC<Props> = ({
             {activeEpisodes.map((episode) => {
               const active = episode.number === currentEpisodeNumber;
               return (
-                <button type="button" key={episode.id} onClick={() => setCurrentEpisodeNumber(episode.number)} aria-current={active ? 'true' : undefined} className={`group grid grid-cols-[96px_1fr] gap-3 rounded-xl border p-2 text-left transition-colors ${active ? 'border-[var(--anilife-accent)]/60 bg-[var(--anilife-accent)]/10' : 'border-transparent bg-white/[0.035] hover:border-white/15 hover:bg-white/[0.06]'}`}>
+                <button type="button" key={episode.id} onClick={() => changeEpisode(episode.number)} aria-current={active ? 'true' : undefined} className={`group grid grid-cols-[96px_1fr] gap-3 rounded-xl border p-2 text-left transition-colors ${active ? 'border-[var(--anilife-accent)]/60 bg-[var(--anilife-accent)]/10' : 'border-transparent bg-white/[0.035] hover:border-white/15 hover:bg-white/[0.06]'}`}>
                   <div className="relative aspect-video overflow-hidden rounded-lg bg-zinc-900">{episode.thumbnail && <img src={episode.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />}<span className="absolute bottom-1 left-1 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold">EP {episode.number}</span></div>
                   <span className="min-w-0 self-center"><span className="line-clamp-2 text-xs font-semibold text-zinc-200 group-hover:text-white">{episode.title || `Episode ${episode.number}`}</span>{episode.durationSec ? <span className="mt-1 block text-[10px] text-zinc-500">{Math.round(episode.durationSec / 60)} min</span> : null}</span>
                 </button>
@@ -571,7 +581,7 @@ export const VideoPlayer: React.FC<Props> = ({
             )}
 
             {panel === 'episodes' && (
-              <div className="space-y-2">{activeEpisodes.map((episode) => <button type="button" key={episode.id} onClick={() => { setCurrentEpisodeNumber(episode.number); setPanel(null); }} className={`flex w-full items-center justify-between rounded-xl border p-3 text-left ${episode.number === currentEpisodeNumber ? 'border-[var(--anilife-accent)]/60 bg-[var(--anilife-accent)]/10' : 'border-white/10 bg-white/[0.03]'}`}><span className="min-w-0"><span className="block text-xs text-zinc-500">Episode {episode.number}</span><span className="block truncate text-sm font-semibold">{episode.title || `Episode ${episode.number}`}</span></span>{episode.number === currentEpisodeNumber && <Check className="h-4 w-4 text-[var(--anilife-accent)]" />}</button>)}</div>
+              <div className="space-y-2">{activeEpisodes.map((episode) => <button type="button" key={episode.id} onClick={() => { changeEpisode(episode.number); setPanel(null); }} className={`flex w-full items-center justify-between rounded-xl border p-3 text-left ${episode.number === currentEpisodeNumber ? 'border-[var(--anilife-accent)]/60 bg-[var(--anilife-accent)]/10' : 'border-white/10 bg-white/[0.03]'}`}><span className="min-w-0"><span className="block text-xs text-zinc-500">Episode {episode.number}</span><span className="block truncate text-sm font-semibold">{episode.title || `Episode ${episode.number}`}</span></span>{episode.number === currentEpisodeNumber && <Check className="h-4 w-4 text-[var(--anilife-accent)]" />}</button>)}</div>
             )}
 
             <button type="button" onClick={() => setPanel(null)} className="anilife-button anilife-button-secondary mt-6 w-full justify-center">Done <ChevronDown className="h-4 w-4" /></button>

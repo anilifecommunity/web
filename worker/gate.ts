@@ -55,8 +55,9 @@ async function hmac(secret: string, message: string): Promise<string> {
 
 export async function createGateToken(secret: string, nowSeconds = Math.floor(Date.now() / 1000)): Promise<string> {
   const expires = nowSeconds + GATE_TTL_SECONDS;
-  const signature = await hmac(secret, `gate:${expires}`);
-  return `${expires}.${signature}`;
+  const nonce = toBase64Url(crypto.getRandomValues(new Uint8Array(16)));
+  const signature = await hmac(secret, `gate:${expires}:${nonce}`);
+  return `${expires}.${nonce}.${signature}`;
 }
 
 export async function verifyGateToken(
@@ -65,11 +66,11 @@ export async function verifyGateToken(
   nowSeconds = Math.floor(Date.now() / 1000)
 ): Promise<boolean> {
   if (!token) return false;
-  const [expiresRaw, signature] = token.split('.');
-  if (!expiresRaw || !signature) return false;
+  const [expiresRaw, nonce, signature] = token.split('.');
+  if (!expiresRaw || !nonce || !signature || !/^[A-Za-z0-9_-]{20,32}$/.test(nonce)) return false;
   const expires = Number(expiresRaw);
   if (!Number.isSafeInteger(expires) || expires <= nowSeconds) return false;
-  const expected = await hmac(secret, `gate:${expires}`);
+  const expected = await hmac(secret, `gate:${expires}:${nonce}`);
   return timingSafeEqual(expected, signature);
 }
 

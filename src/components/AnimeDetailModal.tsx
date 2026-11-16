@@ -135,7 +135,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
     : null;
 
   const share = async () => {
-    const url = new URL(`/anime/${anime.id}`, window.location.origin).toString();
+    const url = `https://anilife.cc/anime/${getAnimeAniListId(anime) || anime.id}`;
     try {
       if (navigator.share) await navigator.share({ title: displayTitle, url });
       else await navigator.clipboard.writeText(url);

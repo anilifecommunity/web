@@ -68,3 +68,14 @@ export function clampSpeed(speed: number): number {
   }
   return closest;
 }
+
+export function fallbackAudioMode(audioMode: 'SUB' | 'DUB'): 'SUB' | null {
+  return audioMode === 'DUB' ? 'SUB' : null;
+}
+
+export function availableAudioMode(
+  preferred: 'SUB' | 'DUB',
+  hasVerifiedDub: boolean | null,
+): 'SUB' | 'DUB' {
+  return preferred === 'DUB' && hasVerifiedDub === false ? 'SUB' : preferred;
+}

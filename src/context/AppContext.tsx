@@ -58,6 +58,7 @@ export interface VideoPlaybackTarget {
   anime: Anime;
   episodeNumber: number;
   audioMode: 'SUB' | 'DUB';
+  audioFallback?: boolean;
   serverId: string;
   watchSession: WatchSession;
 }
@@ -65,6 +66,7 @@ export interface VideoPlaybackTarget {
 import { convertAniListToAnime } from '../utils/animeConversion';
 import { canWatchEpisode } from '../utils/episodeAvailability';
 import { isAnimeVisible } from '../utils/animePreferences';
+import { availableAudioMode } from '../utils/playerUtils';
 
 export { convertAniListToAnime };
 
@@ -607,6 +609,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRouteError('This title cannot create a protected watch session because its AniList id is unavailable.');
       return;
     }
+    const preferredAudioMode = audioMode || settings.defaultAudioMode || 'SUB';
+    const hasVerifiedDub = preferredAudioMode === 'DUB' ? await isAnimeDubbed(aniListId) : null;
+    const resolvedAudioMode = availableAudioMode(preferredAudioMode, hasVerifiedDub);
     let watchSession: WatchSession;
     try {
       watchSession = await createWatchSession(aniListId, episodeNum);
@@ -631,7 +636,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveVideo({
       anime,
       episodeNumber: episodeNum,
-      audioMode: audioMode || settings.defaultAudioMode || 'SUB',
+      audioMode: resolvedAudioMode,
+      audioFallback: resolvedAudioMode !== preferredAudioMode,
       serverId: settings.activeServer || 'zoko',
       watchSession,
     });

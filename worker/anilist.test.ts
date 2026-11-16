@@ -39,3 +39,28 @@ test('not-yet-released anime cannot mint a watch session', async () => {
     assert.equal(await isAniListEpisodeAvailable(3, 1, 1000), false);
   });
 });
+
+test('Anilife media index proves aired episodes when AniList rejects Worker egress', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    assert.equal(
+      url.href,
+      'https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/data/anime/209/209219/episodes.json'
+    );
+    return new Response(JSON.stringify([
+      { number: 1, airDate: '2000-01-01' },
+      { number: 2, air_date: '2000-01-08' },
+      { number: 3, airDate: '2999-01-01' },
+    ]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await isAniListEpisodeAvailable(209219, 2, 1000), true);
+    assert.equal(await isAniListEpisodeAvailable(209219, 3, 1000), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});

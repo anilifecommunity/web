@@ -43,6 +43,9 @@ open-source project; there is no bug bounty.
   watch authorization, then
   verifies the requested episode is released, so copying a watch URL to another session does not
   grant access.
+- Episode release checks prefer AniList. If AniList rejects Cloudflare Worker egress, the Worker
+  falls back to Anilife's fixed-origin media index and accepts only entries whose recorded UTC air
+  date has arrived.
 - CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` and
   `X-Frame-Options: DENY` are applied to ordinary responses. Ordinary pages use
   `frame-ancestors 'none'`; the dedicated `/activity` route alone allows verified Discord

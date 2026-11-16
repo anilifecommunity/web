@@ -38,6 +38,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   ensured share actions expose only public anime detail links.
 - Kept existing verified browsers working through the security migration and made each anime reuse
   one persistent browser-bound authorization across episodes and restarts without four-hour prompts.
+- Kept released episodes playable when AniList rejects Cloudflare Worker requests by verifying
+  their air dates against Anilife's static media index.
 
 ## [0.1.2] - 2026-11-16
 

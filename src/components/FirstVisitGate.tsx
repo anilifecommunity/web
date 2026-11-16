@@ -246,7 +246,7 @@ export const FirstVisitGate: React.FC<{ children: React.ReactNode }> = ({ childr
         )}
 
         <p className="mt-6 text-[11px] leading-relaxed text-zinc-600">
-          Protected by Cloudflare Turnstile. One check per day.
+          Protected by Cloudflare Turnstile. One check per browser unless cookies are cleared or security settings change.
         </p>
       </div>
     </div>

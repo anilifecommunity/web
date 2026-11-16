@@ -19,10 +19,15 @@ export interface ResolveParams {
 export interface WatchSession {
   reference: string;
   tag: string;
-  token: string;
   aniListId: number;
   episode: number;
   expiresAt: number;
+}
+
+export class WatchSessionError extends Error {
+  constructor(public status: number, public code: string) {
+    super(code);
+  }
 }
 
 export interface ResolveAttempt {
@@ -50,17 +55,16 @@ function watchStorageKey(reference: string): string {
   return `anilife_watch_session_${reference}`;
 }
 
-export function watchSessionPath(session: WatchSession, activity = false): string {
-  const prefix = activity ? '/activity' : '';
-  return `${prefix}/watch/${session.reference}/episode-${session.episode}-${session.tag}`;
+function watchAnimeStorageKey(aniListId: number): string {
+  return `anilife_watch_anime_${aniListId}`;
 }
 
-export function loadWatchSession(reference: string): WatchSession | null {
+function parseWatchSession(raw: string | null): WatchSession | null {
   try {
-    const parsed = JSON.parse(sessionStorage.getItem(watchStorageKey(reference)) ?? 'null') as Partial<WatchSession> | null;
+    const parsed = JSON.parse(raw ?? 'null') as Partial<WatchSession> | null;
     if (
-      !parsed || parsed.reference !== reference || typeof parsed.tag !== 'string' ||
-      typeof parsed.token !== 'string' || !Number.isSafeInteger(parsed.aniListId) ||
+      !parsed || typeof parsed.reference !== 'string' || typeof parsed.tag !== 'string' ||
+      !Number.isSafeInteger(parsed.aniListId) ||
       !Number.isSafeInteger(parsed.episode) || !Number.isSafeInteger(parsed.expiresAt)
     ) return null;
     return parsed as WatchSession;
@@ -69,26 +73,89 @@ export function loadWatchSession(reference: string): WatchSession | null {
   }
 }
 
-export function removeWatchSession(reference: string): void {
+function readWatchSession(key: string): WatchSession | null {
   try {
-    sessionStorage.removeItem(watchStorageKey(reference));
-  } catch {}
+    const durable = typeof localStorage === 'undefined' ? null : parseWatchSession(localStorage.getItem(key));
+    if (durable) return durable;
+    const legacy = typeof sessionStorage === 'undefined' ? null : parseWatchSession(sessionStorage.getItem(key));
+    if (legacy && typeof localStorage !== 'undefined') localStorage.setItem(key, JSON.stringify(legacy));
+    return legacy;
+  } catch {
+    return null;
+  }
 }
 
-export async function createWatchSession(aniListId: number, episode: number): Promise<WatchSession | null> {
+function persistWatchSession(session: WatchSession): void {
+  const value = JSON.stringify(session);
+  for (const storage of [
+    typeof localStorage === 'undefined' ? null : localStorage,
+    typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  ]) {
+    try {
+      storage?.setItem(watchStorageKey(session.reference), value);
+      storage?.setItem(watchAnimeStorageKey(session.aniListId), value);
+    } catch {}
+  }
+}
+
+export function watchSessionPath(session: WatchSession, activity = false): string {
+  const prefix = activity ? '/activity' : '';
+  return `${prefix}/watch/${session.reference}/episode-${session.episode}-${session.tag}`;
+}
+
+export function loadWatchSession(reference: string, episode?: number): WatchSession | null {
+  const session = readWatchSession(watchStorageKey(reference));
+  if (!session || session.reference !== reference) return null;
+  return episode === undefined ? session : { ...session, episode };
+}
+
+export function removeWatchSession(reference: string): void {
+  const session = loadWatchSession(reference);
+  for (const storage of [
+    typeof localStorage === 'undefined' ? null : localStorage,
+    typeof sessionStorage === 'undefined' ? null : sessionStorage,
+  ]) {
+    try {
+      storage?.removeItem(watchStorageKey(reference));
+      if (session) storage?.removeItem(watchAnimeStorageKey(session.aniListId));
+    } catch {}
+  }
+}
+
+export async function createWatchSession(aniListId: number, episode: number): Promise<WatchSession> {
+  const stored = readWatchSession(watchAnimeStorageKey(aniListId));
+  if (stored && stored.aniListId === aniListId && stored.expiresAt > Math.floor(Date.now() / 1000)) {
+    const session = { ...stored, episode };
+    const validation = await validateWatchSession(session);
+    if (validation.ok) {
+      persistWatchSession(session);
+      return session;
+    }
+    if (validation.status === 401 || validation.status === 409 || validation.status === 429) {
+      throw new WatchSessionError(validation.status, validation.error ?? 'watch_session_unavailable');
+    }
+    removeWatchSession(stored.reference);
+  } else if (stored) {
+    removeWatchSession(stored.reference);
+  }
+
   try {
     const response = await fetch('/api/watch/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...gateHeaders() },
       body: JSON.stringify({ aniListId, episode }),
     });
-    const data = (await response.json()) as Partial<WatchSession> & { ok?: boolean };
-    if (!response.ok || data.ok !== true) return null;
+    const data = (await response.json()) as Partial<WatchSession> & { ok?: boolean; error?: string };
+    if (!response.ok || data.ok !== true) {
+      throw new WatchSessionError(response.status, data.error ?? `http_${response.status}`);
+    }
     const session = data as WatchSession;
-    sessionStorage.setItem(watchStorageKey(session.reference), JSON.stringify(session));
+    if (!parseWatchSession(JSON.stringify(session))) throw new WatchSessionError(502, 'invalid_watch_session');
+    persistWatchSession(session);
     return session;
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof WatchSessionError) throw error;
+    throw new WatchSessionError(0, 'network');
   }
 }
 
@@ -140,7 +207,6 @@ export async function resolveEpisode(params: ResolveParams, signal?: AbortSignal
       headers: {
         ...gateHeaders(),
         ...(params.watchSession ? {
-          'X-Anilife-Watch': params.watchSession.token,
           'X-Anilife-Watch-Reference': params.watchSession.reference,
           'X-Anilife-Watch-Tag': params.watchSession.tag,
         } : {}),

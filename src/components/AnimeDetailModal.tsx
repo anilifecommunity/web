@@ -293,8 +293,8 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
             {filteredEpisodes.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredEpisodes.map((episode) => (
-                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(anime, episode.number)} className="group grid grid-cols-[112px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06] sm:grid-cols-[124px_minmax(0,1fr)]">
-                    <div className="relative min-h-[88px] min-w-0 w-full overflow-hidden bg-zinc-900">
+                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(anime, episode.number)} className="group grid h-24 grid-cols-[112px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06] sm:h-28 sm:grid-cols-[124px_minmax(0,1fr)]">
+                    <div className="relative h-full min-w-0 overflow-hidden bg-zinc-900">
                       {(episode.thumbnail || anime.posterImage) && <img src={episode.thumbnail || anime.posterImage} alt="" loading="lazy" className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]" />}
                       <span className="absolute left-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-bold">EP {episode.number}</span>
                     </div>

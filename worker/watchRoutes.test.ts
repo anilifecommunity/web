@@ -28,7 +28,7 @@ async function request(path: string, gate: string, init: RequestInit = {}): Prom
   }), env());
 }
 
-test('watch routes mint, validate and reject copied or tampered sessions', async () => {
+test('watch routes reuse one anime authorization and reject copied or tampered sessions', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (input) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
@@ -49,7 +49,6 @@ test('watch routes mint, validate and reject copied or tampered sessions', async
     const created = await createdResponse.json() as {
       reference: string;
       tag: string;
-      token: string;
       aniListId: number;
       episode: number;
       path: string;
@@ -71,9 +70,15 @@ test('watch routes mint, validate and reject copied or tampered sessions', async
     });
     assert.equal(copied.status, 403);
 
-    const tampered = await request('/api/watch/session/validate', gate, {
+    const anotherEpisode = await request('/api/watch/session/validate', gate, {
       method: 'POST',
       body: JSON.stringify({ ...created, episode: 7 }),
+    });
+    assert.equal(anotherEpisode.status, 200);
+
+    const tampered = await request('/api/watch/session/validate', gate, {
+      method: 'POST',
+      body: JSON.stringify({ ...created, tag: '000000000000' }),
     });
     assert.equal(tampered.status, 403);
   } finally {
@@ -96,7 +101,6 @@ test('production fails closed when the watch secret is absent', async () => {
       headers: {
         Origin: 'https://anilife.cc',
         Cookie: `${GATE_COOKIE}=${gate}`,
-        'X-Anilife-Watch': '1.not-a-real-token.but-present',
         'X-Anilife-Watch-Reference': '01a1dff1-a48d-71ff-8931-4f1c0ae8e860',
         'X-Anilife-Watch-Tag': 'cf01ae4cd9ba',
       },

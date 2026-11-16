@@ -9,7 +9,7 @@ import {
   ThemePresetName
 } from '../types/anime';
 import { getAnimeAniListId, SERVERS } from '../utils/animeData';
-import { createWatchSession, type WatchSession } from '../utils/workerApi';
+import { createWatchSession, WatchSessionError, type WatchSession } from '../utils/workerApi';
 import {
   DEFAULT_PROFILES,
   DEFAULT_SETTINGS,
@@ -607,9 +607,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRouteError('This title cannot create a protected watch session because its AniList id is unavailable.');
       return;
     }
-    const watchSession = await createWatchSession(aniListId, episodeNum);
-    if (!watchSession) {
-      setRouteError('A protected watch session could not be created. Verify your browser and try again.');
+    let watchSession: WatchSession;
+    try {
+      watchSession = await createWatchSession(aniListId, episodeNum);
+    } catch (error) {
+      if (error instanceof WatchSessionError && error.status === 401) {
+        window.location.reload();
+        return;
+      }
+      const code = error instanceof WatchSessionError ? error.code : 'unknown';
+      setRouteError(
+        code === 'episode_unavailable'
+          ? `Episode ${episodeNum} is not confirmed as released yet.`
+          : code === 'rate_limited'
+            ? 'Too many watch requests were made from this connection. Wait a minute, then try again.'
+            : code === 'network'
+              ? 'Anilife could not reach its playback service. Check your connection and try again.'
+              : 'Anilife could not start this episode right now. Try again in a moment.'
+      );
       return;
     }
     setSelectedAnime(null);

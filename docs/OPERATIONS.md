@@ -28,7 +28,7 @@ existing gate cookies (visitors see the check once more).
 
 `WATCH_TOKEN_KEY` should also be at least 32 random bytes and is used only by the Worker. For a
 zero-downtime rotation, first set the old value as `WATCH_TOKEN_PREVIOUS_KEY`, replace
-`WATCH_TOKEN_KEY`, deploy, wait four hours (the maximum watch-session lifetime), then delete the
+`WATCH_TOKEN_KEY`, deploy, wait one year (the maximum verified-browser lifetime), then delete the
 previous secret. Never put either value in a `VITE_*` variable, URL, log or browser store.
 
 Local development reads the same names from gitignored `.dev.vars`.

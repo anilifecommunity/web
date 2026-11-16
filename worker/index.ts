@@ -27,7 +27,7 @@ export interface Env extends ReleaseIndexEnv {
   TURNSTILE_SECRET?: string;
   /** HMAC key for the first-visit gate cookie. Required whenever TURNSTILE_SECRET is set. */
   GATE_SIGNING_KEY?: string;
-  /** AES-GCM source secret for session-bound watch authorizations. */
+  /** HMAC key for opaque browser-bound watch authorizations. */
   WATCH_TOKEN_KEY?: string;
   /** Previous source secret accepted only while rotating WATCH_TOKEN_KEY. */
   WATCH_TOKEN_PREVIOUS_KEY?: string;
@@ -159,30 +159,29 @@ const WATCH_REFERENCE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f
 const WATCH_TAG = /^[0-9a-f]{12}$/;
 
 function watchFailure(reason: WatchFailure): Response {
-  if (reason === 'expired') return fail(410, 'watch_session_expired');
-  if (reason === 'wrong_session') return fail(403, 'watch_session_wrong_viewer');
+  void reason;
   return fail(403, 'watch_session_invalid');
 }
 
 async function readWatchBody(request: Request): Promise<{
   reference: string;
   tag: string;
-  token: string;
+  aniListId: number;
   episode: number;
 } | null> {
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const reference = typeof body.reference === 'string' ? body.reference : '';
     const tag = typeof body.tag === 'string' ? body.tag : '';
-    const token = typeof body.token === 'string' ? body.token : '';
+    const aniListId = typeof body.aniListId === 'number' ? body.aniListId : 0;
     const episode = typeof body.episode === 'number' ? body.episode : 0;
     if (
       !WATCH_REFERENCE.test(reference) ||
       !WATCH_TAG.test(tag) ||
-      token.length < 20 || token.length > 4096 ||
+      !Number.isSafeInteger(aniListId) || aniListId < 1 || aniListId > 1_000_000_000 ||
       !Number.isSafeInteger(episode) || episode < 1 || episode > 100_000
     ) return null;
-    return { reference, tag, token, episode };
+    return { reference, tag, aniListId, episode };
   } catch {
     return null;
   }
@@ -213,7 +212,7 @@ async function handleWatchCreate(request: Request, env: Env): Promise<Response> 
   if (!(await isAniListEpisodeAvailable(aniListId, episode, 8_000))) {
     return fail(409, 'episode_unavailable');
   }
-  const created = await createWatchSession(secret, sessionToken, aniListId, episode);
+  const created = await createWatchSession(secret, sessionToken, aniListId);
   return json({
     ok: true,
     ...created,
@@ -234,15 +233,17 @@ async function handleWatchValidate(request: Request, env: Env): Promise<Response
   const verified = await verifyWatchSession(
     secrets,
     sessionToken,
-    body.token,
-    { reference: body.reference, tag: body.tag, episode: body.episode }
+    { reference: body.reference, tag: body.tag, aniListId: body.aniListId }
   );
   if (!verified.ok) return watchFailure(verified.reason);
+  if (!(await isAniListEpisodeAvailable(verified.aniListId, body.episode, 8_000))) {
+    return fail(409, 'episode_unavailable');
+  }
   return json({
     ok: true,
-    aniListId: verified.claims.aniListId,
-    episode: verified.claims.episode,
-    expiresAt: verified.claims.expiresAt,
+    aniListId: verified.aniListId,
+    episode: body.episode,
+    expiresAt: verified.expiresAt,
   });
 }
 
@@ -267,10 +268,9 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
   if ('error' in parsed) return fail(400, parsed.error);
 
   const sessionToken = await gateSessionToken(request, env);
-  const watchToken = request.headers.get('X-Anilife-Watch') ?? '';
   const reference = request.headers.get('X-Anilife-Watch-Reference') ?? '';
   const tag = request.headers.get('X-Anilife-Watch-Tag') ?? '';
-  if (!sessionToken || !WATCH_REFERENCE.test(reference) || !WATCH_TAG.test(tag) || !watchToken) {
+  if (!sessionToken || !WATCH_REFERENCE.test(reference) || !WATCH_TAG.test(tag)) {
     return fail(401, 'watch_session_required');
   }
   const secrets = watchSecrets(env);
@@ -278,15 +278,16 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
   const verified = await verifyWatchSession(
     secrets,
     sessionToken,
-    watchToken,
     {
       reference,
       tag,
       aniListId: parsed.request.aniListId,
-      episode: Number(parsed.request.episodeRef),
     }
   );
   if (!verified.ok) return watchFailure(verified.reason);
+  if (!(await isAniListEpisodeAvailable(parsed.request.aniListId, Number(parsed.request.episodeRef), 8_000))) {
+    return fail(409, 'episode_unavailable');
+  }
 
   try {
     const result = await resolvePlayback({

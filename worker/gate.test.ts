@@ -1,9 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGateToken, gateCookie, GATE_COOKIE, readCookie, verifyGateToken } from './gate';
+import { createGateToken, gateCookie, GATE_COOKIE, GATE_TTL_SECONDS, readCookie, verifyGateToken } from './gate';
 import { hit, resetRateLimits } from './rateLimit';
 
 const SECRET = 'test-signing-key-not-a-real-secret';
+
+async function legacyGateToken(expires: number): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const bytes = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(`gate:${expires}`)));
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const signature = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${expires}.${signature}`;
+}
 
 test('gate tokens round-trip and are bound to their expiry', async () => {
   const token = await createGateToken(SECRET);
@@ -13,7 +29,7 @@ test('gate tokens round-trip and are bound to their expiry', async () => {
 
 test('expired and tampered gate tokens are refused', async () => {
   const now = Math.floor(Date.now() / 1000);
-  const token = await createGateToken(SECRET, now - 90_000);
+  const token = await createGateToken(SECRET, now - GATE_TTL_SECONDS);
   assert.equal(await verifyGateToken(SECRET, token, now), false);
 
   const good = await createGateToken(SECRET, now);
@@ -28,6 +44,12 @@ test('gate tokens are unique even when issued in the same second', async () => {
   const first = await createGateToken(SECRET, 1_000);
   const second = await createGateToken(SECRET, 1_000);
   assert.notEqual(first, second);
+});
+
+test('existing one-day gate cookies remain valid through the persistent-session migration', async () => {
+  const token = await legacyGateToken(2_000);
+  assert.equal(await verifyGateToken(SECRET, token, 1_000), true);
+  assert.equal(await verifyGateToken(SECRET, token, 2_000), false);
 });
 
 test('gate cookie carries HttpOnly, Secure and SameSite', () => {

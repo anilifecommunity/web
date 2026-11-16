@@ -4,7 +4,7 @@ const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const SITEVERIFY_HOSTS = new Set(['challenges.cloudflare.com']);
 
 export const GATE_COOKIE = 'anilife_gate';
-export const GATE_TTL_SECONDS = 86_400;
+export const GATE_TTL_SECONDS = 365 * 24 * 60 * 60;
 
 export interface TurnstileResult {
   success: boolean;
@@ -66,10 +66,14 @@ export async function verifyGateToken(
   nowSeconds = Math.floor(Date.now() / 1000)
 ): Promise<boolean> {
   if (!token) return false;
-  const [expiresRaw, nonce, signature] = token.split('.');
-  if (!expiresRaw || !nonce || !signature || !/^[A-Za-z0-9_-]{20,32}$/.test(nonce)) return false;
+  const parts = token.split('.');
+  const [expiresRaw, nonce, signature] = parts;
   const expires = Number(expiresRaw);
   if (!Number.isSafeInteger(expires) || expires <= nowSeconds) return false;
+  if (parts.length === 2) {
+    return timingSafeEqual(await hmac(secret, `gate:${expires}`), nonce);
+  }
+  if (parts.length !== 3 || !nonce || !signature || !/^[A-Za-z0-9_-]{20,32}$/.test(nonce)) return false;
   const expected = await hmac(secret, `gate:${expires}:${nonce}`);
   return timingSafeEqual(expected, signature);
 }

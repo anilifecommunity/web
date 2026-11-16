@@ -56,8 +56,8 @@ export function useUrlRoute(): void {
         } else if (route.kind === 'profiles') {
           app.setShowProfileModal(true);
         } else if (route.kind === 'watch') {
-          const session = loadWatchSession(route.reference);
-          if (!session || session.episode !== route.episode || session.tag !== route.tag) {
+          const session = loadWatchSession(route.reference, route.episode);
+          if (!session || session.tag !== route.tag) {
             app.setRouteError('This protected watch link is unavailable in this browser session. Open the anime page to start a new session.');
             return;
           }

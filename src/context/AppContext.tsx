@@ -67,6 +67,11 @@ import { convertAniListToAnime } from '../utils/animeConversion';
 import { canWatchEpisode } from '../utils/episodeAvailability';
 import { isAnimeVisible } from '../utils/animePreferences';
 import { availableAudioMode } from '../utils/playerUtils';
+import {
+  mergeContinueWatching,
+  mergeLibraryEntries,
+  remoteContinueSeed,
+} from '../utils/libraryParity';
 
 export { convertAniListToAnime };
 
@@ -320,6 +325,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(data.user);
 
     const newEntries: WatchlistEntry[] = [];
+    const remoteContinueEntries: ContinueWatchingEntry[] = [];
+    const remoteAnime = new Map<string, Anime>();
 
     data.lists.forEach(list => {
       list.entries.forEach(entry => {
@@ -333,16 +340,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         newEntries.push({
           animeId: String(entry.media.id),
           status: st,
+          progress: Math.max(0, entry.progress || 0),
+          score: Math.max(0, entry.score || 0),
           updatedAt: new Date(entry.updatedAt * 1000).toISOString()
         });
+
+        const anime = convertAniListToAnime(entry.media);
+        remoteAnime.set(anime.id, anime);
+        const continueEntry = remoteContinueSeed({
+          animeId: anime.id,
+          status: entry.status,
+          progress: Math.max(0, entry.progress || 0),
+          totalEpisodes: entry.media.episodes,
+          nextEpisodeNumber: entry.media.nextAiringEpisode?.episode,
+          updatedAt: new Date(entry.updatedAt * 1000).toISOString(),
+        });
+        if (continueEntry) remoteContinueEntries.push(continueEntry);
 
       });
     });
 
-    if (newEntries.length > 0) {
-      setWatchlistState(newEntries);
-      saveWatchlist(activeProfile.id, newEntries);
-    }
+    setLiveCatalog((current) => {
+      const byId = new Map(current.map((anime) => [anime.id, anime]));
+      // Account queries intentionally fetch less metadata than detail/trending queries. They fill
+      // catalogue gaps, but must not replace a richer copy already remembered by the app.
+      remoteAnime.forEach((anime, id) => {
+        if (!byId.has(id)) byId.set(id, anime);
+      });
+      const merged = [...byId.values()];
+      saveCachedCatalog(merged);
+      return merged;
+    });
+
+    setWatchlistState((current) => {
+      const merged = mergeLibraryEntries(current, newEntries);
+      saveWatchlist(activeProfile.id, merged);
+      return merged;
+    });
+
+    setContinueWatchingState((current) => {
+      const merged = mergeContinueWatching(current, remoteContinueEntries);
+      saveContinueWatching(activeProfile.id, merged);
+      return merged;
+    });
 
   };
 
@@ -492,13 +532,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         durationSec,
         serverName: settings.activeServer,
         audioMode,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        fromRemote: false,
       };
 
       let nextList: ContinueWatchingEntry[];
       if (existingIdx >= 0) {
-        nextList = [...prev];
-        nextList[existingIdx] = updatedItem;
+        nextList = [updatedItem, ...prev.filter((_, index) => index !== existingIdx)];
       } else {
         nextList = [updatedItem, ...prev];
       }

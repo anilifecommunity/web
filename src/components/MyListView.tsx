@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { safeImageUrl } from '../utils/safeUrl';
 import { useApp } from '../context/AppContext';
-import { WatchStatus } from '../types/anime';
+import { Anime, ContinueWatchingEntry, WatchlistEntry } from '../types/anime';
 import { animeMatchesSearch, displayAnimeTitle } from '../utils/animePreferences';
 import {
   RotateCcw,
@@ -14,12 +14,34 @@ import {
   UserCheck,
   AlertCircle,
   LogIn,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
+
+type LibraryTab = 'Continue Watching' | 'Watching' | 'Rewatching' | 'Completed' | 'Planning' | 'Paused' | 'Dropped' | 'All';
+
+const LIBRARY_TABS: LibraryTab[] = [
+  'Continue Watching',
+  'Watching',
+  'Rewatching',
+  'Planning',
+  'Paused',
+  'Completed',
+  'Dropped',
+  'All',
+];
+
+interface LibraryItem {
+  anime: Anime;
+  entry?: WatchlistEntry;
+  continueEntry?: ContinueWatchingEntry;
+}
 
 export const MyListView: React.FC = () => {
   const {
     watchlist,
+    continueWatching,
+    removeFromContinueWatching,
     setSelectedAnime,
     playAnimeEpisode,
     activeProfile,
@@ -32,28 +54,48 @@ export const MyListView: React.FC = () => {
     setShowAuthModal
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'Watching' | 'Completed' | 'Planning' | 'Paused' | 'Dropped' | 'All'>('Watching');
+  const [activeTab, setActiveTab] = useState<LibraryTab>('Continue Watching');
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('Any format');
   const [showStatsModal, setShowStatsModal] = useState(false);
 
   
-  const resolvedList = watchlist
+  const resolvedList: LibraryItem[] = watchlist
     .map(entry => {
       const anime = liveCatalog.find(a => a.id === entry.animeId);
       return anime ? { entry, anime } : null;
     })
-    .filter(Boolean) as { entry: any; anime: any }[];
+    .filter((item): item is { entry: WatchlistEntry; anime: Anime } => item !== null);
 
-  const filteredEntries = resolvedList.filter(({ anime, entry }) => {
+  const resolvedContinue: LibraryItem[] = continueWatching
+    .map((continueEntry) => {
+      const anime = liveCatalog.find((item) => item.id === continueEntry.animeId);
+      return anime ? { continueEntry, anime } : null;
+    })
+    .filter((item): item is { continueEntry: ContinueWatchingEntry; anime: Anime } => item !== null);
+
+  const tabCounts: Record<LibraryTab, number> = {
+    'Continue Watching': resolvedContinue.length,
+    Watching: resolvedList.filter(({ entry }) => entry?.status === 'Watching').length,
+    Rewatching: resolvedList.filter(({ entry }) => entry?.status === 'Rewatching').length,
+    Planning: resolvedList.filter(({ entry }) => entry?.status === 'Plan to watch').length,
+    Paused: resolvedList.filter(({ entry }) => entry?.status === 'Paused').length,
+    Completed: resolvedList.filter(({ entry }) => entry?.status === 'Completed').length,
+    Dropped: resolvedList.filter(({ entry }) => entry?.status === 'Dropped').length,
+    All: resolvedList.length,
+  };
+
+  const activeEntries = activeTab === 'Continue Watching' ? resolvedContinue : resolvedList;
+  const filteredEntries = activeEntries.filter(({ anime, entry }) => {
     const matchText = animeMatchesSearch(anime, filterQuery);
     const matchFormat = selectedFormat === 'Any format' || anime.format === selectedFormat;
     let matchTab = true;
-    if (activeTab === 'Watching') matchTab = entry.status === 'Watching';
-    else if (activeTab === 'Completed') matchTab = entry.status === 'Completed';
-    else if (activeTab === 'Planning') matchTab = entry.status === 'Plan to watch';
-    else if (activeTab === 'Paused') matchTab = entry.status === 'Paused';
-    else if (activeTab === 'Dropped') matchTab = entry.status === 'Dropped';
+    if (activeTab === 'Watching') matchTab = entry?.status === 'Watching';
+    else if (activeTab === 'Rewatching') matchTab = entry?.status === 'Rewatching';
+    else if (activeTab === 'Completed') matchTab = entry?.status === 'Completed';
+    else if (activeTab === 'Planning') matchTab = entry?.status === 'Plan to watch';
+    else if (activeTab === 'Paused') matchTab = entry?.status === 'Paused';
+    else if (activeTab === 'Dropped') matchTab = entry?.status === 'Dropped';
     return matchText && matchFormat && matchTab;
   });
 
@@ -156,12 +198,14 @@ export const MyListView: React.FC = () => {
       )}
 
       {}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar">
-        {(['Watching', 'Completed', 'Planning', 'Paused', 'Dropped', 'All'] as const).map((tab) => {
+      <div role="group" aria-label="Library views" className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar">
+        {LIBRARY_TABS.map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
               key={tab}
+              type="button"
+              aria-pressed={isActive}
               onClick={() => setActiveTab(tab)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 isActive
@@ -170,6 +214,9 @@ export const MyListView: React.FC = () => {
               }`}
             >
               <span>{tab}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-black/15' : 'bg-white/10 text-zinc-400'}`}>
+                {tabCounts[tab]}
+              </span>
             </button>
           );
         })}
@@ -177,7 +224,7 @@ export const MyListView: React.FC = () => {
       </div>
 
       {}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-center gap-2">
         <select
           value={selectedFormat}
           onChange={(e) => setSelectedFormat(e.target.value)}
@@ -189,7 +236,7 @@ export const MyListView: React.FC = () => {
           <option value="ONA" className="bg-[#14121e]">ONA</option>
         </select>
 
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative min-w-[180px] flex-1 sm:max-w-2xl">
           <input
             type="text"
             value={filterQuery}
@@ -207,18 +254,25 @@ export const MyListView: React.FC = () => {
           <Bookmark className="w-10 h-10 text-zinc-500 mx-auto" />
           <h3 className="text-lg font-bold text-white">No items found in {activeTab}</h3>
           <p className="text-sm text-zinc-400 max-w-sm mx-auto">
-            {currentUser
-              ? `You don't have any anime marked as ${activeTab} on your AniList profile.`
-              : 'Sign in with your AniList account or add shows from Browse to populate this list.'}
+            {activeTab === 'Continue Watching'
+              ? 'Start an episode here or on another synced device to see it in this view.'
+              : currentUser
+                ? `You don't have any anime marked as ${activeTab} in your merged Anilife and AniList library.`
+                : 'Sign in with your AniList account or add shows from Browse to populate this list.'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-          {filteredEntries.map(({ anime, entry }) => (
+          {filteredEntries.map(({ anime, entry, continueEntry }) => {
+            const episodeToPlay = continueEntry?.episodeNumber
+              ?? (entry?.status === 'Completed' ? 1 : Math.max(1, (entry?.progress ?? 0) + 1));
+            const watchProgress = continueEntry && continueEntry.durationSec > 0
+              ? Math.min(100, Math.round((continueEntry.currentTimeSec / continueEntry.durationSec) * 100))
+              : null;
+            return (
             <div
               key={anime.id}
-              onClick={() => setSelectedAnime(anime)}
-              className="group cursor-pointer space-y-2 relative"
+              className="group space-y-2 relative"
             >
               <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden border border-white/10 group-hover:border-[var(--anilife-accent)]/50 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-[var(--anilife-accent-shadow)] bg-zinc-900">
                 <img
@@ -233,28 +287,43 @@ export const MyListView: React.FC = () => {
 
                 {}
                 <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-bold text-[var(--anilife-accent)] border border-[var(--anilife-accent)]/30">
-                  {entry.status}
+                  {continueEntry ? 'Continue watching' : entry?.status}
                 </div>
 
                 {}
-                {entry.score > 0 && (
+                {(entry?.score ?? 0) > 0 && (
                   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-bold text-amber-300">
-                    ★ {entry.score}
+                    ★ {entry?.score}
                   </div>
                 )}
 
+                {continueEntry && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      removeFromContinueWatching(anime.id);
+                    }}
+                    className="absolute right-2 top-2 z-10 rounded-full bg-black/80 p-2 text-zinc-300 transition hover:text-white"
+                    aria-label={`Remove ${displayAnimeTitle(anime, settings.titleLanguage)} from Continue Watching`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
                 {}
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playAnimeEpisode(anime, entry.progress || 1);
+                <button
+                  type="button"
+                  onClick={() => {
+                    playAnimeEpisode(anime, episodeToPlay);
                   }}
-                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label={`Play ${displayAnimeTitle(anime, settings.titleLanguage)} episode ${episodeToPlay}`}
                 >
                   <div className="w-10 h-10 rounded-full bg-[var(--anilife-accent)] text-black flex items-center justify-center shadow-lg">
                     <Play className="w-5 h-5 fill-black ml-0.5" />
                   </div>
-                </div>
+                </button>
               </div>
 
               <div>
@@ -269,11 +338,15 @@ export const MyListView: React.FC = () => {
                   {displayAnimeTitle(anime, settings.titleLanguage)}
                 </button>
                 <p className="text-[11px] text-zinc-400 line-clamp-1">
-                  {entry.progress ? `Ep ${entry.progress} watched` : anime.format} • {anime.year}
+                  {continueEntry
+                    ? `Episode ${continueEntry.episodeNumber}${watchProgress !== null ? ` • ${watchProgress}% watched` : ''}`
+                    : entry?.progress
+                      ? `${entry.progress} episodes watched`
+                      : anime.format} • {anime.year}
                 </p>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 

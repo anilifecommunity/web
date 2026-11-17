@@ -87,6 +87,10 @@ export interface WatchlistEntry {
   status: WatchStatus;
   updatedAt: string;
   customList?: string;
+  /** AniList's completed-episode count when this row was last synced. */
+  progress?: number;
+  /** AniList score in the app's existing 100-point display scale. */
+  score?: number;
 }
 
 export interface ContinueWatchingEntry {
@@ -97,6 +101,8 @@ export interface ContinueWatchingEntry {
   serverName: string;
   audioMode: 'SUB' | 'DUB';
   updatedAt: string;
+  /** True only for a row seeded from account progress before this browser plays it. */
+  fromRemote?: boolean;
 }
 
 export interface ServerOption {

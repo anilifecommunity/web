@@ -147,8 +147,8 @@ test('restoring merges history and watchlist without deleting local rows', () =>
       createdAt: Date.now(),
       appVersion: 'android',
       settings: { autoplay: false, watched_threshold_percent: 90 },
-      watchlist: [{ anilistId: 2, status: 'Watching', addedAt: 10 }],
-      history: [{ anilistId: 1, episodeNumber: 5, positionMs: 60000, durationMs: 1400000, updatedAt: Date.parse('2027-01-01T00:00:00.000Z') }],
+      watchlist: [{ anilistId: 2, status: 'Watching', progress: 4, score: 86, addedAt: 10 }],
+      history: [{ anilistId: 1, episodeNumber: 5, positionMs: 60000, durationMs: 1400000, updatedAt: Date.parse('2027-01-01T00:00:00.000Z'), fromRemote: true }],
       searchHistory: ['Frieren'],
       customLists: [],
       watched: [],
@@ -164,10 +164,13 @@ test('restoring merges history and watchlist without deleting local rows', () =>
     assert.equal(history[0].animeId, '1');
     assert.equal(history[0].episodeNumber, 5);
     assert.equal(history[0].currentTimeSec, 60);
+    assert.equal(history[0].fromRemote, true);
 
     const watchlist = JSON.parse(localStorage.getItem('anilife_watchlist_v3_profile-main')!);
     assert.equal(watchlist[0].animeId, '2');
     assert.equal(watchlist[0].status, 'Watching');
+    assert.equal(watchlist[0].progress, 4);
+    assert.equal(watchlist[0].score, 86);
   } finally {
     Object.defineProperty(globalThis, 'localStorage', { value: original, configurable: true });
   }

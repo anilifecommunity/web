@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isAniListEpisodeAvailable, resetAniListCache } from './anilist';
+import {
+  getAniListEpisodeAvailability,
+  isAniListEpisodeAvailable,
+  resetAniListCache,
+} from './anilist';
 
 async function withMedia(
   media: { status: string; episodes: number | null; nextAiringEpisode: { episode: number; airingAt: number } | null },
@@ -59,6 +63,120 @@ test('Anilife media index proves aired episodes when AniList rejects Worker egre
   try {
     assert.equal(await isAniListEpisodeAvailable(209219, 2, 1000), true);
     assert.equal(await isAniListEpisodeAvailable(209219, 3, 1000), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});
+
+test('large long-running episode indexes remain bounded but fit below one MiB', async () => {
+  const originalFetch = globalThis.fetch;
+  const visited: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    visited.push(url.hostname);
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    assert.equal(url.hostname, 'cdn.jsdelivr.net');
+    return new Response(JSON.stringify([
+      { number: 1, air_date: '1999-10-20' },
+      { number: 1_100, air_date: '2999-01-01' },
+    ]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Content-Length': '559000' },
+    });
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await getAniListEpisodeAvailability(21, 1, 1000), 'available');
+    assert.deepEqual(visited, ['graphql.anilist.co', 'cdn.jsdelivr.net']);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});
+
+test('episode indexes above one MiB fail closed and continue to the metadata fallback', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    if (url.hostname === 'cdn.jsdelivr.net') {
+      return new Response('[]', { status: 200, headers: { 'Content-Length': String(1024 * 1024 + 1) } });
+    }
+    assert.equal(url.hostname, 'api.ani.zip');
+    return new Response(JSON.stringify({ mappings: { mal_id: null } }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await getAniListEpisodeAvailability(99, 1, 1000), 'unknown');
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});
+
+test('a released title missing from the media index uses mapped catalogue metadata', async () => {
+  const originalFetch = globalThis.fetch;
+  const visited: string[] = [];
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    visited.push(url.hostname);
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    if (url.hostname === 'cdn.jsdelivr.net') return new Response('missing', { status: 404 });
+    if (url.hostname === 'api.ani.zip') {
+      return new Response(JSON.stringify({ mappings: { mal_id: 59119 } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    assert.equal(url.href, 'https://shikimori.one/api/animes/59119');
+    return new Response(JSON.stringify({
+      status: 'released',
+      episodes: 6,
+      episodes_aired: 4,
+      aired_on: '2024-08-30',
+      released_on: '2025-05-30',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await getAniListEpisodeAvailability(177789, 1, 1000), 'available');
+    assert.equal(await getAniListEpisodeAvailability(177789, 6, 1000), 'available');
+    assert.equal(await getAniListEpisodeAvailability(177789, 7, 1000), 'unavailable');
+    assert.deepEqual(visited, [
+      'graphql.anilist.co',
+      'cdn.jsdelivr.net',
+      'api.ani.zip',
+      'shikimori.one',
+    ]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});
+
+test('future mapped titles remain unavailable rather than becoming unknown', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    if (url.hostname === 'cdn.jsdelivr.net') return new Response('missing', { status: 404 });
+    if (url.hostname === 'api.ani.zip') {
+      return new Response(JSON.stringify({ mappings: { mal_id: 123 } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({
+      status: 'anons',
+      episodes: 12,
+      episodes_aired: 0,
+      aired_on: '2999-01-01',
+    }), { status: 200 });
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await getAniListEpisodeAvailability(123, 1, 1000), 'unavailable');
   } finally {
     globalThis.fetch = originalFetch;
     resetAniListCache();

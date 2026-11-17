@@ -12,7 +12,7 @@ import { createGateToken, gateCookie, GATE_COOKIE, readCookie, verifyGateToken, 
 import { GuardError, safeFetch } from './guards';
 import { fail, json, parseInteger } from './http';
 import { hit } from './rateLimit';
-import { isAniListEpisodeAvailable } from './anilist';
+import { getAniListEpisodeAvailability, type EpisodeAvailability } from './anilist';
 import { protectedRequestAllowed, securityHeaders } from './security';
 import { createWatchSession, verifyWatchSession, type WatchFailure } from './watchSession';
 import {
@@ -42,6 +42,14 @@ const DISCORD_HOSTS = new Set(['discord.com']);
 
 const MAX_EPISODE_REF = 64;
 const EPISODE_REF = /^[A-Za-z0-9._-]{1,64}$/;
+
+function releaseFailure(availability: EpisodeAvailability): Response | null {
+  if (availability === 'available') return null;
+  return fail(
+    availability === 'unknown' ? 503 : 409,
+    availability === 'unknown' ? 'release_status_unavailable' : 'episode_unavailable'
+  );
+}
 
 function publicProviders(): unknown[] {
   return PROVIDERS.map((provider) => ({
@@ -209,9 +217,8 @@ async function handleWatchCreate(request: Request, env: Env): Promise<Response> 
     !Number.isSafeInteger(aniListId) || aniListId < 1 || aniListId > 1_000_000_000 ||
     !Number.isSafeInteger(episode) || episode < 1 || episode > 100_000
   ) return fail(400, 'invalid_watch_target');
-  if (!(await isAniListEpisodeAvailable(aniListId, episode, 8_000))) {
-    return fail(409, 'episode_unavailable');
-  }
+  const releaseError = releaseFailure(await getAniListEpisodeAvailability(aniListId, episode, 8_000));
+  if (releaseError) return releaseError;
   const created = await createWatchSession(secret, sessionToken, aniListId);
   return json({
     ok: true,
@@ -236,9 +243,10 @@ async function handleWatchValidate(request: Request, env: Env): Promise<Response
     { reference: body.reference, tag: body.tag, aniListId: body.aniListId }
   );
   if (!verified.ok) return watchFailure(verified.reason);
-  if (!(await isAniListEpisodeAvailable(verified.aniListId, body.episode, 8_000))) {
-    return fail(409, 'episode_unavailable');
-  }
+  const releaseError = releaseFailure(
+    await getAniListEpisodeAvailability(verified.aniListId, body.episode, 8_000)
+  );
+  if (releaseError) return releaseError;
   return json({
     ok: true,
     aniListId: verified.aniListId,
@@ -285,9 +293,10 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
     }
   );
   if (!verified.ok) return watchFailure(verified.reason);
-  if (!(await isAniListEpisodeAvailable(parsed.request.aniListId, Number(parsed.request.episodeRef), 8_000))) {
-    return fail(409, 'episode_unavailable');
-  }
+  const releaseError = releaseFailure(
+    await getAniListEpisodeAvailability(parsed.request.aniListId, Number(parsed.request.episodeRef), 8_000)
+  );
+  if (releaseError) return releaseError;
 
   try {
     const result = await resolvePlayback({

@@ -4,7 +4,14 @@ const GRAPHQL = 'https://graphql.anilist.co';
 const HOSTS = new Set(['graphql.anilist.co']);
 const MEDIA_INDEX = 'https://cdn.jsdelivr.net/gh/anilifecommunity/media-index@main/data';
 const MEDIA_INDEX_HOSTS = new Set(['cdn.jsdelivr.net']);
+const ANIZIP = 'https://api.ani.zip';
+const ANIZIP_HOSTS = new Set(['api.ani.zip']);
+const SHIKIMORI = 'https://shikimori.one/api/animes';
+const SHIKIMORI_HOSTS = new Set(['shikimori.one']);
 const MAX_JSON = 131_072;
+const MAX_MEDIA_INDEX_JSON = 1 * 1024 * 1024;
+const MAX_ANIZIP_JSON = 3 * 1024 * 1024;
+const MAX_FALLBACK_JSON = 65_536;
 const TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ENTRIES = 500;
 
@@ -21,7 +28,16 @@ interface CachedTitles {
 }
 
 const cache = new Map<number, CachedTitles>();
-const availabilityCache = new Map<number, { availableBefore: number; finishedEpisodes: number; fetchedAt: number }>();
+interface CachedAvailability {
+  availableBefore: number;
+  finishedEpisodes: number;
+  known: boolean;
+  fetchedAt: number;
+}
+
+export type EpisodeAvailability = 'available' | 'unavailable' | 'unknown';
+
+const availabilityCache = new Map<number, CachedAvailability>();
 
 const QUERY = `query ($id: Int) {
   Media(id: $id) {
@@ -42,45 +58,144 @@ async function mediaIndexAvailableBefore(
   aniListId: number,
   timeoutMs: number,
   now = Date.now()
-): Promise<number> {
+): Promise<number | null> {
   try {
     const shard = Math.floor(aniListId / 1000);
     const response = await safeFetch(
       `${MEDIA_INDEX}/anime/${shard}/${aniListId}/episodes.json`,
       { headers: { Accept: 'application/json' } },
-      { allowedHosts: MEDIA_INDEX_HOSTS, timeoutMs, maxBytes: MAX_JSON }
+      { allowedHosts: MEDIA_INDEX_HOSTS, timeoutMs, maxBytes: MAX_MEDIA_INDEX_JSON }
     );
-    if (!response.ok) return 0;
-    const episodes = await readJsonCapped(response, MAX_JSON) as Array<{
+    if (!response.ok) return null;
+    const episodes = await readJsonCapped(response, MAX_MEDIA_INDEX_JSON) as Array<{
       number?: number;
       airDate?: string;
       air_date?: string;
     }>;
-    if (!Array.isArray(episodes)) return 0;
+    if (!Array.isArray(episodes)) return null;
     let latest = 0;
+    let hasDatedEpisode = false;
     for (const entry of episodes) {
       const airDate = entry.airDate ?? entry.air_date;
       const airedAt = typeof airDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(airDate)
         ? Date.parse(`${airDate}T00:00:00Z`)
         : Number.NaN;
+      if (Number.isSafeInteger(entry.number) && Number.isFinite(airedAt)) hasDatedEpisode = true;
       if (Number.isSafeInteger(entry.number) && entry.number! > latest && airedAt <= now) {
         latest = entry.number!;
       }
     }
-    return latest > 0 ? latest + 1 : 0;
+    return hasDatedEpisode ? latest + 1 : null;
   } catch {
-    return 0;
+    return null;
   }
 }
 
-export async function isAniListEpisodeAvailable(
+async function fallbackCatalogueAvailability(
+  aniListId: number,
+  timeoutMs: number,
+  now = Date.now()
+): Promise<CachedAvailability | null> {
+  try {
+    const mappingResponse = await safeFetch(
+      `${ANIZIP}/mappings?anilist_id=${aniListId}`,
+      { headers: { Accept: 'application/json' } },
+      { allowedHosts: ANIZIP_HOSTS, timeoutMs, maxBytes: MAX_ANIZIP_JSON }
+    );
+    if (!mappingResponse.ok) return null;
+    const mapping = await readJsonCapped(mappingResponse, MAX_ANIZIP_JSON) as {
+      mappings?: { mal_id?: number | null };
+    };
+    const malId = mapping?.mappings?.mal_id;
+    if (!Number.isSafeInteger(malId) || Number(malId) < 1) return null;
+
+    const catalogueResponse = await safeFetch(
+      `${SHIKIMORI}/${malId}`,
+      {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Anilife-Web (https://anilife.cc)',
+        },
+      },
+      { allowedHosts: SHIKIMORI_HOSTS, timeoutMs, maxBytes: MAX_FALLBACK_JSON }
+    );
+    if (!catalogueResponse.ok) return null;
+    const metadata = await readJsonCapped(catalogueResponse, MAX_FALLBACK_JSON) as {
+      status?: string;
+      episodes?: number | null;
+      episodes_aired?: number | null;
+      aired_on?: string | null;
+      released_on?: string | null;
+    };
+    const status = metadata.status?.toLowerCase();
+    const airedOn = metadata.aired_on && /^\d{4}-\d{2}-\d{2}$/.test(metadata.aired_on)
+      ? Date.parse(`${metadata.aired_on}T00:00:00Z`)
+      : Number.NaN;
+    if (Number.isFinite(airedOn) && airedOn > now) {
+      return { availableBefore: 1, finishedEpisodes: 0, known: true, fetchedAt: Date.now() };
+    }
+    if (status === 'released' && Number.isSafeInteger(metadata.episodes) && Number(metadata.episodes) > 0) {
+      const releasedOn = metadata.released_on && /^\d{4}-\d{2}-\d{2}$/.test(metadata.released_on)
+        ? Date.parse(`${metadata.released_on}T00:00:00Z`)
+        : Number.NaN;
+      if (!Number.isFinite(releasedOn) || releasedOn <= now) {
+        return {
+          availableBefore: 0,
+          finishedEpisodes: Number(metadata.episodes),
+          known: true,
+          fetchedAt: Date.now(),
+        };
+      }
+    }
+    if (Number.isSafeInteger(metadata.episodes_aired) && Number(metadata.episodes_aired) > 0) {
+      return {
+        availableBefore: Number(metadata.episodes_aired) + 1,
+        finishedEpisodes: 0,
+        known: true,
+        fetchedAt: Date.now(),
+      };
+    }
+    if (status === 'anons') {
+      return { availableBefore: 1, finishedEpisodes: 0, known: true, fetchedAt: Date.now() };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function availabilityResult(cached: CachedAvailability, episode: number): EpisodeAvailability {
+  if (episode < cached.availableBefore || (cached.finishedEpisodes > 0 && episode <= cached.finishedEpisodes)) {
+    return 'available';
+  }
+  return cached.known ? 'unavailable' : 'unknown';
+}
+
+async function fallbackAvailability(
+  aniListId: number,
+  timeoutMs: number
+): Promise<CachedAvailability> {
+  const availableBefore = await mediaIndexAvailableBefore(aniListId, timeoutMs);
+  if (availableBefore !== null) {
+    return { availableBefore, finishedEpisodes: 0, known: true, fetchedAt: Date.now() };
+  }
+  return await fallbackCatalogueAvailability(aniListId, timeoutMs) ?? {
+    availableBefore: 0,
+    finishedEpisodes: 0,
+    known: false,
+    fetchedAt: Date.now(),
+  };
+}
+
+export async function getAniListEpisodeAvailability(
   aniListId: number,
   episode: number,
   timeoutMs: number
-): Promise<boolean> {
+): Promise<EpisodeAvailability> {
   const cached = availabilityCache.get(aniListId);
-  if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) {
-    return episode < cached.availableBefore || (cached.finishedEpisodes > 0 && episode <= cached.finishedEpisodes);
+  const cacheTtl = cached?.known ? 5 * 60 * 1000 : 30 * 1000;
+  if (cached && Date.now() - cached.fetchedAt < cacheTtl) {
+    return availabilityResult(cached, episode);
   }
   let response: Response | null = null;
   try {
@@ -95,9 +210,9 @@ export async function isAniListEpisodeAvailable(
     );
   } catch {}
   if (!response?.ok) {
-    const availableBefore = await mediaIndexAvailableBefore(aniListId, timeoutMs);
-    availabilityCache.set(aniListId, { availableBefore, finishedEpisodes: 0, fetchedAt: Date.now() });
-    return episode < availableBefore;
+    const fallback = await fallbackAvailability(aniListId, timeoutMs);
+    availabilityCache.set(aniListId, fallback);
+    return availabilityResult(fallback, episode);
   }
   const data = (await readJsonCapped(response, MAX_JSON)) as {
     data?: {
@@ -109,14 +224,37 @@ export async function isAniListEpisodeAvailable(
     };
   };
   const media = data?.data?.Media;
-  if (!media || media.status === 'NOT_YET_RELEASED' || media.status === 'CANCELLED') return false;
+  if (!media) {
+    const fallback = await fallbackAvailability(aniListId, timeoutMs);
+    availabilityCache.set(aniListId, fallback);
+    return availabilityResult(fallback, episode);
+  }
+  if (media.status === 'NOT_YET_RELEASED' || media.status === 'CANCELLED') {
+    const unavailable = { availableBefore: 1, finishedEpisodes: 0, known: true, fetchedAt: Date.now() };
+    availabilityCache.set(aniListId, unavailable);
+    return 'unavailable';
+  }
   const nextEpisode = media.nextAiringEpisode?.episode;
   const availableBefore = Number.isSafeInteger(nextEpisode) ? Number(nextEpisode) : 0;
   const finishedEpisodes = media.status === 'FINISHED' && Number.isSafeInteger(media.episodes)
     ? Number(media.episodes)
     : 0;
-  availabilityCache.set(aniListId, { availableBefore, finishedEpisodes, fetchedAt: Date.now() });
-  return episode < availableBefore || (finishedEpisodes > 0 && episode <= finishedEpisodes);
+  if (availableBefore === 0 && finishedEpisodes === 0) {
+    const fallback = await fallbackAvailability(aniListId, timeoutMs);
+    availabilityCache.set(aniListId, fallback);
+    return availabilityResult(fallback, episode);
+  }
+  const resolved = { availableBefore, finishedEpisodes, known: true, fetchedAt: Date.now() };
+  availabilityCache.set(aniListId, resolved);
+  return availabilityResult(resolved, episode);
+}
+
+export async function isAniListEpisodeAvailable(
+  aniListId: number,
+  episode: number,
+  timeoutMs: number
+): Promise<boolean> {
+  return await getAniListEpisodeAvailability(aniListId, episode, timeoutMs) === 'available';
 }
 
 /**

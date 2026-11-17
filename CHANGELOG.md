@@ -27,6 +27,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Fixed
 
+- Fixed false unreleased errors for long-running titles whose verified episode indexes exceed the
+  old 128 KiB safety limit, while retaining a one MiB hard cap and fail-closed fallback checks.
+- Added a bounded mapped-catalogue release check for titles missing from the media index, and now
+  distinguish a temporary release-verification outage from a confirmed unreleased episode.
 - Kept Dub as the preferred first choice while automatically using Sub for anime without a listed
   English dub and for individual episodes whose enabled players only provide Sub.
 - Explained automatic server fallbacks instead of silently changing the selected server.

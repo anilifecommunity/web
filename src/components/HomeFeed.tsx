@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Clock3, Flame, Info, Play, Star, Trophy, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, Clock3, Flame, Info, Play, Star, Trophy, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Anime, AppSettings, ContinueWatchingEntry } from '../types/anime';
 import { canWatchEpisode, firstAiredEpisode } from '../utils/episodeAvailability';
@@ -48,6 +48,17 @@ export const HomeFeed: React.FC = () => {
     settings,
   } = useApp();
   const [activeSpotlightIdx, setActiveSpotlightIdx] = useState(0);
+  const continueRailRef = useRef<HTMLDivElement>(null);
+
+  const scrollContinueRail = (direction: -1 | 1) => {
+    const rail = continueRailRef.current;
+    if (!rail) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    rail.scrollBy({
+      left: direction * Math.max(280, Math.round(rail.clientWidth * 0.8)),
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+  };
 
   const spotlights = spotlightAnime.length ? spotlightAnime.slice(0, 5) : liveCatalog.slice(0, 5);
   const spotlight = spotlights[activeSpotlightIdx] || liveCatalog[0];
@@ -101,14 +112,35 @@ export const HomeFeed: React.FC = () => {
 
       {continueItems.length > 0 && (
         <section aria-labelledby="continue-heading">
-          <div className="mb-4">
-            <p className="anilife-eyebrow">Your activity</p>
-            <h2 id="continue-heading" className="anilife-section-title">Continue watching</h2>
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <p className="anilife-eyebrow">Your activity</p>
+              <h2 id="continue-heading" className="anilife-section-title">Continue watching</h2>
+            </div>
+            <div className="hidden items-center gap-2 sm:flex" aria-label="Continue Watching controls">
+              <button type="button" onClick={() => scrollContinueRail(-1)} className="rounded-full border border-white/10 bg-white/5 p-2 text-zinc-300 transition hover:border-[var(--anilife-accent)]/40 hover:text-white" aria-label="Scroll Continue Watching left">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => scrollContinueRail(1)} className="rounded-full border border-white/10 bg-white/5 p-2 text-zinc-300 transition hover:border-[var(--anilife-accent)]/40 hover:text-white" aria-label="Scroll Continue Watching right">
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+          <div
+            ref={continueRailRef}
+            className="flex gap-3 overflow-x-auto pb-2 no-scrollbar"
+            role="region"
+            aria-label="Continue Watching titles"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              scrollContinueRail(event.key === 'ArrowLeft' ? -1 : 1);
+            }}
+          >
             {continueItems.map(({ anime, entry }) => {
               const playable = canWatchEpisode(anime, entry.episodeNumber);
-              const progress = entry.durationSec > 0 ? Math.min(100, Math.round((entry.currentTimeSec / entry.durationSec) * 100)) : 0;
+              const progress = entry.durationSec > 0 ? Math.min(100, Math.round((entry.currentTimeSec / entry.durationSec) * 100)) : null;
               return (
                 <article key={`${anime.id}-${entry.episodeNumber}`} className="group relative w-72 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] sm:w-80">
                   <button type="button" onClick={() => playable ? playAnimeEpisode(anime, entry.episodeNumber) : setSelectedAnime(anime)} className="block w-full text-left">
@@ -119,8 +151,10 @@ export const HomeFeed: React.FC = () => {
                     </div>
                     <div className="p-3">
                       <h3 className="truncate text-sm font-bold">{displayAnimeTitle(anime, settings.titleLanguage)}</h3>
-                      <p className="mt-1 text-xs text-zinc-500">Episode {entry.episodeNumber} / {progress}% watched</p>
-                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--anilife-accent)]" style={{ width: `${progress}%` }} /></div>
+                      <p className="mt-1 text-xs text-zinc-500">
+                        Episode {entry.episodeNumber} / {progress === null ? 'Synced from AniList' : `${progress}% watched`}
+                      </p>
+                      {progress !== null && <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10"><div className="h-full bg-[var(--anilife-accent)]" style={{ width: `${progress}%` }} /></div>}
                     </div>
                   </button>
                   <button type="button" onClick={() => removeFromContinueWatching(anime.id)} className="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-zinc-300 opacity-100 backdrop-blur-sm transition hover:text-white sm:opacity-0 sm:group-hover:opacity-100" aria-label={`Remove ${displayAnimeTitle(anime, settings.titleLanguage)} from continue watching`}><X className="h-3.5 w-3.5" /></button>

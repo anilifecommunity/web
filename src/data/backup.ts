@@ -283,7 +283,7 @@ function historyToAndroid(entry: ContinueWatchingEntry): Record<string, unknown>
     durationMs: Math.max(0, Math.round((entry.durationSec ?? 0) * 1000)),
     updatedAt: parseDate(entry.updatedAt),
     watchedEpisodes: [],
-    fromRemote: false,
+    fromRemote: entry.fromRemote === true,
   };
 }
 
@@ -295,6 +295,8 @@ function watchlistToAndroid(entry: WatchlistEntry): Record<string, unknown> {
     addedAt: parseDate(entry.updatedAt),
     // Extra key: Android ignores unknown fields, web keeps the local status.
     status: entry.status,
+    progress: entry.progress,
+    score: entry.score,
   };
 }
 
@@ -393,6 +395,7 @@ function normalizeHistory(raw: unknown): ContinueWatchingEntry | null {
     updatedAt: new Date(
       typeof entry.updatedAt === 'number' ? entry.updatedAt : parseDate(entry.updatedAt)
     ).toISOString(),
+    fromRemote: entry.fromRemote === true,
   };
 }
 
@@ -405,6 +408,8 @@ function normalizeWatchlist(raw: unknown): WatchlistEntry | null {
   return {
     animeId,
     status: status as WatchlistEntry['status'],
+    progress: typeof entry.progress === 'number' ? Math.max(0, entry.progress) : undefined,
+    score: typeof entry.score === 'number' ? Math.max(0, entry.score) : undefined,
     updatedAt: new Date(
       typeof entry.updatedAt === 'number' ? entry.updatedAt : parseDate(entry.addedAt ?? entry.updatedAt)
     ).toISOString(),

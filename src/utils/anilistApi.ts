@@ -568,6 +568,7 @@ export async function fetchUserAnimeList(
               status
               seasonYear
               duration
+              nextAiringEpisode { episode airingAt timeUntilAiring }
             }
           }
         }

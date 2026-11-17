@@ -7,6 +7,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Added
 
+- Added Continue Watching and Rewatching as first-class Library views with accurate counts and
+  profile-scoped resume/removal actions.
 - Added verified related manga, manhwa and other comics to anime details with cover artwork,
   relationship labels and safe AniList links.
 - Expanded search across English, Romaji, native and alternative anime titles, plus verified anime
@@ -14,6 +16,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Changed
 
+- Merged local Anilife saves and playback history with AniList status, score, progress and title
+  metadata without deleting local-only entries during account refreshes.
+- Added discoverable mouse and keyboard controls to the Home Continue Watching rail while keeping
+  native touch and trackpad scrolling.
 - Made the English, Romaji and native title preference update anime and manga titles immediately,
   with one persistent Content setting controlling the related-manga shelf.
 - Added a one-time stale catalogue and app-shell cache refresh while preserving profiles, settings,

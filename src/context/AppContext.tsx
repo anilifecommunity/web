@@ -664,6 +664,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setRouteError(
         code === 'episode_unavailable'
           ? `Episode ${episodeNum} is not confirmed as released yet.`
+          : code === 'release_status_unavailable'
+            ? `Anilife could not verify episode ${episodeNum}'s release status right now. Try again in a moment.`
           : code === 'rate_limited'
             ? 'Too many watch requests were made from this connection. Wait a minute, then try again.'
             : code === 'network'

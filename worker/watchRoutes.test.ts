@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import worker, { type Env } from './index';
+import { resetAniListCache } from './anilist';
 import { createGateToken, GATE_COOKIE } from './gate';
 
 const GATE_SECRET = 'gate-secret';
@@ -108,4 +109,22 @@ test('production fails closed when the watch secret is absent', async () => {
   ), env(''));
   assert.equal(response.status, 503);
   assert.equal((await response.json() as { error: string }).error, 'watch_sessions_not_configured');
+});
+
+test('watch creation distinguishes unavailable release metadata from an unreleased episode', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('upstream unavailable', { status: 503 });
+  resetAniListCache();
+  try {
+    const gate = await createGateToken(GATE_SECRET);
+    const response = await request('/api/watch/session', gate, {
+      method: 'POST',
+      body: JSON.stringify({ aniListId: 999_991, episode: 1 }),
+    });
+    assert.equal(response.status, 503);
+    assert.equal((await response.json() as { error: string }).error, 'release_status_unavailable');
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
 });

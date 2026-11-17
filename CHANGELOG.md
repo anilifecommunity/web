@@ -21,6 +21,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Fixed
 
+- Kept Dub as the preferred first choice while automatically using Sub for anime without a listed
+  English dub and for individual episodes whose enabled players only provide Sub.
 - Explained automatic server fallbacks instead of silently changing the selected server.
 - Centered the watch-status selector arrow consistently across browsers.
 - Replaced the basic watch-status selector with a clearer in-app menu.

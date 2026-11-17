@@ -101,10 +101,11 @@ export async function fetchMediaIndexSkip(anilistId: number, episodeNum: number,
   return null;
 }
 
-export async function isAnimeDubbed(anilistId: number): Promise<boolean> {
+export async function isAnimeDubbed(anilistId: number): Promise<boolean | null> {
   if (!dubIndexSet) {
     const ids = await fetchIndexJson<number[]>('dub-index.json');
-    dubIndexSet = new Set(Array.isArray(ids) ? ids : []);
+    if (!Array.isArray(ids)) return null;
+    dubIndexSet = new Set(ids);
   }
   return dubIndexSet.has(anilistId);
 }

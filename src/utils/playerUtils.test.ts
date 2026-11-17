@@ -5,7 +5,9 @@ import {
   formatPlayerClock,
   calculateProgressPercent,
   isWatched,
-  clampSpeed
+  clampSpeed,
+  fallbackAudioMode,
+  availableAudioMode,
 } from './playerUtils';
 
 test('formatTime correctly formats seconds', () => {
@@ -39,4 +41,16 @@ test('clampSpeed picks the closest playback rate', () => {
   assert.equal(clampSpeed(1.1), 1);
   assert.equal(clampSpeed(1.2), 1.25);
   assert.equal(clampSpeed(2.5), 2);
+});
+
+test('dub playback may fall back to sub once', () => {
+  assert.equal(fallbackAudioMode('DUB'), 'SUB');
+  assert.equal(fallbackAudioMode('SUB'), null);
+});
+
+test('verified title audio keeps dub preference unless the catalogue says it is unavailable', () => {
+  assert.equal(availableAudioMode('DUB', true), 'DUB');
+  assert.equal(availableAudioMode('DUB', false), 'SUB');
+  assert.equal(availableAudioMode('DUB', null), 'DUB');
+  assert.equal(availableAudioMode('SUB', false), 'SUB');
 });

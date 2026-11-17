@@ -33,11 +33,13 @@ import {
 } from '../utils/providerOptions';
 import { resolveEpisode } from '../utils/workerApi';
 import { displayAnimeTitle } from '../utils/animePreferences';
+import { fallbackAudioMode } from '../utils/playerUtils';
 
 interface Props {
   anime: Anime;
   initialEpisodeNumber: number;
   initialAudioMode?: 'SUB' | 'DUB';
+  initialAudioFallback?: boolean;
   initialServerId?: string;
   watchSession: VideoPlaybackTarget['watchSession'];
   onClose: () => void;
@@ -49,6 +51,7 @@ export const VideoPlayer: React.FC<Props> = ({
   anime,
   initialEpisodeNumber,
   initialAudioMode = 'SUB',
+  initialAudioFallback = false,
   initialServerId,
   watchSession,
   onClose,
@@ -135,6 +138,22 @@ export const VideoPlayer: React.FC<Props> = ({
     window.setTimeout(() => setToast(''), durationMs);
   }, []);
 
+  const fallBackToSub = useCallback(() => {
+    const fallback = fallbackAudioMode(audioMode);
+    if (!fallback) return false;
+    setError('');
+    setIsLoading(true);
+    setAudioMode(fallback);
+    showToast('The enabled servers have no Dub copy for this episode. Playing Sub instead.', 4800);
+    return true;
+  }, [audioMode, showToast]);
+
+  useEffect(() => {
+    if (initialAudioFallback) {
+      showToast('No English dub is listed for this anime. Playing Sub instead.', 4800);
+    }
+  }, [initialAudioFallback, showToast]);
+
   const seek = useCallback((seconds: number) => {
     const video = videoRef.current;
     if (!video) return;
@@ -210,6 +229,7 @@ export const VideoPlayer: React.FC<Props> = ({
       }, abort.signal);
       if (cancelled) return;
       if (!result.ok) {
+        if (fallBackToSub()) return;
         setError(messageFor(result.error));
         setIsLoading(false);
         return;
@@ -257,6 +277,7 @@ export const VideoPlayer: React.FC<Props> = ({
     audioMode,
     currentEpisodeNumber,
     enabledIds,
+    fallBackToSub,
     numericAniListId,
     retryNonce,
     selectedSubLanguage,
@@ -278,7 +299,7 @@ export const VideoPlayer: React.FC<Props> = ({
       if (Number.isFinite(nextDuration) && nextDuration > 0) setDuration(nextDuration);
       if (data.type === 'play') setIsPlaying(true);
       if (data.type === 'pause') setIsPlaying(false);
-      if (data.type === 'error') setError('This server could not continue playback. Retry or choose another enabled server.');
+      if (data.type === 'error' && !fallBackToSub()) setError('This server could not continue playback. Retry or choose another enabled server.');
       if (data.type === 'ready') {
         iframeRef.current?.contentWindow?.postMessage({ channel: 'zokoanime', type: 'autonext', on: false }, origin);
         iframeRef.current?.contentWindow?.postMessage({ channel: 'zokoanime', type: 'autoskip', on: settings.autoSkipIntro }, origin);
@@ -293,7 +314,7 @@ export const VideoPlayer: React.FC<Props> = ({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [activeEpisodes, anime.id, audioMode, currentEpisodeNumber, embedProviderId, embedSupportsProgress, embedUrl, settings.autoPlayNext, settings.autoSkipIntro, updateWatchProgress]);
+  }, [activeEpisodes, anime.id, audioMode, currentEpisodeNumber, embedProviderId, embedSupportsProgress, embedUrl, fallBackToSub, settings.autoPlayNext, settings.autoSkipIntro, updateWatchProgress]);
 
   useEffect(() => {
     if (!embedUrl || !embedSupportsProgress || embedProviderId !== 'animeembed') return;
@@ -313,7 +334,7 @@ export const VideoPlayer: React.FC<Props> = ({
       if (Number.isFinite(nextDuration) && nextDuration > 0) setDuration(nextDuration);
       if (message.event === 'play') setIsPlaying(true);
       if (message.event === 'pause') setIsPlaying(false);
-      if (message.event === 'error') setError('This server could not continue playback. Retry or choose another enabled server.');
+      if (message.event === 'error' && !fallBackToSub()) setError('This server could not continue playback. Retry or choose another enabled server.');
       if (message.event === 'ended') {
         setIsPlaying(false);
         const finalDuration = nextDuration > 0 ? nextDuration : duration;
@@ -324,7 +345,7 @@ export const VideoPlayer: React.FC<Props> = ({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [activeEpisodes, anime.id, audioMode, currentEpisodeNumber, duration, embedProviderId, embedSupportsProgress, embedUrl, settings.autoPlayNext, updateWatchProgress]);
+  }, [activeEpisodes, anime.id, audioMode, currentEpisodeNumber, duration, embedProviderId, embedSupportsProgress, embedUrl, fallBackToSub, settings.autoPlayNext, updateWatchProgress]);
 
   useEffect(() => {
     const video = videoRef.current;

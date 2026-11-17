@@ -7,6 +7,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Added
 
+- Added a checksum-verified Media Index fallback for home, browse, search, details, schedules,
+  related titles and episode evidence when live metadata services are unavailable.
 - Added Continue Watching and Rewatching as first-class Library views with accurate counts and
   profile-scoped resume/removal actions.
 - Added verified related manga, manhwa and other comics to anime details with cover artwork,
@@ -29,6 +31,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 - Fixed false unreleased errors for long-running titles whose verified episode indexes exceed the
   old 128 KiB safety limit, while retaining a one MiB hard cap and fail-closed fallback checks.
+- Fixed released movies and one-off specials being blocked when only verified finished-title
+  metadata exists, while requiring exact dated evidence for sparse episodic indexes.
 - Added a bounded mapped-catalogue release check for titles missing from the media index, and now
   distinguish a temporary release-verification outage from a confirmed unreleased episode.
 - Kept Dub as the preferred first choice while automatically using Sub for anime without a listed
@@ -42,6 +46,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ### Security and reliability
 
+- Verified every Media Index pointer, manifest and record against fixed trusted origins, exact byte
+  counts, SHA-256 checksums, schema compatibility and source-rights policy before using it.
+- Kept the last verified Media Index release available offline without replacing it with failed,
+  empty or older responses, and prevent mixed-release catalogue reads.
 - Replaced public watch URLs with opaque, session-bound routes whose encrypted authorization stays
   out of the URL and is required by the playback resolver.
 - Blocked third-party framing by default while isolating the verified Discord Activity exception

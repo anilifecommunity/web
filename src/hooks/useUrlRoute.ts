@@ -6,6 +6,8 @@ import { parseRoute, shouldPushRoute, TAB_PATHS } from './urlRoute';
 import { displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
 import { isDiscordActivity } from '../discord/activity';
 import { loadWatchSession, removeWatchSession, validateWatchSession, watchSessionPath } from '../utils/workerApi';
+import { convertMediaIndexMediaToAnime } from '../utils/animeConversion';
+import { mediaIndexRelease } from '../utils/mediaIndexRelease';
 
 function findLocalAnime(id: string, catalog: Anime[]): Anime | undefined {
   return catalog.find((anime) => anime.id === id);
@@ -34,6 +36,10 @@ export function useUrlRoute(): void {
         if (/^\d+$/.test(id)) {
           const media = await fetchAniListMediaById(Number(id)).catch(() => null);
           if (media) anime = convertAniListToAnime(media);
+          else {
+            const indexed = await mediaIndexRelease.media(Number(id)).catch(() => null);
+            if (indexed) anime = convertMediaIndexMediaToAnime(indexed.data);
+          }
         }
         return anime;
       };

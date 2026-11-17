@@ -7,8 +7,9 @@ import { fetchMediaIndexEpisodes } from '../utils/mediaIndexApi';
 import { fetchAniListMediaById } from '../utils/anilistApi';
 import { selectAiredEpisodes } from '../utils/episodeAvailability';
 import { displayAnimeTitle } from '../utils/animePreferences';
-import { convertAniListRelatedManga } from '../utils/animeConversion';
+import { convertAniListRelatedManga, convertMediaIndexMediaToAnime } from '../utils/animeConversion';
 import { safeImageUrl } from '../utils/safeUrl';
+import { mediaIndexRelease } from '../utils/mediaIndexRelease';
 
 interface Props {
   anime: Anime;
@@ -78,15 +79,24 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   useEffect(() => {
     let cancelled = false;
     const aniListId = getAnimeAniListId(anime);
+    setRelatedManga(anime.relatedManga ?? []);
     if (!aniListId) {
       setRelatedManga([]);
       return;
     }
-    fetchAniListMediaById(aniListId)
-      .then((media) => {
-        if (!cancelled) setRelatedManga(media ? convertAniListRelatedManga(media) : []);
-      })
-      .catch(() => undefined);
+    const loadRelations = async () => {
+      const media = await fetchAniListMediaById(aniListId).catch(() => null);
+      if (cancelled) return;
+      if (media) {
+        setRelatedManga(convertAniListRelatedManga(media));
+        return;
+      }
+      const indexed = await mediaIndexRelease.media(aniListId).catch(() => null);
+      if (!cancelled && indexed) {
+        setRelatedManga(convertMediaIndexMediaToAnime(indexed.data).relatedManga ?? []);
+      }
+    };
+    void loadRelations();
     return () => {
       cancelled = true;
     };
@@ -215,7 +225,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
 
               <div className="flex flex-wrap items-center gap-3">
                 {currentEpisode ? (
-                  <button type="button" onClick={() => playAnimeEpisode(anime, currentEpisode.number, continueEntry?.audioMode || 'SUB')} className="anilife-button anilife-button-primary">
+                  <button type="button" onClick={() => playAnimeEpisode(availabilityAnime, currentEpisode.number, continueEntry?.audioMode || 'SUB')} className="anilife-button anilife-button-primary">
                     <Play className="h-4 w-4 fill-current" />
                     {continueEntry ? `Continue episode ${currentEpisode.number}` : `Watch episode ${currentEpisode.number}`}
                   </button>
@@ -293,7 +303,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
             {filteredEpisodes.length > 0 ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredEpisodes.map((episode) => (
-                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(anime, episode.number)} className="group grid h-24 grid-cols-[112px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06] sm:h-28 sm:grid-cols-[124px_minmax(0,1fr)]">
+                  <button type="button" key={episode.id} onClick={() => playAnimeEpisode(availabilityAnime, episode.number)} className="group grid h-24 grid-cols-[112px_minmax(0,1fr)] overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] text-left transition hover:border-[var(--anilife-accent)]/60 hover:bg-white/[0.06] sm:h-28 sm:grid-cols-[124px_minmax(0,1fr)]">
                     <div className="relative h-full min-w-0 overflow-hidden bg-zinc-900">
                       {(episode.thumbnail || anime.posterImage) && <img src={episode.thumbnail || anime.posterImage} alt="" loading="lazy" className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]" />}
                       <span className="absolute left-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-[11px] font-bold">EP {episode.number}</span>
@@ -379,11 +389,13 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
             </dl>
           </section>
 
-          {anime.related.length > 0 && (
+          {anime.related.some((item) => !settings.hideAdultContent || item.isAdult === false) && (
             <section aria-labelledby="related-title" className="space-y-5 border-t border-white/10 pt-10">
               <div><p className="anilife-eyebrow">Keep exploring</p><h2 id="related-title" className="anilife-section-title">Related titles</h2></div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {anime.related.map((related) => (
+                {anime.related
+                  .filter((related) => !settings.hideAdultContent || related.isAdult === false)
+                  .map((related) => (
                   <a key={related.id} href={`/anime/${related.id}`} onClick={(event) => openRelated(event, related.id)} className="flex min-h-24 gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3 transition hover:border-[var(--anilife-accent)]/50">
                     {related.poster && <img src={related.poster} alt="" loading="lazy" className="aspect-[2/3] w-12 rounded-md object-cover" />}
                     <div className="min-w-0 self-center"><h3 className="line-clamp-2 text-sm font-semibold">{related.title}</h3><p className="mt-1 text-xs text-zinc-500">{related.relation}</p></div>

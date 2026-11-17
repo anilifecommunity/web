@@ -46,6 +46,7 @@ export const HomeFeed: React.FC = () => {
     topRatedAnime,
     spotlightAnime,
     settings,
+    catalogMetadata,
   } = useApp();
   const [activeSpotlightIdx, setActiveSpotlightIdx] = useState(0);
   const continueRailRef = useRef<HTMLDivElement>(null);
@@ -75,6 +76,23 @@ export const HomeFeed: React.FC = () => {
 
   return (
     <div className="space-y-10 pb-20 animate-fadeIn">
+      {catalogMetadata.state !== 'LIVE' && (
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-4 py-3 text-xs text-zinc-300"
+          role="status"
+        >
+          <span>
+            {catalogMetadata.state === 'INDEX'
+              ? 'Some live metadata is unavailable. Showing the latest verified Media Index snapshot where needed.'
+              : catalogMetadata.state === 'LOCAL'
+                ? 'Live metadata is unavailable. Showing the last verified catalogue saved on this device.'
+                : 'Live and verified catalogue metadata are temporarily unavailable. Your saved Library is unaffected.'}
+          </span>
+          {catalogMetadata.releaseId && (
+            <span className="font-mono text-[10px] text-zinc-500">{catalogMetadata.releaseId}</span>
+          )}
+        </div>
+      )}
       {spotlight && (
         <section className="relative isolate flex min-h-[430px] items-end overflow-hidden rounded-2xl border border-white/10 p-5 shadow-2xl sm:min-h-[520px] sm:p-10">
           <img src={safeImageUrl(spotlight.bannerImage || spotlight.posterImage, '')} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" />

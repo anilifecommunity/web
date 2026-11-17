@@ -27,6 +27,7 @@ export interface RelatedAnime {
   year: number;
   poster: string;
   episodesCount?: number;
+  isAdult?: boolean;
 }
 
 export interface RelatedManga {

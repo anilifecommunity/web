@@ -89,7 +89,7 @@ test('large long-running episode indexes remain bounded but fit below one MiB', 
   try {
     assert.equal(await getAniListEpisodeAvailability(21, 1, 1000), 'available');
     assert.equal(visited[0], 'graphql.anilist.co');
-    assert.equal(visited.includes('raw.githubusercontent.com'), true);
+    assert.equal(visited.some((host) => host === 'raw.githubusercontent.com'), true);
     assert.ok(visited.length <= 6, `expected bounded fallback fanout, got ${visited.length}`);
   } finally {
     globalThis.fetch = originalFetch;

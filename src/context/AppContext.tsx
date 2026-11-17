@@ -53,6 +53,7 @@ import {
   fetchMediaIndexSkip,
   isAnimeDubbed
 } from '../utils/mediaIndexApi';
+import { mediaIndexRelease, type MediaIndexDataState, type MediaIndexFailureCode } from '../utils/mediaIndexRelease';
 
 export interface VideoPlaybackTarget {
   anime: Anime;
@@ -63,7 +64,7 @@ export interface VideoPlaybackTarget {
   watchSession: WatchSession;
 }
 
-import { convertAniListToAnime } from '../utils/animeConversion';
+import { convertAniListToAnime, convertMediaIndexCompactToAnime, convertMediaIndexMediaToAnime } from '../utils/animeConversion';
 import { canWatchEpisode } from '../utils/episodeAvailability';
 import { isAnimeVisible } from '../utils/animePreferences';
 import { availableAudioMode } from '../utils/playerUtils';
@@ -74,6 +75,13 @@ import {
 } from '../utils/libraryParity';
 
 export { convertAniListToAnime };
+
+export interface CatalogMetadataState {
+  state: 'LIVE' | MediaIndexDataState | 'UNAVAILABLE';
+  releaseId?: string;
+  generatedAt?: string;
+  failure?: MediaIndexFailureCode;
+}
 
 interface AppContextType {
   activeTab: 'home' | 'search' | 'schedule' | 'mylist' | 'downloads';
@@ -139,6 +147,7 @@ interface AppContextType {
   topRatedAnime: Anime[];
   spotlightAnime: Anime[];
   isLoadingCatalog: boolean;
+  catalogMetadata: CatalogMetadataState;
 
   
   showIntro: boolean;
@@ -201,6 +210,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [topRatedAnime, setTopRatedAnime] = useState<Anime[]>([]);
   const [spotlightAnime, setSpotlightAnime] = useState<Anime[]>([]);
   const [isLoadingCatalog, setIsLoadingCatalog] = useState(true);
+  const [catalogMetadata, setCatalogMetadata] = useState<CatalogMetadataState>(() => ({
+    state: loadCachedCatalog()?.length ? 'LOCAL' : 'UNAVAILABLE',
+  }));
 
   
   useEffect(() => {
@@ -266,26 +278,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     async function loadLiveAniList() {
       setIsLoadingCatalog(true);
       try {
-        const [trending, season, topRated, popularAll] = await Promise.all([
-          fetchTrendingAnime(1, 30).catch(() => []),
-          fetchPopularSeasonAnime(1, 30).catch(() => []),
-          fetchTopRatedAnime(1, 30).catch(() => []),
-          fetchPopularAllTimeAnime(1, 30).catch(() => [])
+        const liveResults = await Promise.allSettled([
+          fetchTrendingAnime(1, 30),
+          fetchPopularSeasonAnime(1, 30),
+          fetchTopRatedAnime(1, 30),
+          fetchPopularAllTimeAnime(1, 30),
         ]);
-
         if (!isMounted) return;
 
-        const convTrending = trending.map(convertAniListToAnime);
-        const convSeason = season.map(convertAniListToAnime);
-        const convTopRated = topRated.map(convertAniListToAnime);
-        const convPopular = popularAll.map(convertAniListToAnime);
+        const liveRows = liveResults.map((result) => result.status === 'fulfilled' ? result.value : []);
+        const liveComplete = liveRows.every((rows) => rows.length > 0);
+        let fallbackRows: Awaited<ReturnType<typeof mediaIndexRelease.home>> | null = null;
+        if (!liveComplete) {
+          fallbackRows = await mediaIndexRelease.home().catch(() => null);
+        }
+
+        const indexed = fallbackRows?.data.rows;
+        const convTrending = liveRows[0].length
+          ? liveRows[0].map(convertAniListToAnime)
+          : (indexed?.trending.length ? indexed.trending : indexed?.popular ?? []).map(convertMediaIndexCompactToAnime);
+        const convSeason = liveRows[1].length
+          ? liveRows[1].map(convertAniListToAnime)
+          : (indexed?.season ?? []).map(convertMediaIndexCompactToAnime);
+        const convTopRated = liveRows[2].length
+          ? liveRows[2].map(convertAniListToAnime)
+          : (indexed?.topRated ?? []).map(convertMediaIndexCompactToAnime);
+        const convPopular = liveRows[3].length
+          ? liveRows[3].map(convertAniListToAnime)
+          : (indexed?.popular ?? []).map(convertMediaIndexCompactToAnime);
 
         if (convTrending.length > 0) setTrendingAnime(convTrending);
         if (convSeason.length > 0) setPopularSeasonAnime(convSeason);
         if (convTopRated.length > 0) setTopRatedAnime(convTopRated);
 
-        
-        const spotlights = (convTrending.length > 0 ? convTrending : convSeason).slice(0, 5);
+        const spotlights = indexed?.spotlight.length && !liveRows[0].length
+          ? indexed.spotlight.map(convertMediaIndexCompactToAnime).slice(0, 5)
+          : (convTrending.length > 0 ? convTrending : convSeason).slice(0, 5);
         if (spotlights.length > 0) setSpotlightAnime(spotlights);
 
         
@@ -309,8 +337,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const merged = Array.from(uniqueMap.values());
         setLiveCatalog(merged);
         saveCachedCatalog(merged);
+
+        if (liveComplete) {
+          setCatalogMetadata({ state: 'LIVE' });
+        } else if (fallbackRows) {
+          setCatalogMetadata({
+            state: fallbackRows.state,
+            releaseId: fallbackRows.releaseId,
+            generatedAt: fallbackRows.generatedAt,
+            failure: fallbackRows.failure,
+          });
+        } else {
+          setCatalogMetadata({ state: merged.length ? 'LOCAL' : 'UNAVAILABLE' });
+        }
       } catch (err) {
         console.error('Error fetching live AniList data:', err);
+        if (isMounted) setCatalogMetadata({ state: loadCachedCatalog()?.length ? 'LOCAL' : 'UNAVAILABLE' });
       } finally {
         if (isMounted) setIsLoadingCatalog(false);
       }
@@ -622,11 +664,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const rememberAnime = (anime: Anime) => {
     setLiveCatalog(prev => {
-      if (prev.some(item => item.id === anime.id)) return prev;
-      const next = [anime, ...prev];
+      const existing = prev.find((item) => item.id === anime.id);
+      if (existing && existing.synopsis !== 'Details are available when you open this title.') return prev;
+      const next = existing
+        ? prev.map((item) => item.id === anime.id ? anime : item)
+        : [anime, ...prev];
       saveCachedCatalog(next);
       return next;
     });
+  };
+
+  const selectAnime = (anime: Anime | null) => {
+    setSelectedAnime(anime);
+    if (!anime
+      || anime.synopsis !== 'Details are available when you open this title.'
+      || !/^\d+$/.test(anime.id)) return;
+
+    void mediaIndexRelease.media(Number(anime.id)).then((indexed) => {
+      const hydrated = convertMediaIndexMediaToAnime(indexed.data);
+      if (!isAnimeVisible(hydrated, settings.hideAdultContent)) {
+        setSelectedAnime((current) => current?.id === anime.id ? null : current);
+        setRouteError('This title is hidden by your adult-content preference.');
+        return;
+      }
+      setSelectedAnime((current) => current?.id === anime.id ? hydrated : current);
+      setLiveCatalog((current) => {
+        const next = current.some((item) => item.id === hydrated.id)
+          ? current.map((item) => item.id === hydrated.id ? hydrated : item)
+          : [hydrated, ...current];
+        saveCachedCatalog(next);
+        return next;
+      });
+    }).catch(() => undefined);
   };
 
   const playAnimeEpisode = async (anime: Anime, episodeNum: number = 1, audioMode?: 'SUB' | 'DUB') => {
@@ -713,7 +782,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveTab,
         rememberAnime,
         selectedAnime,
-        setSelectedAnime,
+        setSelectedAnime: selectAnime,
         activeVideo,
         setActiveVideo,
         routeError,
@@ -759,6 +828,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         topRatedAnime: visibleTopRatedAnime,
         spotlightAnime: visibleSpotlightAnime,
         isLoadingCatalog,
+        catalogMetadata,
         showIntro,
         setShowIntro,
         playIntroAnimation

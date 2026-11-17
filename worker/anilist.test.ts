@@ -88,7 +88,9 @@ test('large long-running episode indexes remain bounded but fit below one MiB', 
   resetAniListCache();
   try {
     assert.equal(await getAniListEpisodeAvailability(21, 1, 1000), 'available');
-    assert.deepEqual(visited, ['graphql.anilist.co', 'cdn.jsdelivr.net']);
+    assert.equal(visited[0], 'graphql.anilist.co');
+    assert.equal(visited.some((host) => host === 'raw.githubusercontent.com'), true);
+    assert.ok(visited.length <= 6, `expected bounded fallback fanout, got ${visited.length}`);
   } finally {
     globalThis.fetch = originalFetch;
     resetAniListCache();
@@ -146,12 +148,10 @@ test('a released title missing from the media index uses mapped catalogue metada
     assert.equal(await getAniListEpisodeAvailability(177789, 1, 1000), 'available');
     assert.equal(await getAniListEpisodeAvailability(177789, 6, 1000), 'available');
     assert.equal(await getAniListEpisodeAvailability(177789, 7, 1000), 'unavailable');
-    assert.deepEqual(visited, [
-      'graphql.anilist.co',
-      'cdn.jsdelivr.net',
-      'api.ani.zip',
-      'shikimori.one',
-    ]);
+    assert.equal(visited.filter((host) => host === 'graphql.anilist.co').length, 3);
+    assert.equal(visited.filter((host) => host === 'api.ani.zip').length, 3);
+    assert.equal(visited.filter((host) => host === 'shikimori.one').length, 3);
+    assert.ok(visited.length <= 27, `expected bounded per-episode fallback fanout, got ${visited.length}`);
   } finally {
     globalThis.fetch = originalFetch;
     resetAniListCache();
@@ -177,6 +177,65 @@ test('future mapped titles remain unavailable rather than becoming unknown', asy
   resetAniListCache();
   try {
     assert.equal(await getAniListEpisodeAvailability(123, 1, 1000), 'unavailable');
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});
+
+test('finished movie metadata proves only its declared episode range', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    if (url.pathname.endsWith('/manifest.json')) return new Response('missing', { status: 404 });
+    if (url.pathname.endsWith('/data/anime/171/171627/episodes.json')) return new Response('missing', { status: 404 });
+    if (url.pathname.endsWith('/data/anime/171/171627/index.json')) {
+      return new Response(JSON.stringify({
+        ids: { anilist: 171627, mal: 57555 },
+        format: 'MOVIE',
+        status: 'FINISHED',
+        episodes: 1,
+        startDate: { year: 2025, month: 9, day: 19 },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    throw new Error(`Unexpected upstream: ${url}`);
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await getAniListEpisodeAvailability(171627, 1, 1000), 'available');
+    assert.equal(await getAniListEpisodeAvailability(171627, 2, 1000), 'unavailable');
+  } finally {
+    globalThis.fetch = originalFetch;
+    resetAniListCache();
+  }
+});
+
+test('a sparse dated episode index never proves a missing episode', async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'graphql.anilist.co') return new Response('forbidden', { status: 403 });
+    if (url.pathname.endsWith('/manifest.json')) return new Response('missing', { status: 404 });
+    if (url.pathname.endsWith('/data/anime/999/999111/episodes.json')) {
+      return new Response(JSON.stringify([
+        { number: 1, airDate: '2020-01-01' },
+        { number: 4, airDate: '2020-01-04' },
+      ]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+    if (url.pathname.endsWith('/data/anime/999/999111/index.json')) return new Response('missing', { status: 404 });
+    if (url.hostname === 'api.ani.zip') {
+      return new Response(JSON.stringify({ mappings: { mal_id: null } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    throw new Error(`Unexpected upstream: ${url}`);
+  };
+  resetAniListCache();
+  try {
+    assert.equal(await getAniListEpisodeAvailability(999111, 3, 1000), 'unknown');
+    assert.equal(await getAniListEpisodeAvailability(999111, 4, 1000), 'available');
   } finally {
     globalThis.fetch = originalFetch;
     resetAniListCache();

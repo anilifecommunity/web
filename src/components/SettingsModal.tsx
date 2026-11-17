@@ -1108,6 +1108,25 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </a>
               </div>
 
+              <div className="space-y-3 rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5">
+                <h3 className="text-sm font-bold text-white">Metadata & artwork credits</h3>
+                <p className="text-xs leading-relaxed text-zinc-400">
+                  Anime metadata and referenced artwork URLs are provided by AniList, TMDB, Bangumi,
+                  and AniZip through Anilife's verified Media Index. Rights remain with their
+                  respective owners; Anilife does not treat a remote image URL as permission to
+                  redistribute the underlying artwork.
+                </p>
+                <p className="text-xs leading-relaxed text-zinc-400">
+                  This product uses the TMDB API but is not endorsed or certified by TMDB.
+                </p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold">
+                  <a href="https://anilist.co" target="_blank" rel="noreferrer" className="text-[var(--anilife-accent)] hover:underline">AniList</a>
+                  <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer" className="text-[var(--anilife-accent)] hover:underline">TMDB</a>
+                  <a href="https://bangumi.tv" target="_blank" rel="noreferrer" className="text-[var(--anilife-accent)] hover:underline">Bangumi</a>
+                  <a href="https://github.com/Fribb/anime-lists" target="_blank" rel="noreferrer" className="text-[var(--anilife-accent)] hover:underline">AniZip data</a>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {

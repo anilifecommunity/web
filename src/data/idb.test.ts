@@ -32,6 +32,17 @@ test('records round-trip through IndexedDB', async () => {
   assert.equal(await getRecord('settings', 'missing'), null);
 });
 
+test('verified Media Index records use their own non-profile store', async () => {
+  await putRecord('media_index', 'release:rel-0123456789abcdef:catalog/home.json', {
+    verifiedAt: 1,
+    value: { rows: {} },
+  });
+  assert.deepEqual(
+    await getRecord('media_index', 'release:rel-0123456789abcdef:catalog/home.json'),
+    { verifiedAt: 1, value: { rows: {} } },
+  );
+});
+
 test('migration copies settings, profiles and per-profile rows', async () => {
   localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify({ watchedThreshold: 80 }));
   localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify([{ id: 'profile-main', name: 'Profile 1' }]));

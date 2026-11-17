@@ -7,6 +7,32 @@ import {
   Loader2
 } from 'lucide-react';
 import { displayAniListTitle, isAnimeVisible } from '../utils/animePreferences';
+import { mediaIndexRelease, type MediaIndexScheduleRow } from '../utils/mediaIndexRelease';
+import { convertMediaIndexMediaToAnime } from '../utils/animeConversion';
+
+type ScheduleSource = 'LIVE' | 'INDEX' | 'LOCAL' | 'UNAVAILABLE';
+
+function indexedScheduleItem(row: MediaIndexScheduleRow): AiringScheduleItem {
+  return {
+    id: row.id * 100_000 + row.episode,
+    airingAt: row.airingAt,
+    timeUntilAiring: Math.max(0, row.airingAt - Math.floor(Date.now() / 1000)),
+    episode: row.episode,
+    media: {
+      id: row.id,
+      isAdult: row.adult === true,
+      type: 'ANIME',
+      title: {
+        english: row.english,
+        romaji: row.romaji,
+        native: row.native,
+      },
+      coverImage: { extraLarge: row.cover, large: row.cover },
+      format: row.format,
+      seasonYear: row.year,
+    },
+  };
+}
 
 export const ScheduleView: React.FC = () => {
   const { setSelectedAnime, setRouteError, liveCatalog, settings } = useApp();
@@ -40,6 +66,7 @@ export const ScheduleView: React.FC = () => {
   const [selectedDayIdx, setSelectedDayIdx] = useState(1); 
   const [scheduleItems, setScheduleItems] = useState<AiringScheduleItem[]>([]);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
+  const [scheduleSource, setScheduleSource] = useState<ScheduleSource>('LIVE');
 
   const selectedDay = days[selectedDayIdx];
   const visibleScheduleItems = scheduleItems.filter((item) =>
@@ -50,17 +77,36 @@ export const ScheduleView: React.FC = () => {
     let isMounted = true;
     setIsLoadingSchedule(true);
 
-    fetchAiringSchedule(selectedDay.dayStartSec, selectedDay.dayEndSec, 30)
-      .then((items) => {
+    const loadSchedule = async () => {
+      try {
+        const items = await fetchAiringSchedule(selectedDay.dayStartSec, selectedDay.dayEndSec, 30);
         if (!isMounted) return;
         setScheduleItems(items);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch AniList schedule:', err);
-      })
-      .finally(() => {
+        setScheduleSource('LIVE');
+      } catch (err) {
+        console.warn('AniList schedule is unavailable; trying the verified Media Index snapshot.', err);
+        try {
+          const indexed = await mediaIndexRelease.schedule(
+            selectedDay.date.getFullYear(),
+            selectedDay.date.getMonth() + 1,
+          );
+          if (!isMounted) return;
+          const rows = indexed.data
+            .filter((row) => row.airingAt >= selectedDay.dayStartSec && row.airingAt < selectedDay.dayEndSec)
+            .map(indexedScheduleItem);
+          setScheduleItems(rows);
+          setScheduleSource(indexed.state);
+        } catch (fallbackError) {
+          console.error('Both live and verified schedule metadata are unavailable:', fallbackError);
+          if (!isMounted) return;
+          setScheduleItems([]);
+          setScheduleSource('UNAVAILABLE');
+        }
+      } finally {
         if (isMounted) setIsLoadingSchedule(false);
-      });
+      }
+    };
+    void loadSchedule();
 
     return () => { isMounted = false; };
   }, [selectedDayIdx]);
@@ -71,11 +117,19 @@ export const ScheduleView: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Schedule</h1>
-          <p className="text-sm text-zinc-400 mt-1">Live broadcast timetables direct from AniList</p>
+          <p className="text-sm text-zinc-400 mt-1">
+            {scheduleSource === 'LIVE'
+              ? 'Live broadcast timetables direct from AniList'
+              : scheduleSource === 'LOCAL'
+                ? 'Last verified schedule saved on this device'
+                : scheduleSource === 'INDEX'
+                  ? 'Latest verified Media Index schedule snapshot'
+                  : 'Broadcast metadata is temporarily unavailable'}
+          </p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 border border-[var(--anilife-accent)]/30 text-xs text-[var(--anilife-accent)] font-semibold">
-          <span className="w-2 h-2 rounded-full bg-[var(--anilife-accent)] animate-pulse" />
-          <span>Real-time AniList Feed</span>
+          <span className={`w-2 h-2 rounded-full bg-[var(--anilife-accent)] ${scheduleSource === 'LIVE' ? 'animate-pulse' : ''}`} />
+          <span>{scheduleSource === 'LIVE' ? 'Live AniList feed' : scheduleSource === 'LOCAL' ? 'Saved snapshot' : scheduleSource === 'INDEX' ? 'Verified snapshot' : 'Unavailable'}</span>
         </div>
       </div>
 
@@ -114,11 +168,13 @@ export const ScheduleView: React.FC = () => {
         {isLoadingSchedule ? (
           <div className="py-20 text-center space-y-3">
             <Loader2 className="w-8 h-8 text-[var(--anilife-accent)] animate-spin mx-auto" />
-            <p className="text-sm text-zinc-400">Fetching broadcast schedule from AniList...</p>
+            <p className="text-sm text-zinc-400">Fetching broadcast schedule...</p>
           </div>
         ) : visibleScheduleItems.length === 0 ? (
           <div className="text-center py-14 bg-white/5 rounded-2xl border border-white/10 text-zinc-400 text-sm">
-            No scheduled broadcasts found for this date.
+            {scheduleSource === 'UNAVAILABLE'
+              ? 'Schedule metadata could not be loaded. Try again when your connection or AniList is available.'
+              : 'No scheduled broadcasts found for this date.'}
           </div>
         ) : (
           <div className="space-y-3">
@@ -144,7 +200,11 @@ export const ScheduleView: React.FC = () => {
                       } else {
                         const media = await fetchAniListMediaById(item.media.id).catch(() => null);
                         if (media) setSelectedAnime(convertAniListToAnime(media));
-                        else setRouteError('This title could not be loaded from AniList. Try again in a moment.');
+                        else {
+                          const indexed = await mediaIndexRelease.media(item.media.id).catch(() => null);
+                          if (indexed) setSelectedAnime(convertMediaIndexMediaToAnime(indexed.data));
+                          else setRouteError('This title could not be loaded from live or verified metadata. Try again in a moment.');
+                        }
                       }
                     }}
                     onKeyDown={(event) => {

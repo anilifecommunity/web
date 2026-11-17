@@ -1,8 +1,10 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useApp, convertAniListToAnime } from '../context/AppContext';
 import { Anime } from '../types/anime';
 import { searchAniList } from '../utils/anilistApi';
 import { animeMatchesSearch, displayAnimeTitle, isAnimeVisible } from '../utils/animePreferences';
+import { mediaIndexRelease, searchMediaIndex } from '../utils/mediaIndexRelease';
+import { convertMediaIndexCompactToAnime } from '../utils/animeConversion';
 import {
   Search,
   SlidersHorizontal,
@@ -33,6 +35,8 @@ export const BrowseSearch: React.FC = () => {
     clearRecentSearches,
     liveCatalog,
     settings,
+    catalogMetadata,
+    isLoadingCatalog,
   } = useApp();
 
   const [query, setQuery] = useState(() => initialParam('q', ''));
@@ -47,8 +51,34 @@ export const BrowseSearch: React.FC = () => {
     const value = initialParam('sort', 'Popularity');
     return SORT_OPTIONS.includes(value as SortKey) ? (value as SortKey) : 'Popularity';
   });
+  const [indexBrowse, setIndexBrowse] = useState<Anime[]>([]);
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
 
   const requestRef = useRef(0);
+  const browsePromiseRef = useRef<Promise<Anime[]> | null>(null);
+
+  const ensureIndexBrowse = useCallback(async (): Promise<Anime[]> => {
+    if (indexBrowse.length) return indexBrowse;
+    if (!browsePromiseRef.current) {
+      browsePromiseRef.current = mediaIndexRelease.browse().then((result) => {
+        const rows = result.data.rows.map(convertMediaIndexCompactToAnime);
+        setIndexBrowse(rows);
+        setFallbackNotice(
+          result.state === 'LOCAL'
+            ? 'Showing your last verified catalogue while live metadata is unavailable.'
+            : 'Showing the latest verified Media Index snapshot while AniList is unavailable.'
+        );
+        return rows;
+      }).finally(() => {
+        browsePromiseRef.current = null;
+      });
+    }
+    return browsePromiseRef.current;
+  }, [indexBrowse]);
+
+  useEffect(() => {
+    if (!isLoadingCatalog && catalogMetadata.state !== 'LIVE') void ensureIndexBrowse().catch(() => undefined);
+  }, [catalogMetadata.state, ensureIndexBrowse, isLoadingCatalog]);
 
   const categories = [
     'All',
@@ -85,12 +115,37 @@ export const BrowseSearch: React.FC = () => {
             : undefined
         );
         if (requestRef.current !== requestId) return;
-        setLiveSearchResults(
-          results.map(convertAniListToAnime).filter((anime) => isAnimeVisible(anime, settings.hideAdultContent))
-        );
+        const converted = results
+          .map(convertAniListToAnime)
+          .filter((anime) => isAnimeVisible(anime, settings.hideAdultContent));
+        if (converted.length) {
+          setLiveSearchResults(converted);
+          setFallbackNotice(null);
+        } else {
+          const fallback = await searchMediaIndex(trimmed, settings.hideAdultContent);
+          if (requestRef.current !== requestId) return;
+          setLiveSearchResults(fallback.data.map(convertMediaIndexCompactToAnime));
+          setFallbackNotice(
+            fallback.state === 'LOCAL'
+              ? 'Search is using your last verified catalogue.'
+              : 'Search is using the latest verified Media Index snapshot.'
+          );
+        }
       } catch {
         if (requestRef.current !== requestId) return;
-        setLiveSearchResults([]);
+        try {
+          const fallback = await searchMediaIndex(trimmed, settings.hideAdultContent);
+          if (requestRef.current !== requestId) return;
+          setLiveSearchResults(fallback.data.map(convertMediaIndexCompactToAnime));
+          setFallbackNotice(
+            fallback.state === 'LOCAL'
+              ? 'Search is using your last verified catalogue.'
+              : 'Search is using the latest verified Media Index snapshot.'
+          );
+        } catch {
+          setLiveSearchResults([]);
+          setFallbackNotice('Search metadata is temporarily unavailable. Your saved Library is unaffected.');
+        }
       } finally {
         if (requestRef.current === requestId) setIsSearching(false);
       }
@@ -146,7 +201,7 @@ export const BrowseSearch: React.FC = () => {
     const base =
       query.trim().length >= 2 && liveSearchResults.length > 0
         ? liveSearchResults
-        : liveCatalog.filter((anime) => {
+        : (indexBrowse.length ? indexBrowse : liveCatalog).filter((anime) => {
             const matchQuery = animeMatchesSearch(anime, query);
 
             let matchCategory = true;
@@ -162,6 +217,7 @@ export const BrowseSearch: React.FC = () => {
           });
 
     const filtered = base.filter((anime) => {
+      if (!isAnimeVisible(anime, settings.hideAdultContent)) return false;
       if (selectedCategory === 'Season' && anime.status !== 'Releasing') return false;
       if (selectedCategory === 'Movies' && anime.format !== 'Movie') return false;
       if (formatFilter !== 'All' && anime.format !== formatFilter) return false;
@@ -188,11 +244,13 @@ export const BrowseSearch: React.FC = () => {
     selectedCategory,
     liveSearchResults,
     liveCatalog,
+    indexBrowse,
     formatFilter,
     yearFilter,
     minScore,
     sortBy,
-    settings.titleLanguage
+    settings.titleLanguage,
+    settings.hideAdultContent,
   ]);
 
   return (
@@ -200,8 +258,14 @@ export const BrowseSearch: React.FC = () => {
       {}
       <div>
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Browse</h1>
-        <p className="text-sm text-zinc-400 mt-1">Search millions of anime powered by AniList</p>
+        <p className="text-sm text-zinc-400 mt-1">Search anime across English, Romaji, native and verified alternate titles</p>
       </div>
+
+      {fallbackNotice && (
+        <p className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3 text-xs text-amber-100" role="status">
+          {fallbackNotice}
+        </p>
+      )}
 
       {}
       <div className="flex items-center gap-3">

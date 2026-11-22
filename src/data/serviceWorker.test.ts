@@ -47,6 +47,13 @@ test('service worker caches only a successful same-origin HTML navigation shell'
   await navigate('/downloads/index.json');
   assert.deepEqual(writes, []);
 
+  upstream = new Response('<!doctype html>', {
+    status: 503,
+    headers: { 'Content-Type': 'text/html' },
+  });
+  await navigate('/maintenance');
+  assert.deepEqual(writes, []);
+
   upstream = new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } });
   await navigate('/anime/1');
   assert.deepEqual(writes, ['anilife-shell-build-test:/index.html']);

@@ -103,7 +103,7 @@ test('the callback asset uses state, the fragment and durable storage', () => {
   const html = readFileSync(new URL('../../public/auth/callback.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../../public/auth/callback.js', import.meta.url), 'utf8');
   assert.match(html, /src="\/auth\/callback\.js"/);
-  assert.doesNotMatch(html, /<script>[^<]/);
+  assert.equal(html.toLowerCase().includes('<script>'), false);
   assert.match(script, /anilife_oauth_state_v1/);
   assert.match(script, /anilife_oauth_token_v2/);
   assert.match(script, /history\.replaceState/);
@@ -117,7 +117,7 @@ test('the document theme bootstrap is an external same-origin script', () => {
   const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
   const script = readFileSync(new URL('../../public/theme-init.js', import.meta.url), 'utf8');
   assert.match(html, /src="\/theme-init\.js"/);
-  assert.doesNotMatch(html, /<script>[^<]/);
+  assert.equal(html.toLowerCase().includes('<script>'), false);
   assert.match(script, /anilife_settings_v3/);
   assert.match(script, /--anilife-accent/);
 });

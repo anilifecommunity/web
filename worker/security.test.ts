@@ -22,10 +22,10 @@ test('watch pages do not send their route as a referrer', () => {
 test('frame sources contain only the active player origins and Turnstile', () => {
   const csp = securityHeaders(new Request('https://anilife.cc/watch/ref/episode-1-tag'))['Content-Security-Policy'];
   for (const origin of ['animeembed.com', 'zokoanime.video', 'flixcloud.cc', 'vidlink.pro', 'challenges.cloudflare.com']) {
-    assert.match(csp, new RegExp(origin.replace('.', '\\.')));
+    assert.ok(csp.includes(origin));
   }
   for (const blocked of ['vidnest.fun', 'megacloud.tv', 'mp4upload.com']) {
-    assert.doesNotMatch(csp, new RegExp(blocked.replace('.', '\\.')));
+    assert.equal(csp.includes(blocked), false);
   }
 });
 

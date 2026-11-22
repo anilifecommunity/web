@@ -535,7 +535,7 @@ export const VideoPlayer: React.FC<Props> = ({
         <div className="space-y-4 xl:overflow-y-auto xl:pr-1 no-scrollbar">
           <section className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-black shadow-2xl sm:rounded-2xl" aria-label="Video player">
             {embedUrl ? (
-              <iframe ref={iframeRef} src={embedUrl} title={`${displayTitle} episode ${currentEpisodeNumber}`} className="absolute inset-0 h-full w-full bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer-when-downgrade" />
+              <iframe ref={iframeRef} src={embedUrl} title={`${displayTitle} episode ${currentEpisodeNumber}`} className="absolute inset-0 h-full w-full bg-black" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen referrerPolicy="no-referrer" />
             ) : (
               <video
                 ref={videoRef}

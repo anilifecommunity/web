@@ -101,13 +101,25 @@ test('only a proven authentication rejection is treated as an auth failure', () 
 
 test('the callback asset uses state, the fragment and durable storage', () => {
   const html = readFileSync(new URL('../../public/auth/callback.html', import.meta.url), 'utf8');
-  assert.match(html, /anilife_oauth_state_v1/);
-  assert.match(html, /anilife_oauth_token_v2/);
-  assert.match(html, /history\.replaceState/);
-  assert.match(html, /window\.location\.replace\('\/'\)/);
-  assert.doesNotMatch(html, /queryParams\.get\('access_token'\)/);
-  assert.doesNotMatch(html, /OAUTH_AUTH_SUCCESS/);
-  assert.doesNotMatch(html, /window\.opener/);
+  const script = readFileSync(new URL('../../public/auth/callback.js', import.meta.url), 'utf8');
+  assert.match(html, /src="\/auth\/callback\.js"/);
+  assert.equal(html.toLowerCase().includes('<script>'), false);
+  assert.match(script, /anilife_oauth_state_v1/);
+  assert.match(script, /anilife_oauth_token_v2/);
+  assert.match(script, /history\.replaceState/);
+  assert.match(script, /window\.location\.replace\('\/'\)/);
+  assert.doesNotMatch(script, /queryParams\.get\('access_token'\)/);
+  assert.doesNotMatch(script, /OAUTH_AUTH_SUCCESS/);
+  assert.doesNotMatch(script, /window\.opener/);
+});
+
+test('the document theme bootstrap is an external same-origin script', () => {
+  const html = readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+  const script = readFileSync(new URL('../../public/theme-init.js', import.meta.url), 'utf8');
+  assert.match(html, /src="\/theme-init\.js"/);
+  assert.equal(html.toLowerCase().includes('<script>'), false);
+  assert.match(script, /anilife_settings_v3/);
+  assert.match(script, /--anilife-accent/);
 });
 
 test('the dev server does not rewrite the callback to a missing index', () => {

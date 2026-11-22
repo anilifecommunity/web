@@ -68,6 +68,18 @@ export interface GuardOptions {
   timeoutMs?: number;
 }
 
+export class RequestBodyError extends Error {
+  readonly reason: 'invalid_content_type' | 'invalid_json' | 'request_too_large';
+
+  constructor(reason: RequestBodyError['reason']) {
+    super(reason);
+    this.name = 'RequestBodyError';
+    this.reason = reason;
+  }
+}
+
+const DEFAULT_MAX_BYTES = 1024 * 1024;
+
 /**
  * Fetches a fixed-origin HTTPS resource with manual redirect handling.
  * The caller's signal (if any) and the internal timeout both abort the request.
@@ -78,6 +90,7 @@ export async function safeFetch(
   options: GuardOptions
 ): Promise<Response> {
   const maxRedirects = options.maxRedirects ?? 3;
+  const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -107,11 +120,21 @@ export async function safeFetch(
         const location = response.headers.get('location');
         if (!location) throw new GuardError('upstream_error', 'redirect without location');
         const next = new URL(location, current).toString();
+        await response.body?.cancel().catch(() => undefined);
         current = validateUpstreamUrl(next, options.allowedHosts);
         continue;
       }
 
-      return response;
+      const body = await readBytesCapped(response, maxBytes, controller.signal);
+      const headers = new Headers(response.headers);
+      headers.delete('content-encoding');
+      headers.delete('content-length');
+      const bodyAllowed = init.method !== 'HEAD' && ![101, 204, 205, 304].includes(response.status);
+      return new Response(bodyAllowed ? body : null, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
     }
     throw new GuardError('too_many_redirects');
   } catch (error) {
@@ -124,19 +147,22 @@ export async function safeFetch(
   }
 }
 
-/** Reads a response body while enforcing a hard byte ceiling. */
-export async function readTextCapped(response: Response, maxBytes: number): Promise<string> {
-  const declared = Number(response.headers.get('content-length') ?? 0);
+async function readBytesCapped(
+  source: Pick<Response, 'headers' | 'body'>,
+  maxBytes: number,
+  signal?: AbortSignal
+): Promise<Uint8Array<ArrayBuffer>> {
+  const declared = Number(source.headers.get('content-length') ?? 0);
   if (declared > maxBytes) throw new GuardError('response_too_large');
 
-  if (!response.body) return '';
+  if (!source.body) return new Uint8Array();
 
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
+  const reader = source.body.getReader();
+  const chunks: Uint8Array<ArrayBufferLike>[] = [];
   let total = 0;
 
   for (;;) {
-    const { done, value } = await reader.read();
+    const { done, value } = await readChunk(reader, signal);
     if (done) break;
     if (!value) continue;
     total += value.byteLength;
@@ -153,7 +179,28 @@ export async function readTextCapped(response: Response, maxBytes: number): Prom
     merged.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new TextDecoder().decode(merged);
+  return merged;
+}
+
+async function readChunk(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  signal?: AbortSignal
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (!signal) return reader.read();
+  if (signal.aborted) throw new Error('aborted');
+  return new Promise((resolve, reject) => {
+    const aborted = () => {
+      void reader.cancel().catch(() => undefined);
+      reject(new Error('aborted'));
+    };
+    signal.addEventListener('abort', aborted, { once: true });
+    reader.read().then(resolve, reject).finally(() => signal.removeEventListener('abort', aborted));
+  });
+}
+
+/** Reads a response body while enforcing a hard byte ceiling. */
+export async function readTextCapped(response: Response, maxBytes: number): Promise<string> {
+  return new TextDecoder().decode(await readBytesCapped(response, maxBytes));
 }
 
 export async function readJsonCapped(response: Response, maxBytes: number): Promise<unknown> {
@@ -162,6 +209,41 @@ export async function readJsonCapped(response: Response, maxBytes: number): Prom
     return JSON.parse(text);
   } catch {
     throw new GuardError('upstream_error', 'invalid json');
+  }
+}
+
+/** Reads a JSON request without trusting Content-Length or buffering an unbounded body. */
+export async function readRequestJsonCapped<T>(request: Request, maxBytes: number): Promise<T> {
+  const contentType = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+  if (contentType !== 'application/json' && !contentType?.endsWith('+json')) {
+    throw new RequestBodyError('invalid_content_type');
+  }
+  let text: string;
+  try {
+    text = new TextDecoder().decode(await readBytesCapped(request, maxBytes));
+  } catch (error) {
+    if (error instanceof GuardError && error.reason === 'response_too_large') {
+      throw new RequestBodyError('request_too_large');
+    }
+    throw error;
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new RequestBodyError('invalid_json');
+  }
+}
+
+/** Reads a raw request body with the same hard ceiling used by the signed release publisher. */
+export async function readRequestBytesCapped(request: Request, maxBytes: number): Promise<ArrayBuffer> {
+  try {
+    const bytes = await readBytesCapped(request, maxBytes);
+    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  } catch (error) {
+    if (error instanceof GuardError && error.reason === 'response_too_large') {
+      throw new RequestBodyError('request_too_large');
+    }
+    throw error;
   }
 }
 

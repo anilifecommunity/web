@@ -68,6 +68,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   their air dates against Anilife's static media index.
 - Added bounded AniList timeouts/retries and ordered IndexedDB mirrors so transient failures cannot
   leave browser storage permanently stuck or resurrect deleted profile data.
+- Bound every Worker request and provider fallback walk by total time and body size, reject
+  malformed episode and JSON input early, and attach privacy-safe request IDs to failures.
+- Prevent non-HTML navigation responses from replacing the offline app shell, and derive each
+  service-worker cache revision from the deployed build so upgrades and rollbacks stay coherent.
 
 ## [0.1.2] - 2026-11-16
 

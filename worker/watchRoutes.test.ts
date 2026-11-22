@@ -92,6 +92,34 @@ test('resolver refuses a verified viewer without a watch authorization', async (
   const response = await request('/api/resolve?aniListId=154587&episode=1&audio=sub', gate);
   assert.equal(response.status, 401);
   assert.equal((await response.json() as { error: string }).error, 'watch_session_required');
+  assert.match(response.headers.get('X-Request-ID') ?? '', /^[0-9a-f-]{36}$/i);
+});
+
+test('resolver rejects non-positive and non-integer episode references at the boundary', async () => {
+  const gate = await createGateToken(GATE_SECRET);
+  for (const episode of ['0', '1.5', 'S1', '100001']) {
+    const response = await request(`/api/resolve?aniListId=154587&episode=${episode}&audio=sub`, gate);
+    assert.equal(response.status, 400, episode);
+    assert.equal((await response.json() as { error: string }).error, 'invalid_episode');
+  }
+});
+
+test('JSON POST routes reject unsupported and oversized request bodies', async () => {
+  const gate = await createGateToken(GATE_SECRET);
+  const unsupported = await request('/api/watch/session', gate, {
+    method: 'POST',
+    body: '{}',
+    headers: { 'Content-Type': 'text/plain' },
+  });
+  assert.equal(unsupported.status, 415);
+  assert.equal((await unsupported.json() as { error: string }).error, 'unsupported_media_type');
+
+  const oversized = await request('/api/watch/session', gate, {
+    method: 'POST',
+    body: JSON.stringify({ aniListId: 1, episode: 1, padding: 'x'.repeat(20_000) }),
+  });
+  assert.equal(oversized.status, 413);
+  assert.equal((await oversized.json() as { error: string }).error, 'payload_too_large');
 });
 
 test('production fails closed when the watch secret is absent', async () => {
@@ -126,5 +154,26 @@ test('watch creation distinguishes unavailable release metadata from an unreleas
   } finally {
     globalThis.fetch = originalFetch;
     resetAniListCache();
+  }
+});
+
+test('unhandled failures expose only a correlated stable error', async () => {
+  const broken = env();
+  broken.ASSETS = { fetch: async () => { throw new Error('private upstream detail'); } };
+  const originalError = console.error;
+  const logs: string[] = [];
+  console.error = (value?: unknown) => { logs.push(String(value)); };
+  try {
+    const response = await worker.fetch(new Request('https://anilife.cc/missing'), broken);
+    const body = await response.json() as { error: string; requestId: string };
+    assert.equal(response.status, 500);
+    assert.equal(body.error, 'internal_error');
+    assert.equal(body.requestId, response.headers.get('X-Request-ID'));
+    assert.equal(response.headers.get('X-Anilife-Error-Class'), 'server');
+    assert.equal(logs.length, 1);
+    assert.doesNotMatch(logs[0], /private upstream detail|\/missing/);
+    assert.match(logs[0], /"route":"asset"/);
+  } finally {
+    console.error = originalError;
   }
 });

@@ -4,7 +4,12 @@ import path from 'node:path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const buildId = (process.env.ANILIFE_BUILD_ID || process.env.GITHUB_SHA?.slice(0, 12) || Date.now().toString(36))
+    .replace(/[^A-Za-z0-9._-]/g, '-');
   return {
+    define: {
+      __ANILIFE_BUILD_ID__: JSON.stringify(buildId),
+    },
     plugins: [
       react(),
       tailwindcss(),

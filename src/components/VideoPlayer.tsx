@@ -62,6 +62,14 @@ export const VideoPlayer: React.FC<Props> = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const hlsRecoveryRef = useRef(0);
+  const latestProgressRef = useRef<{
+    animeId: string;
+    episode: number;
+    currentTime: number;
+    duration: number;
+    audio: 'SUB' | 'DUB';
+  } | null>(null);
+  const lastProgressWriteRef = useRef({ key: '', currentTime: 0 });
 
   const [currentEpisodeNumber, setCurrentEpisodeNumber] = useState(initialEpisodeNumber);
   const [audioMode, setAudioMode] = useState<'SUB' | 'DUB'>(initialAudioMode);
@@ -88,11 +96,30 @@ export const VideoPlayer: React.FC<Props> = ({
   const [qualityLevels, setQualityLevels] = useState<Array<{ index: number; label: string }>>([]);
   const [qualityLevel, setQualityLevel] = useState(-1);
 
+  const flushProgress = useCallback(() => {
+    const progress = latestProgressRef.current;
+    if (!progress || progress.currentTime <= 0 || progress.duration <= 0) return;
+    updateWatchProgress(
+      progress.animeId,
+      progress.episode,
+      progress.currentTime,
+      progress.duration,
+      progress.audio,
+    );
+    lastProgressWriteRef.current = {
+      key: `${progress.animeId}:${progress.episode}:${progress.audio}`,
+      currentTime: progress.currentTime,
+    };
+  }, [updateWatchProgress]);
+
   useEffect(() => setCurrentEpisodeNumber(initialEpisodeNumber), [initialEpisodeNumber]);
 
   const changeEpisode = useCallback((episode: number) => {
-    if (episode !== currentEpisodeNumber) void playAnimeEpisode(anime, episode, audioMode);
-  }, [anime, audioMode, currentEpisodeNumber, playAnimeEpisode]);
+    if (episode !== currentEpisodeNumber) {
+      flushProgress();
+      void playAnimeEpisode(anime, episode, audioMode);
+    }
+  }, [anime, audioMode, currentEpisodeNumber, flushProgress, playAnimeEpisode]);
 
   const serverOptions = useMemo(
     () => orderServerOptions(webServerOptions(settings.hideAdultContent), settings.serverPriority),
@@ -163,8 +190,10 @@ export const VideoPlayer: React.FC<Props> = ({
 
   useEffect(() => {
     if (Number.isNaN(numericAniListId)) return;
+    let current = true;
+    setRealEpisodes(anime.seasons[0]?.episodes || []);
     fetchMediaIndexEpisodes(numericAniListId).then((episodes) => {
-      if (!episodes?.length) return;
+      if (!current || !episodes?.length) return;
       setRealEpisodes(episodes.map((episode: any) => ({
         id: `${anime.id}-ep-${episode.number}`,
         number: episode.number,
@@ -176,11 +205,17 @@ export const VideoPlayer: React.FC<Props> = ({
         airedDate: episode.airDate || episode.air_date,
       })));
     });
+    return () => { current = false; };
   }, [anime, numericAniListId]);
 
   useEffect(() => {
     if (Number.isNaN(numericAniListId)) return;
-    fetchMediaIndexSkip(numericAniListId, currentEpisodeNumber).then(setSkipData);
+    let current = true;
+    setSkipData(null);
+    fetchMediaIndexSkip(numericAniListId, currentEpisodeNumber).then((data) => {
+      if (current && data) setSkipData((resolved) => ({ ...data, ...resolved }));
+    });
+    return () => { current = false; };
   }, [currentEpisodeNumber, numericAniListId]);
 
   useEffect(() => {
@@ -420,10 +455,38 @@ export const VideoPlayer: React.FC<Props> = ({
   }, [currentTime, isPlaying, seek, settings.autoSkipIntro, showToast, skipData]);
 
   useEffect(() => {
-    if (currentTime > 0 && duration > 0) {
-      updateWatchProgress(anime.id, currentEpisodeNumber, currentTime, duration, audioMode);
+    latestProgressRef.current = {
+      animeId: anime.id,
+      episode: currentEpisodeNumber,
+      currentTime,
+      duration,
+      audio: audioMode,
+    };
+    if (currentTime <= 0 || duration <= 0) return;
+    const key = `${anime.id}:${currentEpisodeNumber}:${audioMode}`;
+    const last = lastProgressWriteRef.current;
+    const completedNow = currentTime >= duration - 1 && last.currentTime < duration - 1;
+    if (last.key !== key || Math.abs(currentTime - last.currentTime) >= 10 || completedNow) {
+      flushProgress();
     }
-  }, [anime.id, audioMode, currentEpisodeNumber, currentTime, duration, updateWatchProgress]);
+  }, [anime.id, audioMode, currentEpisodeNumber, currentTime, duration, flushProgress]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushProgress();
+    };
+    window.addEventListener('pagehide', flushProgress);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('pagehide', flushProgress);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      flushProgress();
+    };
+  }, [flushProgress]);
+
+  useEffect(() => {
+    if (!isPlaying) flushProgress();
+  }, [flushProgress, isPlaying]);
 
   const selectServer = (server: ServerOption) => {
     setActiveServer(server);

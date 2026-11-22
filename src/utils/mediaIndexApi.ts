@@ -46,10 +46,16 @@ async function fetchIndexJson<T>(subpath: string): Promise<LegacyFetchResult<T>>
   }
 }
 
-const episodeCache = new Map<number, MediaIndexEpisode[]>();
+const METADATA_TTL_MS = 5 * 60_000;
+const MISSING_TTL_MS = 30_000;
+const episodeCache = new Map<number, { value: MediaIndexEpisode[]; expiresAt: number }>();
 const episodeInFlight = new Map<number, Promise<MediaIndexEpisode[]>>();
+const skipCache = new Map<string, { value: MediaIndexSkipData | null; expiresAt: number }>();
+const skipInFlight = new Map<string, Promise<MediaIndexSkipData | null>>();
 let dubIndexSet: Set<number> | null = null;
+let dubIndexPromise: Promise<number[] | null> | null = null;
 let backdropMap: Record<string, string> | null = null;
+let backdropPromise: Promise<Record<string, string>> | null = null;
 
 export function mediaIndexShard(anilistId: number): number {
   if (!Number.isFinite(anilistId) || anilistId < 0) return 0;
@@ -60,7 +66,7 @@ async function loadMediaIndexEpisodes(anilistId: number): Promise<MediaIndexEpis
   try {
     const result = await mediaIndexRelease.episodes(anilistId);
     if (result.data.availability === 'NO_CONFIDENT_MATCH') {
-      episodeCache.set(anilistId, []);
+      episodeCache.set(anilistId, { value: [], expiresAt: Date.now() + METADATA_TTL_MS });
       return [];
     }
     const episodes = result.data.episodes.map((episode) => ({
@@ -75,7 +81,7 @@ async function loadMediaIndexEpisodes(anilistId: number): Promise<MediaIndexEpis
       runtime: episode.runtimeMinutes ?? undefined,
       rating: episode.rating ?? undefined,
     }));
-    episodeCache.set(anilistId, episodes);
+    episodeCache.set(anilistId, { value: episodes, expiresAt: Date.now() + METADATA_TTL_MS });
     return episodes;
   } catch {
     // The legacy compatibility path remains the rollback during the v1 rollout.
@@ -85,13 +91,14 @@ async function loadMediaIndexEpisodes(anilistId: number): Promise<MediaIndexEpis
     `anime/${mediaIndexShard(anilistId)}/${anilistId}/episodes.json`
   );
   if (legacy.kind !== 'ok' || !Array.isArray(legacy.data)) return [];
-  episodeCache.set(anilistId, legacy.data);
+  episodeCache.set(anilistId, { value: legacy.data, expiresAt: Date.now() + METADATA_TTL_MS });
   return legacy.data;
 }
 
 export async function fetchMediaIndexEpisodes(anilistId: number): Promise<MediaIndexEpisode[]> {
   const cached = episodeCache.get(anilistId);
-  if (cached) return cached;
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  if (cached) episodeCache.delete(anilistId);
   const existing = episodeInFlight.get(anilistId);
   if (existing) return existing;
   const pending = loadMediaIndexEpisodes(anilistId).finally(() => episodeInFlight.delete(anilistId));
@@ -99,7 +106,7 @@ export async function fetchMediaIndexEpisodes(anilistId: number): Promise<MediaI
   return pending;
 }
 
-export async function fetchMediaIndexSkip(anilistId: number, episodeNum: number, malId?: number): Promise<MediaIndexSkipData | null> {
+async function loadMediaIndexSkip(anilistId: number, episodeNum: number, malId?: number): Promise<MediaIndexSkipData | null> {
   const path = `skip/${mediaIndexShard(anilistId)}/${anilistId}.json`;
   let data: any = null;
   try {
@@ -145,16 +152,39 @@ export async function fetchMediaIndexSkip(anilistId: number, episodeNum: number,
   return null;
 }
 
+export async function fetchMediaIndexSkip(anilistId: number, episodeNum: number, malId?: number): Promise<MediaIndexSkipData | null> {
+  const key = `${anilistId}:${episodeNum}:${malId ?? ''}`;
+  const cached = skipCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  if (cached) skipCache.delete(key);
+  const existing = skipInFlight.get(key);
+  if (existing) return existing;
+  const pending = loadMediaIndexSkip(anilistId, episodeNum, malId)
+    .then((value) => {
+      skipCache.set(key, {
+        value,
+        expiresAt: Date.now() + (value ? METADATA_TTL_MS : MISSING_TTL_MS),
+      });
+      return value;
+    })
+    .finally(() => skipInFlight.delete(key));
+  skipInFlight.set(key, pending);
+  return pending;
+}
+
 export async function isAnimeDubbed(anilistId: number): Promise<boolean | null> {
   if (!dubIndexSet) {
-    let ids: number[] | null = null;
-    try {
-      const result = await mediaIndexRelease.aux<number[]>('dub/index.json');
-      if (Array.isArray(result.data)) ids = result.data;
-    } catch {
-      const legacy = await fetchIndexJson<number[]>('dub-index.json');
-      if (legacy.kind === 'ok' && Array.isArray(legacy.data)) ids = legacy.data;
-    }
+    dubIndexPromise ??= (async () => {
+      try {
+        const result = await mediaIndexRelease.aux<number[]>('dub/index.json');
+        if (Array.isArray(result.data)) return result.data;
+      } catch {
+        const legacy = await fetchIndexJson<number[]>('dub-index.json');
+        if (legacy.kind === 'ok' && Array.isArray(legacy.data)) return legacy.data;
+      }
+      return null;
+    })().finally(() => { dubIndexPromise = null; });
+    const ids = await dubIndexPromise;
     if (!ids) return null;
     dubIndexSet = new Set(ids);
   }
@@ -163,15 +193,18 @@ export async function isAnimeDubbed(anilistId: number): Promise<boolean | null> 
 
 export async function fetchBackdrops(): Promise<Record<string, string>> {
   if (backdropMap) return backdropMap;
-  let data: { titles?: Record<string, string> } | null = null;
-  try {
-    data = (await mediaIndexRelease.aux<{ titles?: Record<string, string> }>('backdrops.json')).data;
-  } catch {
-    const legacy = await fetchIndexJson<{ titles?: Record<string, string> }>('backdrops.json');
-    if (legacy.kind === 'ok') data = legacy.data;
-  }
-  if (!data?.titles) return {};
-  backdropMap = data.titles;
-  return data.titles;
+  backdropPromise ??= (async () => {
+    let data: { titles?: Record<string, string> } | null = null;
+    try {
+      data = (await mediaIndexRelease.aux<{ titles?: Record<string, string> }>('backdrops.json')).data;
+    } catch {
+      const legacy = await fetchIndexJson<{ titles?: Record<string, string> }>('backdrops.json');
+      if (legacy.kind === 'ok') data = legacy.data;
+    }
+    if (!data?.titles) return {};
+    backdropMap = data.titles;
+    return data.titles;
+  })().finally(() => { backdropPromise = null; });
+  return backdropPromise;
 }
 

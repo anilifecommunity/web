@@ -55,6 +55,7 @@ export const AnimeDetailModal: React.FC<Props> = ({ anime, onClose }) => {
   useEffect(() => {
     let cancelled = false;
     const aniListId = getAnimeAniListId(anime);
+    setRealEpisodes([]);
     if (!aniListId) return;
 
     fetchMediaIndexEpisodes(aniListId).then((episodes) => {

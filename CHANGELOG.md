@@ -43,6 +43,12 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 - Prevented episode thumbnails from overlapping titles on narrow screens.
 - Made desktop episode cards a consistent height so artwork cannot resize or cover their titles.
 - Removed the duplicate desktop player scrollbar by locking the background and keeping the episode list independently scrollable.
+- Stabilized watch-progress saves, flush progress when playback is paused or the page closes, and
+  prevent repeated or regressing AniList progress updates.
+- Prevented late episode and skip-metadata responses from overwriting the title or episode currently
+  open in the player.
+- Fully remove a deleted profile's Library, Continue Watching and search data, and require the
+  current local PIN before editing a PIN-protected profile.
 
 ### Security and reliability
 
@@ -60,6 +66,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   one persistent browser-bound authorization across episodes and restarts without four-hour prompts.
 - Kept released episodes playable when AniList rejects Cloudflare Worker requests by verifying
   their air dates against Anilife's static media index.
+- Added bounded AniList timeouts/retries and ordered IndexedDB mirrors so transient failures cannot
+  leave browser storage permanently stuck or resurrect deleted profile data.
 
 ## [0.1.2] - 2026-11-16
 

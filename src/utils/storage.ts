@@ -2,7 +2,7 @@ import { AppSettings, ContinueWatchingEntry, UserProfile, WatchlistEntry, ThemeP
 import { INITIAL_CONTINUE_WATCHING } from './animeData';
 import { webServerOptions } from './providerOptions';
 import { STORAGE_KEYS } from '../data/keys';
-import { putRecord } from '../data/idb';
+import { deleteRecord, putRecord } from '../data/idb';
 
 export { STORAGE_KEYS };
 
@@ -348,6 +348,21 @@ export function saveRecentSearches(profileId: string, searches: string[]): void 
   } catch (err) {
     console.error('Failed to save recent searches:', err);
   }
+}
+
+export async function deleteProfileStorage(profileId: string): Promise<void> {
+  try {
+    localStorage.removeItem(`${STORAGE_KEYS.WATCHLIST_PREFIX}${profileId}`);
+    localStorage.removeItem(`${STORAGE_KEYS.CONTINUE_PREFIX}${profileId}`);
+    localStorage.removeItem(`${STORAGE_KEYS.SEARCH_PREFIX}${profileId}`);
+  } catch (err) {
+    console.error('Failed to clear deleted profile data:', err);
+  }
+  await Promise.all([
+    deleteRecord('watchlist', profileId),
+    deleteRecord('history', profileId),
+    deleteRecord('search_history', profileId),
+  ]);
 }
 
 

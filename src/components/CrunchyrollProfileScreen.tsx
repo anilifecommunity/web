@@ -19,6 +19,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
 
   const [mode, setMode] = useState<'view' | 'manage' | 'add' | 'edit' | 'pin'>('view');
   const [targetPinProfile, setTargetPinProfile] = useState<UserProfile | null>(null);
+  const [pinAction, setPinAction] = useState<'select' | 'edit'>('select');
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
 
@@ -30,6 +31,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
 
   const handlePick = (p: UserProfile) => {
     if (p.pin) {
+      setPinAction('select');
       setTargetPinProfile(p);
       setPinInput('');
       setPinError(false);
@@ -48,8 +50,11 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
 
     if (next.length === 4) {
       if (targetPinProfile && next === targetPinProfile.pin) {
-        switchProfile(targetPinProfile);
-        onSelectProfile();
+        if (pinAction === 'edit') startEdit(targetPinProfile);
+        else {
+          switchProfile(targetPinProfile);
+          onSelectProfile();
+        }
       } else {
         setPinError(true);
         setTimeout(() => setPinInput(''), 600);
@@ -71,6 +76,15 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
     setAvatarInput(p.avatar);
     setPinCode(p.pin || '');
     setMode('edit');
+  };
+
+  const requestEdit = (p: UserProfile) => {
+    if (!p.pin) return startEdit(p);
+    setPinAction('edit');
+    setTargetPinProfile(p);
+    setPinInput('');
+    setPinError(false);
+    setMode('pin');
   };
 
   const saveAdd = (e: React.FormEvent) => {
@@ -124,7 +138,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
             {profiles.map((p) => (
               <div key={p.id} className="flex flex-col items-center space-y-3 group">
                 <button
-                  onClick={() => (mode === 'manage' ? startEdit(p) : handlePick(p))}
+                  onClick={() => (mode === 'manage' ? requestEdit(p) : handlePick(p))}
                   className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-zinc-900 border-2 border-transparent transition-all duration-200 group-hover:scale-105 group-hover:border-[var(--anilife-accent)] group-hover:shadow-[0_0_20px_var(--anilife-accent-shadow)] cursor-pointer"
                 >
                   <img
@@ -184,7 +198,7 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
       {mode === 'pin' && targetPinProfile && (
         <div className="w-full max-w-sm flex flex-col items-center text-center space-y-6 animate-fadeIn">
           <button
-            onClick={() => setMode('view')}
+            onClick={() => setMode(pinAction === 'edit' ? 'manage' : 'view')}
             className="self-start text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" /> Back
@@ -195,8 +209,12 @@ export const CrunchyrollProfileScreen: React.FC<Props> = ({ onSelectProfile }) =
             className="w-24 h-24 rounded-2xl object-cover ring-2 ring-[var(--anilife-accent)]"
           />
           <div>
-            <h2 className="text-xl font-bold text-white">Enter Profile PIN</h2>
-            <p className="text-xs text-zinc-400 mt-1">{targetPinProfile.name} is locked with a PIN</p>
+            <h2 className="text-xl font-bold text-white">{pinAction === 'edit' ? 'Confirm Profile PIN' : 'Enter Profile PIN'}</h2>
+            <p className="text-xs text-zinc-400 mt-1">
+              {pinAction === 'edit'
+                ? `Enter ${targetPinProfile.name}'s current local PIN to edit it.`
+                : `${targetPinProfile.name} is locked with a local PIN.`}
+            </p>
           </div>
 
           {}

@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  deleteRecord,
   getAllRecords,
   getRecord,
   hydrateLocalStorageFromIdb,
@@ -30,6 +31,13 @@ test('records round-trip through IndexedDB', async () => {
   await putRecord('settings', 'test-key', { hello: 'world' });
   assert.deepEqual(await getRecord('settings', 'test-key'), { hello: 'world' });
   assert.equal(await getRecord('settings', 'missing'), null);
+});
+
+test('a queued delete wins over an earlier write to the same profile record', async () => {
+  const write = putRecord('history', 'profile-delete', [{ animeId: '1' }]);
+  const deletion = deleteRecord('history', 'profile-delete');
+  await Promise.all([write, deletion]);
+  assert.equal(await getRecord('history', 'profile-delete'), null);
 });
 
 test('verified Media Index records use their own non-profile store', async () => {
@@ -82,6 +90,17 @@ test('hydration restores missing keys and never overwrites existing ones', async
   // The existing settings key wins over the value stored in IndexedDB.
   assert.deepEqual(JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS)!), { watchedThreshold: 55 });
   assert.equal(localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID), 'profile-main');
+});
+
+test('hydration never resurrects data for a deleted profile', async () => {
+  await putRecord('profiles', 'profiles', [{ id: 'profile-main', name: 'Profile 1' }]);
+  await putRecord('history', 'profile-deleted', [{ animeId: '9', episodeNumber: 2 }]);
+  localStorage.clear();
+
+  await hydrateLocalStorageFromIdb();
+
+  assert.equal(localStorage.getItem(`${STORAGE_KEYS.CONTINUE_PREFIX}profile-deleted`), null);
+  await deleteRecord('history', 'profile-deleted');
 });
 
 test('migration is idempotent', async () => {

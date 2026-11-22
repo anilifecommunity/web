@@ -32,6 +32,7 @@ interface StoredRecord<T> {
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
+const recordWrites = new Map<string, Promise<void>>();
 
 function hasIndexedDb(): boolean {
   return typeof indexedDB !== 'undefined';
@@ -41,7 +42,7 @@ export function openDatabase(): Promise<IDBDatabase> {
   if (!hasIndexedDb()) return Promise.reject(new Error('IndexedDB is unavailable'));
   if (dbPromise) return dbPromise;
 
-  dbPromise = new Promise((resolve, reject) => {
+  const pending = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -51,12 +52,33 @@ export function openDatabase(): Promise<IDBDatabase> {
         }
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      request.result.onversionchange = () => {
+        request.result.close();
+        dbPromise = null;
+      };
+      resolve(request.result);
+    };
     request.onerror = () => reject(request.error ?? new Error('Could not open IndexedDB'));
     request.onblocked = () => reject(new Error('IndexedDB upgrade is blocked by another tab'));
   });
 
+  dbPromise = pending.catch((error) => {
+    dbPromise = null;
+    throw error;
+  });
+
   return dbPromise;
+}
+
+function queueRecordWrite(store: StoreName, key: string, write: () => Promise<void>): Promise<void> {
+  const queueKey = `${store}:${key}`;
+  const previous = recordWrites.get(queueKey) ?? Promise.resolve();
+  const pending = previous.catch(() => {}).then(write);
+  recordWrites.set(queueKey, pending);
+  return pending.finally(() => {
+    if (recordWrites.get(queueKey) === pending) recordWrites.delete(queueKey);
+  });
 }
 
 function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
@@ -68,17 +90,36 @@ function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
 
 export async function putRecord<T>(store: StoreName, key: string, value: T): Promise<void> {
   try {
-    const db = await openDatabase();
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).put({ key, value, updatedAt: Date.now() } satisfies StoredRecord<T>);
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
-      tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+    await queueRecordWrite(store, key, async () => {
+      const db = await openDatabase();
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).put({ key, value, updatedAt: Date.now() } satisfies StoredRecord<T>);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
+        tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+      });
     });
   } catch (error) {
     // The mirror must never break the UI. localStorage still holds the write.
     console.warn('[idb] write failed', error);
+  }
+}
+
+export async function deleteRecord(store: StoreName, key: string): Promise<void> {
+  try {
+    await queueRecordWrite(store, key, async () => {
+      const db = await openDatabase();
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).delete(key);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
+        tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+      });
+    });
+  } catch (error) {
+    console.warn('[idb] delete failed', error);
   }
 }
 
@@ -210,17 +251,26 @@ export async function hydrateLocalStorageFromIdb(): Promise<HydrationReport> {
     restored.push(STORAGE_KEYS.ACTIVE_PROFILE_ID);
   }
 
+  const profileIds = new Set(
+    (profiles ?? [])
+      .map((profile) => (profile && typeof profile === 'object' && 'id' in profile ? String(profile.id) : ''))
+      .filter(Boolean),
+  );
+
   for (const { key, value } of await getAllRecords<unknown[]>('watchlist')) {
+    if (!profileIds.has(key)) continue;
     if (writeIfMissing(`${STORAGE_KEYS.WATCHLIST_PREFIX}${key}`, value)) {
       restored.push(`${STORAGE_KEYS.WATCHLIST_PREFIX}${key}`);
     }
   }
   for (const { key, value } of await getAllRecords<unknown[]>('history')) {
+    if (!profileIds.has(key)) continue;
     if (writeIfMissing(`${STORAGE_KEYS.CONTINUE_PREFIX}${key}`, value)) {
       restored.push(`${STORAGE_KEYS.CONTINUE_PREFIX}${key}`);
     }
   }
   for (const { key, value } of await getAllRecords<unknown[]>('search_history')) {
+    if (!profileIds.has(key)) continue;
     if (writeIfMissing(`${STORAGE_KEYS.SEARCH_PREFIX}${key}`, value)) {
       restored.push(`${STORAGE_KEYS.SEARCH_PREFIX}${key}`);
     }

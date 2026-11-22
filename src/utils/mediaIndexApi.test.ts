@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchMediaIndexEpisodes, isAnimeDubbed } from './mediaIndexApi';
+import { fetchMediaIndexEpisodes, fetchMediaIndexSkip, isAnimeDubbed } from './mediaIndexApi';
 
 test('episode metadata deduplicates concurrent work and retries a transient failure', async () => {
   const originalFetch = globalThis.fetch;
@@ -51,6 +51,30 @@ test('dub availability stays unknown on index failure and retries later', async 
     assert.equal(await isAnimeDubbed(207191), true);
     assert.equal(await isAnimeDubbed(1), false);
     assert.equal(legacyCalls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('skip metadata deduplicates concurrent requests', async () => {
+  const originalFetch = globalThis.fetch;
+  let legacyCalls = 0;
+  globalThis.fetch = async (input) => {
+    if (String(input).includes('/data/skip/424/424243.json')) {
+      legacyCalls += 1;
+      return new Response(JSON.stringify({ episodes: { '1': [['op', 10, 20]] } }), { status: 200 });
+    }
+    return new Response('', { status: 503 });
+  };
+
+  try {
+    const [first, concurrent] = await Promise.all([
+      fetchMediaIndexSkip(424243, 1),
+      fetchMediaIndexSkip(424243, 1),
+    ]);
+    assert.deepEqual(first, { op: [10, 20] });
+    assert.deepEqual(concurrent, first);
+    assert.equal(legacyCalls, 1);
   } finally {
     globalThis.fetch = originalFetch;
   }

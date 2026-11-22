@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import 'fake-indexeddb/auto';
-import { DEFAULT_SETTINGS, loadActiveProfileId, loadSettings, mergeSettings, saveActiveProfileId, saveSettings, STORAGE_KEYS } from './storage';
+import { DEFAULT_SETTINGS, deleteProfileStorage, loadActiveProfileId, loadSettings, mergeSettings, saveActiveProfileId, saveSettings, STORAGE_KEYS } from './storage';
 import { webServerOptions } from './providerOptions';
 import { CACHE_REFRESH_MARKER, runOneTimeCacheRefresh } from '../data/cacheRefresh';
 
@@ -189,4 +189,18 @@ test('the selected profile survives a browser reload', () => {
   withStoredSettings({});
   saveActiveProfileId('profile-brave');
   assert.equal(loadActiveProfileId(), 'profile-brave');
+});
+
+test('deleting a profile clears all of its local data', async () => {
+  const storage = memoryStorage();
+  Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true });
+  storage.setItem(`${STORAGE_KEYS.WATCHLIST_PREFIX}profile-old`, '[]');
+  storage.setItem(`${STORAGE_KEYS.CONTINUE_PREFIX}profile-old`, '[]');
+  storage.setItem(`${STORAGE_KEYS.SEARCH_PREFIX}profile-old`, '[]');
+
+  await deleteProfileStorage('profile-old');
+
+  assert.equal(storage.getItem(`${STORAGE_KEYS.WATCHLIST_PREFIX}profile-old`), null);
+  assert.equal(storage.getItem(`${STORAGE_KEYS.CONTINUE_PREFIX}profile-old`), null);
+  assert.equal(storage.getItem(`${STORAGE_KEYS.SEARCH_PREFIX}profile-old`), null);
 });

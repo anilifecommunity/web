@@ -38,100 +38,6 @@ import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 import { useDiscordStatus } from '../discord/useDiscordActivity';
 import { connectDiscordActivity, DISCORD_INSTALL_URL, isDiscordActivity } from '../discord/activity';
 
-const ANIME_BACKDROP_TITLES = [
-  "The Apothecary Diaries",
-  "Dandadan",
-  "Frieren: Beyond Journey's End",
-  "Jujutsu Kaisen",
-  "Demon Slayer",
-  "Attack on Titan",
-  "Solo Leveling",
-  "Chainsaw Man",
-  "Spy x Family",
-  "My Hero Academia",
-  "One Piece",
-  "Naruto",
-  "Bleach",
-  "Dragon Ball Z",
-  "Dragon Ball Super",
-  "Black Clover",
-  "Hunter x Hunter",
-  "Death Note",
-  "Fullmetal Alchemist: Brotherhood",
-  "Tokyo Ghoul",
-  "Kaiju No. 8",
-  "Blue Lock",
-  "Wind Breaker",
-  "Mashle",
-  "The Dangers in My Heart",
-  "Oshi no Ko",
-  "Bocchi the Rock!",
-  "Zom 100: Bucket List of the Dead",
-  "Hell's Paradise",
-  "Delicious in Dungeon",
-  "Shangri-La Frontier",
-  "The Elusive Samurai",
-  "Wistoria: Wand and Sword",
-  "Sakamoto Days",
-  "Dr. Stone",
-  "Fire Force",
-  "Tower of God",
-  "Mushoku Tensei",
-  "Re:Zero",
-  "Horimiya",
-  "Kaguya-sama: Love Is War",
-  "Your Lie in April",
-  "A Silent Voice",
-  "Your Name",
-  "Weathering With You",
-  "Violet Evergarden",
-  "Clannad",
-  "Fruits Basket",
-  "Toradora!",
-  "Komi Can't Communicate",
-  "A Sign of Affection",
-  "Blue Box",
-  "The Angel Next Door Spoils Me Rotten",
-  "My Dress-Up Darling",
-  "Insomniacs After School",
-  "That Time I Got Reincarnated as a Slime",
-  "Overlord",
-  "Konosuba",
-  "No Game No Life",
-  "Sword Art Online",
-  "The Rising of the Shield Hero",
-  "The Eminence in Shadow",
-  "The Wrong Way to Use Healing Magic",
-  "Tsukimichi: Moonlit Fantasy",
-  "Log Horizon",
-  "Made in Abyss",
-  "To Your Eternity",
-  "The Seven Deadly Sins",
-  "Cowboy Bebop",
-  "Neon Genesis Evangelion",
-  "Code Geass",
-  "Steins;Gate",
-  "Psycho-Pass",
-  "Erased",
-  "Parasyte",
-  "Mob Psycho 100",
-  "One Punch Man",
-  "Bungou Stray Dogs",
-  "JoJo's Bizarre Adventure",
-  "Assassination Classroom",
-  "Soul Eater",
-  "Noragami",
-  "Blue Exorcist",
-  "Akame ga Kill!",
-  "Cyberpunk: Edgerunners",
-  "86 Eighty-Six",
-  "The Promised Neverland",
-  "Great Pretender"
-];
-
-const ANIME_BACKDROP_CACHE_KEY = 'anilife_anime_backdrops_v1';
-const ANIME_BACKDROP_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
-
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const {
@@ -155,10 +61,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   >('appearance');
 
   const [customBackdropUrl, setCustomBackdropUrl] = useState('');
-  const [popularAnimeBackdrops, setPopularAnimeBackdrops] = useState<
-    { title: string; url: string }[]
-  >([]);
-  const [isLoadingAnimeBackdrops, setIsLoadingAnimeBackdrops] = useState(true);
   const [dataMessage, setDataMessage] = useState<string | null>(null);
   const [showEnabledServersModal, setShowEnabledServersModal] = useState(false);
 
@@ -184,123 +86,14 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
       ? settings.enabledServers.filter((id) => serverIds.includes(id))
       : serverIds;
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadAnimeBackdrops = async () => {
-      let cachedItems: { title: string; url: string }[] = [];
-      let cacheIsFresh = false;
-
-      try {
-        const cached = localStorage.getItem(ANIME_BACKDROP_CACHE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed.items)) {
-            cachedItems = parsed.items.filter(
-              (item: any) =>
-                typeof item?.title === 'string' &&
-                typeof item?.url === 'string' &&
-                item.url.startsWith('https://')
-            );
-            cacheIsFresh =
-              cachedItems.length > 0 &&
-              Date.now() - Number(parsed.savedAt || 0) < ANIME_BACKDROP_CACHE_TTL;
-          }
-        }
-      } catch {
-        // Ignore invalid or unavailable local cache and fetch fresh artwork.
-      }
-
-      if (cachedItems.length && isMounted) {
-        setPopularAnimeBackdrops(cachedItems);
-      }
-
-      if (cacheIsFresh) {
-        if (isMounted) setIsLoadingAnimeBackdrops(false);
-        return;
-      }
-
-      const query = `
-        query ($search: String) {
-          Media(search: $search, type: ANIME) {
-            title {
-              english
-              romaji
-            }
-            bannerImage
-          }
-        }
-      `;
-
-      const results = new Map<string, { title: string; url: string }>();
-      let nextIndex = 0;
-
-      const worker = async () => {
-        while (nextIndex < ANIME_BACKDROP_TITLES.length) {
-          const title = ANIME_BACKDROP_TITLES[nextIndex++];
-          try {
-            const response = await fetch('https://graphql.anilist.co', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json'
-              },
-              body: JSON.stringify({ query, variables: { search: title } })
-            });
-
-            if (!response.ok) {
-              if (response.status === 429) {
-                await new Promise((resolve) => setTimeout(resolve, 1500));
-              }
-              continue;
-            }
-
-            const json = await response.json();
-            const anime = json.data?.Media;
-            if (anime?.bannerImage) {
-              results.set(title, {
-                title: anime.title?.english || anime.title?.romaji || title,
-                url: anime.bannerImage
-              });
-            }
-          } catch (error) {
-            console.warn(`Could not load AniList backdrop for "${title}"`, error);
-          }
-
-          // Keep requests gentle to avoid AniList rate limits.
-          await new Promise((resolve) => setTimeout(resolve, 300));
-        }
-      };
-
-      await Promise.all(Array.from({ length: 4 }, () => worker()));
-
-      if (!isMounted) return;
-
-      // Preserve the requested list order, regardless of request completion order.
-      const finalResults = ANIME_BACKDROP_TITLES
-        .map((title) => results.get(title))
-        .filter((item): item is { title: string; url: string } => Boolean(item));
-
-      setPopularAnimeBackdrops(finalResults);
-      setIsLoadingAnimeBackdrops(false);
-
-      try {
-        localStorage.setItem(
-          ANIME_BACKDROP_CACHE_KEY,
-          JSON.stringify({ savedAt: Date.now(), items: finalResults })
-        );
-      } catch {
-        // The backdrop picker still works if storage is full or unavailable.
-      }
-    };
-
-    void loadAnimeBackdrops();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
+  const popularAnimeBackdrops = [
+    { title: 'The Apothecary Diaries', url: 'https://image.tmdb.org/t/p/w1280/tka5fcGkFclwf3brgUZunXHIwAg.jpg' },
+    { title: 'Dandadan', url: 'https://image.tmdb.org/t/p/w1280/dbkN1Nmj0pbL9sjjL0ePHzBtDZB.jpg' },
+    { title: 'Frieren: Beyond Journey\'s End', url: 'https://image.tmdb.org/t/p/w1280/3PwfWIlXvHTrSCRFvQvHdaDRQiL.jpg' },
+    { title: 'Jujutsu Kaisen', url: 'https://image.tmdb.org/t/p/w1280/9jPiGnf6EH7VVKm720vpk865Yqn.jpg' },
+    { title: 'Demon Slayer', url: 'https://image.tmdb.org/t/p/w1280/GnIGBoBoniawSmEy4XWuzFwarO.jpg' },
+    { title: 'Attack on Titan', url: 'https://image.tmdb.org/t/p/w1280/1v0d63laCR7iMSGBPREYHTE69IQ.jpg' },
+  ];
 
   const handleExportData = async () => {
     try {
@@ -559,20 +352,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                 </div>
 
                 {settings.backdropSource === 'anime' && (
-                  <div className="space-y-2 pt-1">
-                    {isLoadingAnimeBackdrops && (
-                      <div className="text-xs text-zinc-400">
-                        {popularAnimeBackdrops.length
-                          ? `Loaded ${popularAnimeBackdrops.length} backdrops. Finding more anime artwork...`
-                          : 'Loading anime artwork from AniList...'}
-                      </div>
-                    )}
-                    {!isLoadingAnimeBackdrops && popularAnimeBackdrops.length === 0 && (
-                      <div className="text-xs text-zinc-400">
-                        Could not load anime artwork. Check your connection and reopen Settings to try again.
-                      </div>
-                    )}
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2 pt-1">
                     {popularAnimeBackdrops.map((bd) => (
                       <button
                         key={bd.title}
@@ -588,7 +368,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                         </span>
                       </button>
                     ))}
-                    </div>
                   </div>
                 )}
 
@@ -1305,9 +1084,6 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                     If you have any questions, concerns, copyright-related inquiries, or other
                     matters you'd like to discuss, feel free to contact our team through our
                     official Discord server.
-                  </p>
-                  <p>
-                    Web release made by your favorite femboy, Dominus <3
                   </p>
                   <p className="text-[var(--anilife-accent)] font-semibold">Thank you for being part of Anilife.</p>
                 </div>

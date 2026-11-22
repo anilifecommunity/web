@@ -6,15 +6,12 @@ import { resolveVidSrc } from './vidsrc';
 import { resolveEmbedAggregator } from './embedAggregators';
 import { resolveZoko } from './zoko';
 import { resolveAnimeEmbed } from './animeEmbed';
-import { extensionAdapters } from './extension';
 
 /**
  * Adapters implemented in this Worker. Keyed by provider id; a provider absent here is not
  * attemptable no matter what a caller asks for.
  */
 export const ADAPTERS: Record<string, ProviderAdapter> = {
-  // WASM extensions first, so any native adapter below with the same id wins.
-  ...extensionAdapters,
   anichan: resolveAnichan,
   zoko: resolveZoko,
   animeembed: resolveAnimeEmbed,

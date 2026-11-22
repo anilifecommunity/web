@@ -18,7 +18,7 @@ function contentSecurityPolicy(activity: boolean): string {
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' https://graphql.anilist.co https://cdn.jsdelivr.net https://raw.githubusercontent.com https://api.aniskip.com https://challenges.cloudflare.com https://*.supabase.co wss://*.supabase.co",
+    "connect-src 'self' https://graphql.anilist.co https://cdn.jsdelivr.net https://raw.githubusercontent.com https://api.aniskip.com https://challenges.cloudflare.com",
     "worker-src 'self' blob:",
     "frame-src 'self' https://animeembed.com https://*.animeembed.com https://zokoanime.video https://*.zokoanime.video https://flixcloud.cc https://*.flixcloud.cc https://vidlink.pro https://*.vidlink.pro https://challenges.cloudflare.com",
     "form-action 'self' https://anilist.co",

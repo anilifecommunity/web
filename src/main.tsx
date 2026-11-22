@@ -9,7 +9,7 @@ import {
 import { recordDiagnostic } from './data/diagnostics';
 import { runOneTimeCacheRefresh } from './data/cacheRefresh';
 
-const SERVICE_WORKER_VERSION = '5';
+const SERVICE_WORKER_VERSION = __ANILIFE_BUILD_ID__;
 
 /**
  * Restore a missing localStorage from IndexedDB before React reads it, then mirror the current

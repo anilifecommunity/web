@@ -1,4 +1,5 @@
 import { fail, json } from './http';
+import { RequestBodyError, readRequestBytesCapped } from './guards';
 
 const INDEX_KEY = 'releases/stable.json';
 const MAX_BODY_BYTES = 64 * 1024;
@@ -263,6 +264,10 @@ export async function publishStableReleaseIndex(
   if (!env.WEB_RELEASE_INDEX_HMAC_KEY || !env.RELEASE_INDEX_BUCKET) {
     return fail(503, 'release_index_not_configured');
   }
+  const contentType = request.headers.get('Content-Type')?.split(';', 1)[0].trim().toLowerCase();
+  if (contentType !== 'application/json' && !contentType?.endsWith('+json')) {
+    return fail(415, 'unsupported_media_type');
+  }
   const length = Number(request.headers.get('Content-Length') ?? 0);
   if (length > MAX_BODY_BYTES) return fail(413, 'payload_too_large');
 
@@ -273,7 +278,15 @@ export async function publishStableReleaseIndex(
     return fail(401, 'expired_signature');
   }
 
-  const body = await request.arrayBuffer();
+  let body: ArrayBuffer;
+  try {
+    body = await readRequestBytesCapped(request, MAX_BODY_BYTES);
+  } catch (error) {
+    if (error instanceof RequestBodyError && error.reason === 'request_too_large') {
+      return fail(413, 'payload_too_large');
+    }
+    return fail(400, 'invalid_payload');
+  }
   if (body.byteLength === 0 || body.byteLength > MAX_BODY_BYTES) {
     return fail(body.byteLength > MAX_BODY_BYTES ? 413 : 400, 'invalid_payload');
   }

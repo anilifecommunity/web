@@ -9,7 +9,12 @@ import {
 import type { PlaybackOffer, ResolveRequest, SelectionPolicy } from '../src/resolver';
 import { ADAPTERS } from './adapters';
 import { createGateToken, gateCookie, GATE_COOKIE, readCookie, verifyGateToken, verifyTurnstile } from './gate';
-import { GuardError, safeFetch } from './guards';
+import {
+  GuardError,
+  RequestBodyError,
+  readRequestJsonCapped,
+  safeFetch,
+} from './guards';
 import { fail, json, parseInteger } from './http';
 import { hit } from './rateLimit';
 import { getAniListEpisodeAvailability, type EpisodeAvailability } from './anilist';
@@ -40,8 +45,8 @@ const DISCORD_CLIENT_ID = '1567279187893551185';
 const DISCORD_API = 'https://discord.com/api/v10';
 const DISCORD_HOSTS = new Set(['discord.com']);
 
-const MAX_EPISODE_REF = 64;
-const EPISODE_REF = /^[A-Za-z0-9._-]{1,64}$/;
+const MAX_REQUEST_JSON_BYTES = 16 * 1024;
+const EPISODE_REF = /^[1-9]\d{0,5}$/;
 
 function releaseFailure(availability: EpisodeAvailability): Response | null {
   if (availability === 'available') return null;
@@ -101,7 +106,7 @@ function parseResolveRequest(url: URL): { request: ResolveRequest; policy: Selec
   if (malIdRaw && (!malId || malId < 1)) return { error: 'invalid_malId' };
 
   const episodeRef = (url.searchParams.get('episode') ?? '1').trim();
-  if (!EPISODE_REF.test(episodeRef) || episodeRef.length > MAX_EPISODE_REF) {
+  if (!EPISODE_REF.test(episodeRef) || Number(episodeRef) > 100_000) {
     return { error: 'invalid_episode' };
   }
 
@@ -177,22 +182,26 @@ async function readWatchBody(request: Request): Promise<{
   aniListId: number;
   episode: number;
 } | null> {
-  try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const reference = typeof body.reference === 'string' ? body.reference : '';
-    const tag = typeof body.tag === 'string' ? body.tag : '';
-    const aniListId = typeof body.aniListId === 'number' ? body.aniListId : 0;
-    const episode = typeof body.episode === 'number' ? body.episode : 0;
-    if (
-      !WATCH_REFERENCE.test(reference) ||
-      !WATCH_TAG.test(tag) ||
-      !Number.isSafeInteger(aniListId) || aniListId < 1 || aniListId > 1_000_000_000 ||
-      !Number.isSafeInteger(episode) || episode < 1 || episode > 100_000
-    ) return null;
-    return { reference, tag, aniListId, episode };
-  } catch {
-    return null;
+  const body = await readRequestJsonCapped<Record<string, unknown>>(request, MAX_REQUEST_JSON_BYTES);
+  const reference = typeof body.reference === 'string' ? body.reference : '';
+  const tag = typeof body.tag === 'string' ? body.tag : '';
+  const aniListId = typeof body.aniListId === 'number' ? body.aniListId : 0;
+  const episode = typeof body.episode === 'number' ? body.episode : 0;
+  if (
+    !WATCH_REFERENCE.test(reference) ||
+    !WATCH_TAG.test(tag) ||
+    !Number.isSafeInteger(aniListId) || aniListId < 1 || aniListId > 1_000_000_000 ||
+    !Number.isSafeInteger(episode) || episode < 1 || episode > 100_000
+  ) return null;
+  return { reference, tag, aniListId, episode };
+}
+
+function requestBodyFailure(error: unknown): Response {
+  if (error instanceof RequestBodyError) {
+    if (error.reason === 'request_too_large') return fail(413, 'payload_too_large');
+    if (error.reason === 'invalid_content_type') return fail(415, 'unsupported_media_type');
   }
+  return fail(400, 'invalid_body');
 }
 
 async function handleWatchCreate(request: Request, env: Env): Promise<Response> {
@@ -207,9 +216,9 @@ async function handleWatchCreate(request: Request, env: Env): Promise<Response> 
   }
   let body: Record<string, unknown>;
   try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
-    return fail(400, 'invalid_body');
+    body = await readRequestJsonCapped<Record<string, unknown>>(request, MAX_REQUEST_JSON_BYTES);
+  } catch (error) {
+    return requestBodyFailure(error);
   }
   const aniListId = typeof body.aniListId === 'number' ? body.aniListId : 0;
   const episode = typeof body.episode === 'number' ? body.episode : 0;
@@ -233,7 +242,12 @@ async function handleWatchValidate(request: Request, env: Env): Promise<Response
   if (!protectedRequestAllowed(request)) return fail(403, 'cross_origin_denied');
   const sessionToken = await gateSessionToken(request, env);
   if (!sessionToken) return fail(401, 'verification_required');
-  const body = await readWatchBody(request);
+  let body: Awaited<ReturnType<typeof readWatchBody>>;
+  try {
+    body = await readWatchBody(request);
+  } catch (error) {
+    return requestBodyFailure(error);
+  }
   if (!body) return fail(400, 'invalid_watch_session');
   const secrets = watchSecrets(env);
   if (secrets.length === 0) return fail(503, 'watch_sessions_not_configured');
@@ -304,6 +318,7 @@ async function handleResolve(request: Request, env: Env, url: URL): Promise<Resp
       policy: parsed.policy,
       adapters: ADAPTERS,
       timeoutMs: 12_000,
+      totalTimeoutMs: 20_000,
     });
 
     if (!result.ok) {
@@ -341,10 +356,10 @@ async function handleGateVerify(request: Request, env: Env): Promise<Response> {
 
   let token = '';
   try {
-    const body = (await request.json()) as { token?: unknown };
+    const body = await readRequestJsonCapped<{ token?: unknown }>(request, MAX_REQUEST_JSON_BYTES);
     token = typeof body.token === 'string' ? body.token : '';
-  } catch {
-    return fail(400, 'invalid_body');
+  } catch (error) {
+    return requestBodyFailure(error);
   }
   if (!token || token.length > 4096) return fail(400, 'invalid_token');
 
@@ -417,9 +432,12 @@ async function handleDiscordToken(request: Request, env: Env): Promise<Response>
 
   let body: { code?: unknown; codeVerifier?: unknown };
   try {
-    body = (await request.json()) as { code?: unknown; codeVerifier?: unknown };
-  } catch {
-    return fail(400, 'invalid_body');
+    body = await readRequestJsonCapped<{ code?: unknown; codeVerifier?: unknown }>(
+      request,
+      MAX_REQUEST_JSON_BYTES
+    );
+  } catch (error) {
+    return requestBodyFailure(error);
   }
   if (typeof body.code !== 'string' || body.code.length === 0 || body.code.length > 512) {
     return fail(400, 'invalid_code');
@@ -482,9 +500,9 @@ async function handleDiscordGate(request: Request, env: Env): Promise<Response> 
 
   let body: { accessToken?: unknown };
   try {
-    body = (await request.json()) as { accessToken?: unknown };
-  } catch {
-    return fail(400, 'invalid_body');
+    body = await readRequestJsonCapped<{ accessToken?: unknown }>(request, MAX_REQUEST_JSON_BYTES);
+  } catch (error) {
+    return requestBodyFailure(error);
   }
   if (
     typeof body.accessToken !== 'string' ||
@@ -598,8 +616,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 }
 
 /** Applies the security policy to every response, including static assets. */
-function withSecurityHeaders(response: Response, request: Request): Response {
+function withSecurityHeaders(response: Response, request: Request, requestId: string): Response {
   const headers = new Headers(response.headers);
+  headers.set('X-Request-ID', requestId);
+  if (response.status >= 400) headers.set('X-Anilife-Error-Class', errorClass(response.status));
   for (const [name, value] of Object.entries(securityHeaders(request))) {
     headers.set(name, value);
   }
@@ -626,13 +646,43 @@ function withSecurityHeaders(response: Response, request: Request): Response {
   });
 }
 
+function errorClass(status: number): string {
+  if (status === 429) return 'rate_limit';
+  if (status >= 500) return status === 500 ? 'server' : 'upstream';
+  if (status === 401 || status === 403) return 'access';
+  return 'request';
+}
+
+function routeClass(request: Request): string {
+  const path = new URL(request.url).pathname;
+  if (path.startsWith('/api/watch/')) return 'watch';
+  if (path === '/api/resolve') return 'resolver';
+  if (path.startsWith('/api/gate/')) return 'gate';
+  if (path.startsWith('/api/discord/')) return 'discord';
+  if (path.startsWith('/internal/releases/')) return 'release_publisher';
+  if (path === '/downloads/index.json') return 'release_index';
+  if (path.startsWith('/api/')) return 'api';
+  return 'asset';
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const requestId = crypto.randomUUID();
     try {
-      return withSecurityHeaders(await handleRequest(request, env), request);
-    } catch {
+      return withSecurityHeaders(await handleRequest(request, env), request, requestId);
+    } catch (error) {
       // Never leak stack traces, upstream URLs or credentials to the caller.
-      return withSecurityHeaders(fail(500, 'internal_error'), request);
+      const upstream = error instanceof GuardError;
+      const timedOut = upstream && error.reason === 'timeout';
+      const status = timedOut ? 504 : upstream ? 502 : 500;
+      const code = timedOut ? 'upstream_timeout' : upstream ? 'upstream_unavailable' : 'internal_error';
+      console.error(JSON.stringify({
+        event: 'request_failed',
+        requestId,
+        route: routeClass(request),
+        category: errorClass(status),
+      }));
+      return withSecurityHeaders(fail(status, code, { requestId }), request, requestId);
     }
   },
 };

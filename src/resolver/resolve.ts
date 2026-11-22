@@ -16,6 +16,8 @@ export interface ResolveOptions {
   adapters: Record<string, ProviderAdapter>;
   /** Per-provider budget. Bounds a slow upstream so one server cannot stall the picker. */
   timeoutMs?: number;
+  /** Whole resolver budget. Prevents a fallback walk from multiplying the per-provider timeout. */
+  totalTimeoutMs?: number;
 }
 
 function failure(reason: string, attempts: AttemptResult[]): ResolveResult {
@@ -34,6 +36,7 @@ function failure(reason: string, attempts: AttemptResult[]): ResolveResult {
 export async function resolvePlayback(options: ResolveOptions): Promise<ResolveResult> {
   const { request, policy, adapters } = options;
   const timeoutMs = options.timeoutMs ?? 12_000;
+  const deadline = Date.now() + (options.totalTimeoutMs ?? 30_000);
 
   const plan = planAttempts(policy);
   if (!plan.ok) return failure(plan.reason ?? 'unknown', []);
@@ -43,6 +46,8 @@ export async function resolvePlayback(options: ResolveOptions): Promise<ResolveR
   let lastReason = 'no_streams';
 
   for (const providerId of plan.order) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) return failure('timeout', attempts);
     const adapter = adapters[providerId];
     if (!adapter) {
       const reason = 'provider_unavailable';
@@ -56,15 +61,16 @@ export async function resolvePlayback(options: ResolveOptions): Promise<ResolveR
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     try {
+      const attemptTimeoutMs = Math.max(1, Math.min(timeoutMs, remainingMs));
       const budget = new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
           controller.abort();
           reject(new ResolverError('timeout'));
-        }, timeoutMs);
+        }, attemptTimeoutMs);
       });
 
       const raw = await Promise.race([
-        adapter(request, { signal: controller.signal, timeoutMs }),
+        adapter(request, { signal: controller.signal, timeoutMs: attemptTimeoutMs }),
         budget,
       ]);
 

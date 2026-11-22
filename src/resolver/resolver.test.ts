@@ -271,3 +271,29 @@ test('times out a provider that never answers', async () => {
   assert.equal(result.attempts[0].reason, 'timeout');
   assert.equal(result.attempts[0].androidCode, 'SRC-05');
 });
+
+test('caps the whole fallback walk instead of multiplying provider timeouts', async () => {
+  const budgets: number[] = [];
+  const adapters: Record<string, ProviderAdapter> = {
+    [A]: (_request, context) => {
+      budgets.push(context.timeoutMs);
+      return new Promise<PlaybackOffer>(() => {});
+    },
+    [B]: (_request, context) => {
+      budgets.push(context.timeoutMs);
+      return new Promise<PlaybackOffer>(() => {});
+    },
+  };
+  const result = await resolvePlayback({
+    request,
+    policy: { selectedProvider: A, allowFallback: true, preferredOrder: [A, B] },
+    adapters,
+    timeoutMs: 40,
+    totalTimeoutMs: 55,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'timeout');
+  assert.deepEqual(result.attempts.map((attempt) => attempt.providerId), [A, B]);
+  assert.equal(budgets[0], 40);
+  assert.ok(budgets[1] > 0 && budgets[1] < 40);
+});

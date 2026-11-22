@@ -4,8 +4,15 @@
  * offline fallback. Hashed build assets are cache-first. API and cross-origin requests are never
  * cached: resolver answers and provider media must always be live.
  */
-const CACHE = 'anilife-shell-v5';
+const BUILD_ID = new URL(self.location.href).searchParams.get('v') || 'development';
+const CACHE = `anilife-shell-${BUILD_ID}`;
 const SHELL = ['/', '/index.html', '/assets/images/Anilife-Logo.png', '/manifest.webmanifest'];
+
+function isCacheableShell(request, response) {
+  const type = response.headers.get('content-type') || '';
+  const finalUrl = new URL(response.url || request.url);
+  return response.ok && finalUrl.origin === self.location.origin && type.includes('text/html');
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -38,8 +45,10 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put('/index.html', copy)).catch(() => undefined);
+          if (isCacheableShell(request, response)) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put('/index.html', copy)).catch(() => undefined);
+          }
           return response;
         })
         .catch(() => caches.match('/index.html').then((cached) => cached ?? Response.error()))

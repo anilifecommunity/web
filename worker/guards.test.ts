@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GuardError, readJsonCapped, readTextCapped, validateUpstreamUrl } from './guards';
+import {
+  GuardError,
+  RequestBodyError,
+  readJsonCapped,
+  readRequestJsonCapped,
+  readTextCapped,
+  safeFetch,
+  validateUpstreamUrl,
+} from './guards';
 
 const HOSTS = new Set(['anichan.to', 'cdn.example.com']);
 
@@ -51,5 +59,55 @@ test('rejects invalid json instead of passing it through', async () => {
   await assert.rejects(
     () => readJsonCapped(new Response('<html>not json</html>'), 1024),
     (error: unknown) => error instanceof GuardError && error.reason === 'upstream_error'
+  );
+});
+
+test('safeFetch owns the body byte limit and deadline', async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response('x'.repeat(2048));
+    await assert.rejects(
+      () => safeFetch('https://anichan.to/large', {}, {
+        allowedHosts: HOSTS,
+        maxBytes: 1024,
+      }),
+      (error: unknown) => error instanceof GuardError && error.reason === 'response_too_large'
+    );
+
+    globalThis.fetch = async () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{'));
+      },
+    }));
+    await assert.rejects(
+      () => safeFetch('https://anichan.to/slow', {}, {
+        allowedHosts: HOSTS,
+        maxBytes: 1024,
+        timeoutMs: 20,
+      }),
+      (error: unknown) => error instanceof GuardError && error.reason === 'timeout'
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('request json reader requires JSON and caps streamed bodies', async () => {
+  await assert.rejects(
+    () => readRequestJsonCapped(new Request('https://anilife.cc/api/test', {
+      method: 'POST',
+      body: '{}',
+      headers: { 'Content-Type': 'text/plain' },
+    }), 1024),
+    (error: unknown) => error instanceof RequestBodyError && error.reason === 'invalid_content_type'
+  );
+
+  await assert.rejects(
+    () => readRequestJsonCapped(new Request('https://anilife.cc/api/test', {
+      method: 'POST',
+      body: JSON.stringify({ value: 'x'.repeat(2048) }),
+      headers: { 'Content-Type': 'application/json' },
+    }), 1024),
+    (error: unknown) => error instanceof RequestBodyError && error.reason === 'request_too_large'
   );
 });

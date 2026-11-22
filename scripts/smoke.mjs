@@ -109,7 +109,7 @@ await check('service worker', async () => {
   const response = await fetch(`${base}/sw.js`);
   assert(response.ok, `status ${response.status}`);
   const text = await response.text();
-  assert(text.includes("anilife-shell-v5"), 'current shell cache missing');
+  assert(text.includes('anilife-shell-${BUILD_ID}'), 'build-derived shell cache missing');
   return `status ${response.status}`;
 });
 
@@ -126,6 +126,8 @@ await check('API 404 is JSON, not the SPA', async () => {
   assert(response.status === 404, `status ${response.status}`);
   const data = await response.json();
   assert(data.ok === false, 'not a JSON error');
+  assert(response.headers.get('x-request-id'), 'request id missing');
+  assert(response.headers.get('x-anilife-error-class') === 'request', 'error class missing');
   return data.error;
 });
 

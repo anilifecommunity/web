@@ -31,3 +31,9 @@ test('protected requests reject foreign origins except the exact Discord Activit
     headers: { Origin: 'https://1567279187893551185.discordsays.com', 'Sec-Fetch-Site': 'cross-site' },
   })), true);
 });
+
+test('CSP allows Supabase Realtime for watch parties', () => {
+  const csp = securityHeaders(new Request('https://anilife.cc/anime/1'))['Content-Security-Policy'];
+  assert.match(csp, /connect-src[^;]*https:\/\/\*\.supabase\.co/);
+  assert.match(csp, /connect-src[^;]*wss:\/\/\*\.supabase\.co/);
+});

@@ -8,6 +8,9 @@ import {
 } from './data/idb';
 import { recordDiagnostic } from './data/diagnostics';
 import { runOneTimeCacheRefresh } from './data/cacheRefresh';
+import { captureInviteFromUrl } from './watchparty/invite';
+
+captureInviteFromUrl();
 
 const SERVICE_WORKER_VERSION = '5';
 

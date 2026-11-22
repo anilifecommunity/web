@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Anime,
   AppSettings,
@@ -27,6 +27,7 @@ import {
   saveContinueWatching,
   loadRecentSearches,
   saveRecentSearches,
+  deleteProfileStorage,
 } from '../utils/storage';
 import {
   AniListUserData,
@@ -48,11 +49,7 @@ import {
   saveCachedAniListData,
   loadCachedAniListData
 } from '../utils/anilistApi';
-import {
-  fetchMediaIndexEpisodes,
-  fetchMediaIndexSkip,
-  isAnimeDubbed
-} from '../utils/mediaIndexApi';
+import { isAnimeDubbed } from '../utils/mediaIndexApi';
 import { mediaIndexRelease, type MediaIndexDataState, type MediaIndexFailureCode } from '../utils/mediaIndexRelease';
 
 export interface VideoPlaybackTarget {
@@ -68,6 +65,7 @@ import { convertAniListToAnime, convertMediaIndexCompactToAnime, convertMediaInd
 import { canWatchEpisode } from '../utils/episodeAvailability';
 import { isAnimeVisible } from '../utils/animePreferences';
 import { availableAudioMode } from '../utils/playerUtils';
+import { createAniListProgressQueue } from '../utils/anilistProgress';
 import {
   mergeContinueWatching,
   mergeLibraryEntries,
@@ -162,6 +160,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
   const [activeVideo, setActiveVideo] = useState<VideoPlaybackTarget | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const selectAnimeRequestRef = useRef(0);
 
   
   const [settings, setSettingsState] = useState<AppSettings>(loadSettings);
@@ -202,6 +201,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [oauthToken, setOauthToken] = useState<string | null>(loadOAuthToken);
   const [currentUser, setCurrentUser] = useState<AniListUserData | null>(null);
   const [isSyncingAniList, setIsSyncingAniList] = useState(false);
+  const queueAniListProgress = useMemo(
+    () => oauthToken
+      ? createAniListProgressQueue((mediaId, progress) =>
+          saveUserMediaListEntry(oauthToken, mediaId, 'CURRENT', progress))
+      : null,
+    [oauthToken],
+  );
 
   
   const [liveCatalog, setLiveCatalog] = useState<Anime[]>(() => loadCachedCatalog() || []);
@@ -480,6 +486,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (activeProfile.id === id) {
       switchProfile(updated[0]);
     }
+    void deleteProfileStorage(id);
     return true;
   };
 
@@ -564,14 +571,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const updateWatchProgress = (animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number, audioMode: 'SUB' | 'DUB') => {
+  const updateWatchProgress = useCallback((animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number, audioMode: 'SUB' | 'DUB') => {
+    const currentTime = Math.max(0, Math.round(currentTimeSec));
+    const duration = Math.max(0, Math.round(durationSec));
     setContinueWatchingState(prev => {
       const existingIdx = prev.findIndex(item => item.animeId === animeId);
+      const existing = existingIdx >= 0 ? prev[existingIdx] : null;
+      const completed = duration > 0 && currentTime >= duration - 1;
+      const alreadyComplete = completed && existing && existing.currentTimeSec >= duration - 1;
+      if (
+        existing &&
+        existing.episodeNumber === episodeNumber &&
+        existing.audioMode === audioMode &&
+        existing.serverName === settings.activeServer &&
+        Math.abs(existing.currentTimeSec - currentTime) < 5 &&
+        Math.abs(existing.durationSec - duration) < 2 &&
+        (!completed || alreadyComplete)
+      ) return prev;
       const updatedItem: ContinueWatchingEntry = {
         animeId,
         episodeNumber,
-        currentTimeSec,
-        durationSec,
+        currentTimeSec: currentTime,
+        durationSec: duration,
         serverName: settings.activeServer,
         audioMode,
         updatedAt: new Date().toISOString(),
@@ -588,15 +609,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return nextList;
     });
 
-    if (oauthToken && durationSec > 0 && (currentTimeSec / durationSec) >= (settings.watchedThreshold / 100)) {
+    if (queueAniListProgress && duration > 0 && (currentTime / duration) >= (settings.watchedThreshold / 100)) {
       const numericId = parseInt(animeId, 10);
       if (!isNaN(numericId)) {
-        saveUserMediaListEntry(oauthToken, numericId, 'CURRENT', episodeNumber).catch(err => {
+        queueAniListProgress(numericId, episodeNumber).catch(err => {
           console.error('Failed to sync episode progress to AniList:', err);
         });
       }
     }
-  };
+  }, [activeProfile.id, queueAniListProgress, settings.activeServer, settings.watchedThreshold]);
 
   const removeFromContinueWatching = (animeId: string) => {
     setContinueWatchingState(prev => {
@@ -675,12 +696,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const selectAnime = (anime: Anime | null) => {
+    const request = ++selectAnimeRequestRef.current;
     setSelectedAnime(anime);
     if (!anime
       || anime.synopsis !== 'Details are available when you open this title.'
       || !/^\d+$/.test(anime.id)) return;
 
     void mediaIndexRelease.media(Number(anime.id)).then((indexed) => {
+      if (request !== selectAnimeRequestRef.current) return;
       const hydrated = convertMediaIndexMediaToAnime(indexed.data);
       if (!isAnimeVisible(hydrated, settings.hideAdultContent)) {
         setSelectedAnime((current) => current?.id === anime.id ? null : current);

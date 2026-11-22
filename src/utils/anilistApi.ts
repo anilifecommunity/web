@@ -25,8 +25,29 @@ export const ANILIST_ENDPOINT = 'https://graphql.anilist.co';
  * historical shared client.
  */
 export const ANILIST_CLIENT_ID = String(
-  (import.meta.env.VITE_ANILIST_CLIENT_ID as string | undefined) ?? ''
+  (import.meta.env?.VITE_ANILIST_CLIENT_ID as string | undefined) ?? ''
 ).trim();
+
+const ANILIST_TIMEOUT_MS = 12_000;
+
+async function fetchAniList(requestInit: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ANILIST_TIMEOUT_MS);
+  try {
+    return await fetch(ANILIST_ENDPOINT, { ...requestInit, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function retryDelayMs(response?: Response): number {
+  const retryAfter = response?.headers.get('Retry-After');
+  if (!retryAfter) return 250;
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds)) return Math.min(2_000, Math.max(0, seconds * 1000));
+  const date = Date.parse(retryAfter);
+  return Number.isFinite(date) ? Math.min(2_000, Math.max(0, date - Date.now())) : 250;
+}
 
 export interface AniListMedia {
   id: number;
@@ -146,12 +167,26 @@ export async function queryAniList<T>(
     body: JSON.stringify({ query, variables }),
   };
 
-  let response: Response;
-  try {
-    response = await fetch(ANILIST_ENDPOINT, requestInit);
-  } catch {
-    response = await fetch(ANILIST_ENDPOINT, requestInit);
+  let response: Response | undefined;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetchAniList(requestInit);
+      if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs(response)));
+        continue;
+      }
+      break;
+    } catch (error) {
+      lastError = error;
+      response = undefined;
+      if (attempt === 0) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs()));
+        continue;
+      }
+    }
   }
+  if (!response) throw lastError instanceof Error ? lastError : new Error('AniList request failed');
 
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
@@ -164,8 +199,10 @@ export async function queryAniList<T>(
         authFailure = authFailure || /invalid token|unauthorized/i.test(message);
       }
     } catch {}
-    if (authFailure) throw new AniListRequestError(detail, response.status || 401);
-    throw new Error(`AniList error: ${detail}`);
+    throw new AniListRequestError(
+      authFailure ? detail : `AniList error: ${detail}`,
+      response.status || 500,
+    );
   }
 
   const json = (await response.json()) as { data: T; errors?: Array<{ message?: string }> };

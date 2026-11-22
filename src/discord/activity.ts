@@ -25,7 +25,7 @@ export interface DiscordActivityInput {
 }
 
 const CLIENT_ID = String(
-  (import.meta.env.VITE_DISCORD_CLIENT_ID as string | undefined) ?? '1567279187893551185'
+  (import.meta.env?.VITE_DISCORD_CLIENT_ID as string | undefined) ?? '1567279187893551185'
 ).trim();
 
 export const DISCORD_INSTALL_URL = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&integration_type=1&scope=applications.commands`;
@@ -116,6 +116,25 @@ async function tokenExchange(code: string, codeVerifier: string): Promise<string
   return data.access_token;
 }
 
+export async function authorizeDiscordGate(accessToken: string): Promise<void> {
+  const response = await fetch('/api/gate/discord', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken }),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    gate?: unknown;
+    bypassed?: unknown;
+  };
+  if (!response.ok) throw new Error('Discord connected, but Anilife verification failed.');
+  if (typeof data.gate === 'string') {
+    setGateToken(data.gate);
+    return;
+  }
+  if (data.bypassed === true) return;
+  throw new Error('Discord connected, but the playback gate is not ready.');
+}
+
 async function setup(): Promise<DiscordState> {
   publish({ status: 'connecting', error: undefined });
   const { DiscordSDK } = await import('@discord/embedded-app-sdk');
@@ -140,17 +159,7 @@ async function setup(): Promise<DiscordState> {
 
   const accessToken = await tokenExchange(code, verifier);
   const auth = await sdk.commands.authenticate({ access_token: accessToken });
-
-  await fetch('/api/gate/discord', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessToken: auth.access_token }),
-  })
-    .then((response) => response.json())
-    .then((data: { gate?: unknown }) => {
-      if (typeof data.gate === 'string') setGateToken(data.gate);
-    })
-    .catch(() => undefined);
+  await authorizeDiscordGate(auth.access_token);
 
   const username = auth.user.global_name || auth.user.username;
   publish({

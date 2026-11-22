@@ -421,6 +421,7 @@ function discordTokenResponse(data: {
 }
 
 async function handleDiscordToken(request: Request, env: Env): Promise<Response> {
+  if (!protectedRequestAllowed(request)) return fail(403, 'cross_origin_denied');
   const limited = hit(`discord:token:${clientKey(request)}`, 20, 60_000);
   if (!limited.allowed) {
     return json(
@@ -456,6 +457,7 @@ async function handleDiscordToken(request: Request, env: Env): Promise<Response>
     client_id: clientId,
     grant_type: 'authorization_code',
     code: body.code,
+    code_verifier: verifier,
   });
 
   let lastError = 'discord_token_failed';
@@ -475,7 +477,6 @@ async function handleDiscordToken(request: Request, env: Env): Promise<Response>
   // Public-client fallback: Discord accepts PKCE without a secret when the application has
   // Public Client enabled. The verifier never leaves the Worker in a response.
   const publicClient = new URLSearchParams(base);
-  publicClient.set('code_verifier', verifier);
   const second = await postDiscordToken(publicClient);
   if (second.ok && typeof second.data.access_token === 'string') {
     return discordTokenResponse(second.data);
@@ -485,6 +486,7 @@ async function handleDiscordToken(request: Request, env: Env): Promise<Response>
 }
 
 async function handleDiscordGate(request: Request, env: Env): Promise<Response> {
+  if (!protectedRequestAllowed(request)) return fail(403, 'cross_origin_denied');
   if (!(await gateEnabled(env))) {
     return json({ ok: true, bypassed: true });
   }

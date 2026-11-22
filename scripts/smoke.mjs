@@ -63,9 +63,12 @@ await check('app shell', async () => {
   assert(response.ok, `status ${response.status}`);
   const html = await response.text();
   assert(html.includes('Anilife'), 'branding missing');
-  assert(response.headers.get('content-security-policy')?.includes("frame-ancestors 'none'"), 'anti-frame CSP missing');
+  const csp = response.headers.get('content-security-policy') || '';
+  assert(csp.includes("frame-ancestors 'none'"), 'anti-frame CSP missing');
+  assert(!/script-src[^;]*unsafe-inline/.test(csp), 'inline script CSP remains enabled');
   assert(response.headers.get('x-frame-options') === 'DENY', 'X-Frame-Options missing');
   assert(response.headers.get('x-content-type-options') === 'nosniff', 'nosniff missing');
+  assert(response.headers.get('referrer-policy') === 'no-referrer', 'no-referrer policy missing');
   return `status ${response.status}`;
 });
 
@@ -118,6 +121,9 @@ await check('OAuth callback page', async () => {
   assert(response.ok, `status ${response.status}`);
   const html = await response.text();
   assert(html.includes('Connecting to AniList'), 'callback page not served');
+  assert(html.includes('src="/auth/callback.js"'), 'external callback script missing');
+  const script = await fetch(`${base}/auth/callback.js`);
+  assert(script.ok, `callback script status ${script.status}`);
   return `status ${response.status}`;
 });
 

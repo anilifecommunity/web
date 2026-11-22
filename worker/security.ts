@@ -13,7 +13,7 @@ function contentSecurityPolicy(activity: boolean): string {
     "base-uri 'self'",
     "object-src 'none'",
     activity ? `frame-ancestors ${DISCORD_ANCESTORS}` : "frame-ancestors 'none'",
-    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+    "script-src 'self' https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
@@ -34,7 +34,7 @@ export function securityHeaders(request: Request): Record<string, string> {
   return {
     'Content-Security-Policy': contentSecurityPolicy(activity),
     'X-Content-Type-Options': 'nosniff',
-    'Referrer-Policy': protectedWatch ? 'no-referrer' : 'strict-origin-when-cross-origin',
+    'Referrer-Policy': 'no-referrer',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
     ...(activity ? {} : { 'X-Frame-Options': 'DENY' }),
     ...(preview || protectedWatch ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),

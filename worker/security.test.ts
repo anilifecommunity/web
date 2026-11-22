@@ -5,7 +5,9 @@ import { protectedRequestAllowed, securityHeaders } from './security';
 test('ordinary pages deny all framing while Discord uses an isolated path', () => {
   const ordinary = securityHeaders(new Request('https://anilife.cc/anime/1'));
   assert.match(ordinary['Content-Security-Policy'], /frame-ancestors 'none'/);
+  assert.doesNotMatch(ordinary['Content-Security-Policy'], /script-src[^;]*unsafe-inline/);
   assert.equal(ordinary['X-Frame-Options'], 'DENY');
+  assert.equal(ordinary['Referrer-Policy'], 'no-referrer');
 
   const activity = securityHeaders(new Request('https://anilife.cc/activity?frame_id=1&instance_id=2'));
   assert.match(activity['Content-Security-Policy'], /frame-ancestors https:\/\/discord\.com https:\/\/\*\.discordsays\.com/);
@@ -15,6 +17,16 @@ test('ordinary pages deny all framing while Discord uses an isolated path', () =
 test('watch pages do not send their route as a referrer', () => {
   const headers = securityHeaders(new Request('https://anilife.cc/watch/ref/episode-1-tag'));
   assert.equal(headers['Referrer-Policy'], 'no-referrer');
+});
+
+test('frame sources contain only the active player origins and Turnstile', () => {
+  const csp = securityHeaders(new Request('https://anilife.cc/watch/ref/episode-1-tag'))['Content-Security-Policy'];
+  for (const origin of ['animeembed.com', 'zokoanime.video', 'flixcloud.cc', 'vidlink.pro', 'challenges.cloudflare.com']) {
+    assert.match(csp, new RegExp(origin.replace('.', '\\.')));
+  }
+  for (const blocked of ['vidnest.fun', 'megacloud.tv', 'mp4upload.com']) {
+    assert.doesNotMatch(csp, new RegExp(blocked.replace('.', '\\.')));
+  }
 });
 
 test('protected requests reject foreign origins except the exact Discord Activity origin', () => {

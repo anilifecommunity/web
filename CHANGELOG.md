@@ -72,6 +72,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   malformed episode and JSON input early, and attach privacy-safe request IDs to failures.
 - Prevent non-HTML navigation responses from replacing the offline app shell, and derive each
   service-worker cache revision from the deployed build so upgrades and rollbacks stay coherent.
+- Kept PKCE verification in both Discord OAuth exchange modes, require a successful Discord
+  playback gate before reporting readiness, and removed inline-script permission from the CSP.
+- Applied a no-referrer policy to pages and embedded players, limited frame sources to active
+  player origins, and reject cross-origin Discord token and gate requests.
 
 ## [0.1.2] - 2026-11-16
 

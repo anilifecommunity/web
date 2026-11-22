@@ -13,6 +13,7 @@ import {
   Server,
   Settings,
   Subtitles,
+  Users,
   Volume2,
   X,
 } from 'lucide-react';
@@ -34,6 +35,8 @@ import {
 import { resolveEpisode } from '../utils/workerApi';
 import { displayAnimeTitle } from '../utils/animePreferences';
 import { fallbackAudioMode } from '../utils/playerUtils';
+import { useWatchParty, watchPartyEnabled } from '../watchparty/useWatchParty';
+import { WatchPartyPanel } from './WatchPartyPanel';
 
 interface Props {
   anime: Anime;
@@ -45,7 +48,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Panel = 'episodes' | 'sources' | 'settings' | null;
+type Panel = 'episodes' | 'sources' | 'settings' | 'party' | null;
 
 export const VideoPlayer: React.FC<Props> = ({
   anime,
@@ -93,6 +96,14 @@ export const VideoPlayer: React.FC<Props> = ({
   const changeEpisode = useCallback((episode: number) => {
     if (episode !== currentEpisodeNumber) void playAnimeEpisode(anime, episode, audioMode);
   }, [anime, audioMode, currentEpisodeNumber, playAnimeEpisode]);
+
+  const party = useWatchParty({
+    videoRef,
+    episode: currentEpisodeNumber,
+    audio: audioMode,
+    embedActive: Boolean(embedUrl),
+    onEpisode: changeEpisode,
+  });
 
   const serverOptions = useMemo(
     () => orderServerOptions(webServerOptions(settings.hideAdultContent), settings.serverPriority),
@@ -459,6 +470,7 @@ export const VideoPlayer: React.FC<Props> = ({
             <p className="truncate text-xs text-zinc-400">Episode {currentEpisodeNumber}{currentEpisode?.title ? ` - ${currentEpisode.title}` : ''}</p>
           </div>
           <div className="flex items-center gap-1.5">
+            {watchPartyEnabled && <button type="button" onClick={() => setPanel(panel === 'party' ? null : 'party')} className="anilife-icon-button" aria-label="Watch party"><Users className="h-4 w-4" /></button>}
             <button type="button" onClick={() => setPanel(panel === 'sources' ? null : 'sources')} className="anilife-icon-button" aria-label="Choose server"><Server className="h-4 w-4" /></button>
             <button type="button" onClick={() => setPanel(panel === 'settings' ? null : 'settings')} className="anilife-icon-button" aria-label="Player settings"><Settings className="h-4 w-4" /></button>
             <button type="button" onClick={() => containerRef.current?.requestFullscreen?.()} className="anilife-icon-button" aria-label="Enter fullscreen"><Maximize2 className="h-4 w-4" /></button>
@@ -573,9 +585,11 @@ export const VideoPlayer: React.FC<Props> = ({
         <div className="fixed inset-0 z-[110] flex justify-end bg-black/65 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setPanel(null)}>
           <section className="h-full w-full max-w-md overflow-y-auto border-l border-white/10 bg-zinc-950 p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label={`${panel} panel`}>
             <div className="mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">{panel === 'episodes' ? <ListVideo className="h-5 w-5 text-[var(--anilife-accent)]" /> : panel === 'sources' ? <Server className="h-5 w-5 text-[var(--anilife-accent)]" /> : <Settings className="h-5 w-5 text-[var(--anilife-accent)]" />}<h2 className="text-lg font-bold capitalize">{panel}</h2></div>
+              <div className="flex items-center gap-3">{panel === 'episodes' ? <ListVideo className="h-5 w-5 text-[var(--anilife-accent)]" /> : panel === 'sources' ? <Server className="h-5 w-5 text-[var(--anilife-accent)]" /> : panel === 'party' ? <Users className="h-5 w-5 text-[var(--anilife-accent)]" /> : <Settings className="h-5 w-5 text-[var(--anilife-accent)]" />}<h2 className="text-lg font-bold capitalize">{panel === 'party' ? 'Watch party' : panel}</h2></div>
               <button type="button" onClick={() => setPanel(null)} className="anilife-icon-button" aria-label="Close panel"><X className="h-4 w-4" /></button>
             </div>
+
+            {panel === 'party' && <WatchPartyPanel party={party} embedActive={Boolean(embedUrl)} animeId={String(anime.id)} />}
 
             {panel === 'sources' && (
               <div className="space-y-2">

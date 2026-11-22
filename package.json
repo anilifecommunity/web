@@ -12,11 +12,14 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit && tsc -p worker/tsconfig.json --noEmit",
-    "test": "tsx --test src/utils/playerUtils.test.ts src/utils/mediaIndexApi.test.ts src/utils/mediaIndexRelease.test.ts src/utils/libraryParity.test.ts src/utils/episodeAvailability.test.ts src/utils/scraperParsers.test.ts src/utils/providerOptions.test.ts src/utils/storage.test.ts src/utils/notice.test.ts src/utils/oauth.test.ts src/utils/releaseIndex.test.ts src/utils/workerApi.test.ts src/hooks/useUrlRoute.test.ts src/context/animeConversion.test.ts src/resolver/resolver.test.ts src/data/backup.test.ts src/data/idb.test.ts worker/anilist.test.ts worker/mediaIndexV1.test.ts worker/guards.test.ts worker/gate.test.ts worker/security.test.ts worker/watchSession.test.ts worker/watchRoutes.test.ts worker/releaseIndex.test.ts worker/adapters/animeheaven.test.ts worker/adapters/vidsrc.test.ts worker/adapters/embedAggregators.test.ts worker/adapters/zoko.test.ts worker/adapters/animeEmbed.test.ts",
-    "smoke": "node scripts/smoke.mjs"
+    "test": "tsx --test src/utils/playerUtils.test.ts src/utils/mediaIndexApi.test.ts src/utils/mediaIndexRelease.test.ts src/utils/libraryParity.test.ts src/utils/episodeAvailability.test.ts src/utils/scraperParsers.test.ts src/utils/providerOptions.test.ts src/utils/storage.test.ts src/utils/notice.test.ts src/utils/oauth.test.ts src/utils/releaseIndex.test.ts src/utils/workerApi.test.ts src/hooks/useUrlRoute.test.ts src/watchparty/protocol.test.ts src/context/animeConversion.test.ts src/resolver/resolver.test.ts src/data/backup.test.ts src/data/idb.test.ts worker/anilist.test.ts worker/mediaIndexV1.test.ts worker/guards.test.ts worker/gate.test.ts worker/security.test.ts worker/watchSession.test.ts worker/watchRoutes.test.ts worker/releaseIndex.test.ts worker/adapters/animeheaven.test.ts worker/adapters/vidsrc.test.ts worker/adapters/embedAggregators.test.ts worker/adapters/zoko.test.ts worker/adapters/animeEmbed.test.ts worker/extensions/replay.test.ts worker/extensions/policedFetch.test.ts",
+    "smoke": "node scripts/smoke.mjs",
+    "ext:build": "node scripts/build-worker-extensions.mjs"
   },
   "dependencies": {
+    "@bytecodealliance/preview2-shim": "^0.17.0",
     "@discord/embedded-app-sdk": "^2.5.0",
+    "@supabase/supabase-js": "^2.45.0",
     "@tailwindcss/vite": "^4.3.5",
     "@vitejs/plugin-react": "^6.3.0",
     "hls.js": "^1.7.4",
@@ -27,6 +30,7 @@
     "vite": "^8.3.8"
   },
   "devDependencies": {
+    "@bytecodealliance/jco": "^1.9.0",
     "@cloudflare/workers-types": "^5.20261113.1",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",

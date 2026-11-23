@@ -1,0 +1,7 @@
+{
+  "protocolVersion": 1,
+  "error": "cursor_expired",
+  "requestId": "request-00000002",
+  "bootstrapPath": "/api/v1/bootstrap",
+  "serverTime": "2026-11-23T18:00:00Z"
+}

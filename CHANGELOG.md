@@ -5,6 +5,11 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+### Added
+
+- Published the machine-readable Anilife Cloud Sync v1 OpenAPI, strict JSON Schema, fixtures and
+  deterministic Android handoff bundle. No account or sync endpoint is live yet.
+
 ### Changed
 
 - Corrected public architecture, operations, parity, provider and release documentation to match

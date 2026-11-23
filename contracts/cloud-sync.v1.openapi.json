@@ -1,0 +1,199 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Anilife Cloud Sync API",
+    "version": "1.0.0",
+    "description": "Opt-in, local-first synchronization. This contract does not create live endpoints by itself."
+  },
+  "servers": [
+    { "url": "https://anilife.cc", "description": "Production after an explicit deployment gate" }
+  ],
+  "paths": {
+    "/api/v1/bootstrap": {
+      "get": {
+        "operationId": "bootstrapCloudSync",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Bootstrap" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "410": { "$ref": "#/components/responses/CursorExpired" },
+          "426": { "$ref": "#/components/responses/ProtocolUnsupported" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/v1/sync": {
+      "post": {
+        "operationId": "syncCloudData",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/SyncRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All submitted operations were committed or previously acknowledged.",
+            "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } },
+            "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/SyncResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/Invalid" },
+          "422": { "$ref": "#/components/responses/Invalid" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "410": { "$ref": "#/components/responses/CursorExpired" },
+          "413": { "$ref": "#/components/responses/TooLarge" },
+          "426": { "$ref": "#/components/responses/ProtocolUnsupported" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Unavailable" },
+          "502": { "$ref": "#/components/responses/Unavailable" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/v1/export": {
+      "get": {
+        "operationId": "exportCloudData",
+        "security": [{ "sessionCookie": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Cursor" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": {
+            "description": "One bounded export page.",
+            "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } },
+            "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/ExportResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "410": { "$ref": "#/components/responses/CursorExpired" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/v1/devices/revoke": {
+      "post": {
+        "operationId": "revokeCloudDevice",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/DeviceRevokeRequest" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "The owned device was revoked.", "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } } },
+          "400": { "$ref": "#/components/responses/Invalid" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    },
+    "/api/v1/account": {
+      "delete": {
+        "operationId": "deleteCloudAccount",
+        "security": [{ "sessionCookie": [], "csrfHeader": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/AccountDeleteRequest" }
+            }
+          }
+        },
+        "responses": {
+          "204": { "description": "The authenticated account and its cloud data were deleted.", "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } } },
+          "400": { "$ref": "#/components/responses/Invalid" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "429": { "$ref": "#/components/responses/RateLimited" },
+          "503": { "$ref": "#/components/responses/Unavailable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-anilife-session",
+        "description": "HttpOnly, Secure, host-only session issued by the reviewed auth integration."
+      },
+      "csrfHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Anilife-CSRF",
+        "description": "Session-bound CSRF value required with exact Origin validation on mutations."
+      }
+    },
+    "parameters": {
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/Cursor" }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "integer", "minimum": 1, "maximum": 250, "default": 100 }
+      }
+    },
+    "headers": {
+      "NoStore": { "description": "Private data must not enter a shared cache.", "schema": { "type": "string", "const": "private, no-store" } },
+      "RetryAfter": { "description": "Whole seconds before retry is permitted.", "schema": { "type": "integer", "minimum": 1 } }
+    },
+    "responses": {
+      "Bootstrap": {
+        "description": "A bounded snapshot page and registered device identifier.",
+        "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } },
+        "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/BootstrapResponse" } } }
+      },
+      "Invalid": { "$ref": "#/components/responses/Problem" },
+      "Unauthorized": { "$ref": "#/components/responses/Problem" },
+      "Forbidden": { "$ref": "#/components/responses/Problem" },
+      "TooLarge": { "$ref": "#/components/responses/Problem" },
+      "ProtocolUnsupported": { "$ref": "#/components/responses/Problem" },
+      "Unavailable": { "$ref": "#/components/responses/Problem" },
+      "Conflict": {
+        "description": "The whole submitted batch was rejected because a base revision was stale.",
+        "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } },
+        "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/ConflictResponse" } } }
+      },
+      "CursorExpired": {
+        "description": "The client must perform a bounded bootstrap without deleting its outbox.",
+        "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } },
+        "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/CursorExpiredResponse" } } }
+      },
+      "RateLimited": {
+        "description": "Retry only after the server-supplied window.",
+        "headers": {
+          "Cache-Control": { "$ref": "#/components/headers/NoStore" },
+          "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/ErrorResponse" } } }
+      },
+      "Problem": {
+        "description": "A bounded machine-readable error without private details.",
+        "headers": { "Cache-Control": { "$ref": "#/components/headers/NoStore" } },
+        "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/ErrorResponse" } } }
+      }
+    }
+  }
+}

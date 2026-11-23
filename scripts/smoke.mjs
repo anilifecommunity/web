@@ -101,6 +101,26 @@ await check('deep links serve the shell', async () => {
   return 'anime, discover, downloads, settings';
 });
 
+await check('unknown navigation is a real 404 with the error shell', async () => {
+  const response = await fetch(`${base}/this-route-does-not-exist`, {
+    headers: { Accept: 'text/html' },
+  });
+  assert(response.status === 404, `status ${response.status}`);
+  assert(response.headers.get('content-type')?.includes('text/html'), '404 is not HTML');
+  assert(response.headers.get('x-robots-tag') === 'noindex, nofollow', '404 indexing policy missing');
+  assert((await response.text()).includes('id="root"'), 'error shell missing');
+  return `status ${response.status}`;
+});
+
+await check('unsupported API methods declare Allow', async () => {
+  const response = await fetch(`${base}/api/health`, { method: 'POST' });
+  assert(response.status === 405, `status ${response.status}`);
+  assert(response.headers.get('allow') === 'GET', 'Allow header missing');
+  const data = await response.json();
+  assert(data.error === 'method_not_allowed', 'wrong method error');
+  return response.headers.get('allow');
+});
+
 await check('PWA manifest', async () => {
   const response = await fetch(`${base}/manifest.webmanifest`);
   assert(response.ok, `status ${response.status}`);

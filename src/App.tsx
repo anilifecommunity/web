@@ -7,6 +7,7 @@ import { useUrlRoute } from './hooks/useUrlRoute';
 import { useDiscordActivity } from './discord/useDiscordActivity';
 import { X } from 'lucide-react';
 import { markAboutNoticeSeen, shouldShowAboutNotice } from './utils/notice';
+import { ErrorExperience } from './components/ErrorExperience';
 
 const BrowseSearch = lazy(() => import('./components/BrowseSearch').then((module) => ({ default: module.BrowseSearch })));
 const ScheduleView = lazy(() => import('./components/ScheduleView').then((module) => ({ default: module.ScheduleView })));
@@ -168,18 +169,7 @@ const AppContent: React.FC = () => {
       </Suspense>
 
       {routeError && (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#12101e] p-6 text-center shadow-2xl">
-            <h2 className="text-lg font-bold text-white">Unable to open this page</h2>
-            <p className="mt-2 text-sm text-zinc-400">{routeError}</p>
-            <button
-              onClick={() => setRouteError(null)}
-              className="mt-5 rounded-full bg-[var(--anilife-accent)] px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-[var(--anilife-accent-hover)] cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <ErrorExperience error={routeError} onDismiss={() => setRouteError(null)} />
       )}
 
       {showAboutNotice && hasSelectedProfileSession && !showProfileModal && !showIntro && (

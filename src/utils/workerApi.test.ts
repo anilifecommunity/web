@@ -88,6 +88,29 @@ test('watch creation preserves the Worker reason for an expired browser verifica
   }
 });
 
+test('watch creation preserves the server retry window', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalLocal = globalThis.localStorage;
+  const originalSession = globalThis.sessionStorage;
+  Object.defineProperty(globalThis, 'localStorage', { value: memoryStorage(), configurable: true });
+  Object.defineProperty(globalThis, 'sessionStorage', { value: memoryStorage(), configurable: true });
+  globalThis.fetch = async () => new Response(JSON.stringify({ ok: false, error: 'rate_limited' }), {
+    status: 429,
+    headers: { 'Content-Type': 'application/json', 'Retry-After': '17' },
+  });
+
+  try {
+    await assert.rejects(
+      createWatchSession(154587, 1),
+      (error: unknown) => error instanceof WatchSessionError && error.retryAfterSec === 17,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    Object.defineProperty(globalThis, 'localStorage', { value: originalLocal, configurable: true });
+    Object.defineProperty(globalThis, 'sessionStorage', { value: originalSession, configurable: true });
+  }
+});
+
 test('resolver requests preserve the adult-content preference', async () => {
   const originalFetch = globalThis.fetch;
   const urls: string[] = [];

@@ -51,6 +51,7 @@ import {
 } from '../utils/anilistApi';
 import { isAnimeDubbed } from '../utils/mediaIndexApi';
 import { mediaIndexRelease, type MediaIndexDataState, type MediaIndexFailureCode } from '../utils/mediaIndexRelease';
+import type { AppErrorState } from '../utils/errorExperience';
 
 export interface VideoPlaybackTarget {
   anime: Anime;
@@ -89,8 +90,8 @@ interface AppContextType {
   setSelectedAnime: (anime: Anime | null) => void;
   activeVideo: VideoPlaybackTarget | null;
   setActiveVideo: (video: VideoPlaybackTarget | null) => void;
-  routeError: string | null;
-  setRouteError: (message: string | null) => void;
+  routeError: AppErrorState | null;
+  setRouteError: (error: AppErrorState | null) => void;
   continueWatching: ContinueWatchingEntry[];
   watchlist: WatchlistEntry[];
   settings: AppSettings;
@@ -160,7 +161,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeTab, setActiveTab] = useState<'home' | 'search' | 'schedule' | 'mylist' | 'downloads'>('home');
   const [selectedAnime, setSelectedAnime] = useState<Anime | null>(null);
   const [activeVideo, setActiveVideo] = useState<VideoPlaybackTarget | null>(null);
-  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeError, setRouteError] = useState<AppErrorState | null>(null);
   const selectAnimeRequestRef = useRef(0);
 
   
@@ -708,7 +709,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const hydrated = convertMediaIndexMediaToAnime(indexed.data);
       if (!isAnimeVisible(hydrated, settings.hideAdultContent)) {
         setSelectedAnime((current) => current?.id === anime.id ? null : current);
-        setRouteError('This title is hidden by your adult-content preference.');
+        setRouteError({ status: 403, code: 'adult_content_hidden' });
         return;
       }
       setSelectedAnime((current) => current?.id === anime.id ? hydrated : current);
@@ -725,21 +726,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const playAnimeEpisode = async (anime: Anime, episodeNum: number = 1, audioMode?: 'SUB' | 'DUB') => {
     if (!isAnimeVisible(anime, settings.hideAdultContent)) {
       setSelectedAnime(null);
-      setRouteError('This title is hidden by your adult-content preference.');
+      setRouteError({ status: 403, code: 'adult_content_hidden' });
       return;
     }
     rememberAnime(anime);
     if (!canWatchEpisode(anime, episodeNum)) {
-      setRouteError(
-        anime.nextEpisode?.number === episodeNum
+      const unreleased = anime.nextEpisode?.number === episodeNum;
+      setRouteError({
+        status: 409,
+        code: unreleased ? 'episode_unreleased' : 'episode_unavailable',
+        message: unreleased
           ? `Episode ${episodeNum} has not aired yet.`
-          : `Episode ${episodeNum} is not confirmed as available yet.`
-      );
+          : `Episode ${episodeNum} is not confirmed as available yet.`,
+      });
       return;
     }
     const aniListId = getAnimeAniListId(anime);
     if (!Number.isSafeInteger(aniListId)) {
-      setRouteError('This title cannot create a protected watch session because its AniList id is unavailable.');
+      setRouteError({
+        status: 422,
+        code: 'missing_anilist_id',
+        message: 'This title cannot create a protected watch session because its AniList id is unavailable.',
+      });
       return;
     }
     const preferredAudioMode = audioMode || settings.defaultAudioMode || 'SUB';
@@ -756,17 +764,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
       const code = error instanceof WatchSessionError ? error.code : 'unknown';
-      setRouteError(
-        code === 'episode_unavailable'
+      const status = error instanceof WatchSessionError && error.status > 0
+        ? error.status
+        : code === 'network' ? 504 : 500;
+      setRouteError({
+        status,
+        code,
+        message: code === 'episode_unavailable'
           ? `Episode ${episodeNum} is not confirmed as released yet.`
           : code === 'release_status_unavailable'
             ? `Anilife could not verify episode ${episodeNum}'s release status right now. Try again in a moment.`
-          : code === 'rate_limited'
-            ? 'Too many watch requests were made from this connection. Wait a minute, then try again.'
-            : code === 'network'
-              ? 'Anilife could not reach its playback service. Check your connection and try again.'
-              : 'Anilife could not start this episode right now. Try again in a moment.'
-      );
+            : code === 'rate_limited'
+              ? 'Too many watch requests were made from this connection.'
+              : code === 'network'
+                ? 'Anilife could not reach its playback service. Check your connection and try again.'
+                : 'Anilife could not start this episode right now. Try again in a moment.',
+        retryAfterSec: error instanceof WatchSessionError ? error.retryAfterSec : undefined,
+        onRetry: () => {
+          setRouteError(null);
+          void playAnimeEpisode(anime, episodeNum, audioMode);
+        },
+      });
       return;
     }
     const resolvedAudioMode = availableAudioMode(preferredAudioMode, hasVerifiedDub);

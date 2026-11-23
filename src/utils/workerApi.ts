@@ -26,7 +26,7 @@ export interface WatchSession {
 }
 
 export class WatchSessionError extends Error {
-  constructor(public status: number, public code: string) {
+  constructor(public status: number, public code: string, public retryAfterSec?: number) {
     super(code);
   }
 }
@@ -133,7 +133,7 @@ export async function createWatchSession(aniListId: number, episode: number): Pr
       return session;
     }
     if (validation.status === 401 || validation.status === 409 || validation.status === 429) {
-      throw new WatchSessionError(validation.status, validation.error ?? 'watch_session_unavailable');
+      throw new WatchSessionError(validation.status, validation.error ?? 'watch_session_unavailable', validation.retryAfterSec);
     }
     removeWatchSession(stored.reference);
   } else if (stored) {
@@ -146,9 +146,14 @@ export async function createWatchSession(aniListId: number, episode: number): Pr
       headers: { 'Content-Type': 'application/json', ...gateHeaders() },
       body: JSON.stringify({ aniListId, episode }),
     });
-    const data = (await response.json()) as Partial<WatchSession> & { ok?: boolean; error?: string };
+    const data = (await response.json()) as Partial<WatchSession> & { ok?: boolean; error?: string; retryAfterSec?: number };
     if (!response.ok || data.ok !== true) {
-      throw new WatchSessionError(response.status, data.error ?? `http_${response.status}`);
+      const retryHeader = response.headers.get('Retry-After');
+      const headerRetry = retryHeader === null ? undefined : Number(retryHeader);
+      const retryAfterSec = Number.isFinite(data.retryAfterSec)
+        ? data.retryAfterSec
+        : Number.isFinite(headerRetry) ? headerRetry : undefined;
+      throw new WatchSessionError(response.status, data.error ?? `http_${response.status}`, retryAfterSec);
     }
     const session = data as WatchSession;
     if (!parseWatchSession(JSON.stringify(session))) throw new WatchSessionError(502, 'invalid_watch_session');
@@ -166,6 +171,7 @@ export async function validateWatchSession(session: WatchSession): Promise<{
   error?: string;
   aniListId?: number;
   episode?: number;
+  retryAfterSec?: number;
 }> {
   try {
     const response = await fetch('/api/watch/session/validate', {
@@ -173,8 +179,17 @@ export async function validateWatchSession(session: WatchSession): Promise<{
       headers: { 'Content-Type': 'application/json', ...gateHeaders() },
       body: JSON.stringify(session),
     });
-    const data = (await response.json()) as { ok?: boolean; error?: string; aniListId?: number; episode?: number };
-    return { ...data, ok: response.ok && data.ok === true, status: response.status };
+    const data = (await response.json()) as { ok?: boolean; error?: string; aniListId?: number; episode?: number; retryAfterSec?: number };
+    const retryHeader = response.headers.get('Retry-After');
+    const headerRetry = retryHeader === null ? undefined : Number(retryHeader);
+    return {
+      ...data,
+      ok: response.ok && data.ok === true,
+      status: response.status,
+      retryAfterSec: Number.isFinite(data.retryAfterSec)
+        ? data.retryAfterSec
+        : Number.isFinite(headerRetry) ? headerRetry : undefined,
+    };
   } catch {
     return { ok: false, status: 0, error: 'network' };
   }

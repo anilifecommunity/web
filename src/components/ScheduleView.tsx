@@ -111,6 +111,31 @@ export const ScheduleView: React.FC = () => {
     return () => { isMounted = false; };
   }, [selectedDayIdx]);
 
+  const openAnime = async (id: number) => {
+    setRouteError(null);
+    const found = liveCatalog.find((anime) => anime.id === String(id));
+    if (found) {
+      setSelectedAnime(found);
+      return;
+    }
+    const media = await fetchAniListMediaById(id).catch(() => null);
+    if (media) {
+      setSelectedAnime(convertAniListToAnime(media));
+      return;
+    }
+    const indexed = await mediaIndexRelease.media(id).catch(() => null);
+    if (indexed) {
+      setSelectedAnime(convertMediaIndexMediaToAnime(indexed.data));
+      return;
+    }
+    setRouteError({
+      status: 503,
+      code: 'anilist_unavailable',
+      message: 'This title could not be loaded from live or verified metadata. Try again in a moment.',
+      onRetry: () => void openAnime(id),
+    });
+  };
+
   return (
     <div className="space-y-6 pb-20 animate-fadeIn">
       {}
@@ -193,20 +218,7 @@ export const ScheduleView: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     aria-label={`Open ${animeTitle}`}
-                    onClick={async () => {
-                      const found = liveCatalog.find(a => a.id === String(item.media.id));
-                      if (found) {
-                        setSelectedAnime(found);
-                      } else {
-                        const media = await fetchAniListMediaById(item.media.id).catch(() => null);
-                        if (media) setSelectedAnime(convertAniListToAnime(media));
-                        else {
-                          const indexed = await mediaIndexRelease.media(item.media.id).catch(() => null);
-                          if (indexed) setSelectedAnime(convertMediaIndexMediaToAnime(indexed.data));
-                          else setRouteError('This title could not be loaded from live or verified metadata. Try again in a moment.');
-                        }
-                      }
-                    }}
+                    onClick={() => void openAnime(item.media.id)}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();

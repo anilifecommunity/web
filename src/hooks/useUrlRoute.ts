@@ -66,7 +66,11 @@ export function useUrlRoute(): void {
         } else if (route.kind === 'watch') {
           const session = loadWatchSession(route.reference, route.episode);
           if (!session || session.tag !== route.tag) {
-            app.setRouteError('This protected watch link is unavailable in this browser session. Open the anime page to start a new session.');
+            app.setRouteError({
+              status: 410,
+              code: 'watch_session_expired',
+              message: 'This protected watch link is unavailable in this browser session. Open the anime page to start a new session.',
+            });
             return;
           }
           const validation = await validateWatchSession(session);
@@ -74,17 +78,23 @@ export function useUrlRoute(): void {
             if (validation.status === 403 || validation.status === 410) removeWatchSession(route.reference);
             const recoveryAnime = await loadAnime(String(session.aniListId));
             if (recoveryAnime) app.setSelectedAnime(recoveryAnime);
-            app.setRouteError(
-              validation.status === 410
-                ? 'Your watch link has expired. Close this message and start the episode again from the anime page.'
-                : 'This protected watch link is invalid for the current browser session.'
-            );
+            app.setRouteError({
+              status: validation.status === 410 ? 410 : validation.status || 403,
+              code: validation.status === 410 ? 'watch_session_expired' : 'watch_session_invalid',
+              message: validation.status === 410
+                ? 'Start the episode again from the anime page.'
+                : 'This protected watch link is invalid for the current browser session.',
+              dismissLabel: recoveryAnime ? 'Open anime page' : undefined,
+            });
             return;
           }
           const anime = await loadAnime(String(validation.aniListId));
           if (cancelled) return;
           if (!anime || !isAnimeVisible(anime, app.settings.hideAdultContent)) {
-            app.setRouteError('This title is unavailable or hidden by your content preference.');
+            app.setRouteError({
+              status: anime ? 403 : 404,
+              code: anime ? 'adult_content_hidden' : 'anime_not_found',
+            });
             return;
           }
           app.rememberAnime(anime);
@@ -105,17 +115,17 @@ export function useUrlRoute(): void {
           const anime = await loadAnime(route.id);
           if (cancelled) return;
           if (!anime) {
-            app.setRouteError(
-              'That title could not be found. Check the link or search for the anime again.'
-            );
+            app.setRouteError({
+              status: 404,
+              code: 'anime_not_found',
+              message: 'Check the link or search for the anime again.',
+            });
             app.setActiveTab('home');
-            window.history.replaceState(null, '', withActivity('/'));
             return;
           }
           if (!isAnimeVisible(anime, app.settings.hideAdultContent)) {
-            app.setRouteError('This title is hidden by your adult-content preference.');
+            app.setRouteError({ status: 403, code: 'adult_content_hidden' });
             app.setActiveTab('home');
-            window.history.replaceState(null, '', withActivity('/'));
             return;
           }
           app.rememberAnime(anime);
@@ -123,6 +133,9 @@ export function useUrlRoute(): void {
           if (route.kind === 'legacyWatch') {
             window.history.replaceState(null, '', withActivity(`/anime/${anime.id}`));
           }
+        } else if (route.kind === 'notFound') {
+          app.setActiveTab('home');
+          app.setRouteError({ status: 404, code: 'not_found' });
         } else {
           app.setActiveTab('home');
         }
@@ -151,7 +164,10 @@ export function useUrlRoute(): void {
 
     let path: string;
     let title = 'Anilife';
-    if (app.activeVideo) {
+    if (app.routeError) {
+      path = window.location.pathname;
+      title = `${app.routeError.status} Error`;
+    } else if (app.activeVideo) {
       path = watchSessionPath(app.activeVideo.watchSession);
       title = `${displayAnimeTitle(app.activeVideo.anime, app.settings.titleLanguage)} · Episode ${app.activeVideo.episodeNumber}`;
     } else if (app.selectedAnime) {
@@ -188,6 +204,7 @@ export function useUrlRoute(): void {
     else window.history.replaceState(null, '', path);
   }, [
     app.activeTab,
+    app.routeError,
     app.selectedAnime,
     app.activeVideo,
     app.showSettingsModal,

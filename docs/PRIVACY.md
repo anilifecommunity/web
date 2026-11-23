@@ -22,8 +22,8 @@ from Settings > Data if the data matters to you.
   backdrop and skip metadata.
 - **AniSkip** (`api.aniskip.com`): public skip times.
 - **Cloudflare Turnstile** (`challenges.cloudflare.com`): the first-visit bot check.
-- **Reanime / Flixcloud** when you choose that source: the episode page and its player run in a
-  cross-origin iframe under their own privacy terms.
+- **Independent playback providers** when an episode is opened: the selected Zoko, Reanime/
+  Flixcloud, AnimeEmbed or VidLink player runs cross-origin under its own privacy terms.
 - **Discord** only when you open Anilife as a Discord Activity: the Activity authorization code is
   exchanged by the Anilife Worker, which returns a short-lived access token. The token stays in
   memory, is used to verify your Discord account and set Rich Presence, and is never stored or

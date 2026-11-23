@@ -3,15 +3,12 @@
 ## Hosts
 
 - Production: `https://anilife.cc` and `https://www.anilife.cc` (www redirects to the apex)
-- Preview: `https://anilife-web.adfreegames.workers.dev` (Worker `anilife-web`)
+- Public `workers.dev` and Wrangler preview URLs are disabled in `wrangler.jsonc`.
 - Never use a `beta.anilife.cc` hostname.
 
 `wrangler.jsonc` declares both production hosts as custom domains, so `npm run deploy:worker`
-deploys production. For an isolated preview, upload a version without promoting it:
-
-```bash
-npx wrangler versions upload
-```
+deploys production. An isolated public staging environment requires a separately named Worker,
+routes and secrets; do not treat a production version upload as a public preview.
 
 ## Secrets
 
@@ -35,8 +32,7 @@ Local development reads the same names from gitignored `.dev.vars`.
 
 ## Cloudflare Turnstile
 
-- Widget `Anilife Web`, managed mode, domains `anilife.cc`, `www.anilife.cc` and the workers.dev
-  preview host.
+- Widget `Anilife Web`, managed mode, domains `anilife.cc` and `www.anilife.cc`.
 - The public site key is a build value: `VITE_TURNSTILE_SITE_KEY`.
 - The secret is a Worker secret: `TURNSTILE_SECRET`.
 - With no secrets configured the gate steps aside only when `APP_ENV` is not `production`.
@@ -63,8 +59,9 @@ export CLOUDFLARE_ACCOUNT_ID=...
 npm run deploy:worker
 ```
 
-The build is served through Workers Static Assets with `run_worker_first: true`, so CSP and the
-security headers apply to HTML and assets as well as the API.
+The build is served through Workers Static Assets. The Worker runs first for HTML, APIs, protected
+routes and errors. Immutable `/assets/*` files and a small allowlist of public static files bypass
+Worker execution and receive their static security/cache headers from `public/_headers`.
 
 ## Rollback
 
@@ -82,9 +79,9 @@ deletes legacy keys.
 ## Rate limits
 
 The Worker applies per-isolate limits: 30 resolver calls per minute, 20 watch-session creations per
-minute, 10 gate verifications per minute and 60 AniList requests per minute per client IP. The
-Cloudflare Free plan has one edge rate-limiting rule; production edge configuration is documented
-separately from these fail-closed application checks.
+minute, 10 gate verifications per minute and 60 AniList requests per minute per client IP. Zone-level
+rate-limiting is configured separately from these fail-closed application checks and must be
+verified against the account's current plan before changing it.
 
 ## Monitoring
 

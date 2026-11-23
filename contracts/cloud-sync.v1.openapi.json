@@ -46,6 +46,7 @@
             "content": { "application/json": { "schema": { "$ref": "./cloud-sync.v1.schema.json#/$defs/SyncResponse" } } }
           },
           "400": { "$ref": "#/components/responses/Invalid" },
+          "422": { "$ref": "#/components/responses/Invalid" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
           "409": { "$ref": "#/components/responses/Conflict" },
@@ -53,6 +54,8 @@
           "413": { "$ref": "#/components/responses/TooLarge" },
           "426": { "$ref": "#/components/responses/ProtocolUnsupported" },
           "429": { "$ref": "#/components/responses/RateLimited" },
+          "500": { "$ref": "#/components/responses/Unavailable" },
+          "502": { "$ref": "#/components/responses/Unavailable" },
           "503": { "$ref": "#/components/responses/Unavailable" }
         }
       }

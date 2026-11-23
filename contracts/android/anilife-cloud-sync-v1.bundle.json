@@ -4,7 +4,7 @@
   "files": [
     {
       "path": "contracts/cloud-sync.v1.openapi.json",
-      "sha256": "1fe3939a6f1ad04cd8c6a8c742296ad7fe2f3b5e9b67c574ad27a0608d25e4f6",
+      "sha256": "e9109818e8a4ff700884d51f962f16516b7ad29ff497d22b9152dec9ecb70aec",
       "content": {
         "openapi": "3.1.0",
         "info": {
@@ -110,11 +110,20 @@
                 "413": {
                   "$ref": "#/components/responses/TooLarge"
                 },
+                "422": {
+                  "$ref": "#/components/responses/Invalid"
+                },
                 "426": {
                   "$ref": "#/components/responses/ProtocolUnsupported"
                 },
                 "429": {
                   "$ref": "#/components/responses/RateLimited"
+                },
+                "500": {
+                  "$ref": "#/components/responses/Unavailable"
+                },
+                "502": {
+                  "$ref": "#/components/responses/Unavailable"
                 },
                 "503": {
                   "$ref": "#/components/responses/Unavailable"
@@ -417,7 +426,7 @@
     },
     {
       "path": "contracts/cloud-sync.v1.schema.json",
-      "sha256": "e02f762820521902c2182bc5a87529348363ed06dd62c061fcab65a6255b8d0b",
+      "sha256": "33b3b44d247346525daefe34c18acaa8219d9381a0e3f98d61f9c06fa450d99e",
       "content": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://anilife.cc/contracts/cloud-sync.v1.schema.json",
@@ -472,6 +481,20 @@
                 }
               }
             }
+          },
+          "AnimeReference": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/MediaReference"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "ANIME"
+                  }
+                }
+              }
+            ]
           },
           "ProfileValue": {
             "type": "object",
@@ -743,7 +766,7 @@
             ],
             "properties": {
               "media": {
-                "$ref": "#/$defs/MediaReference"
+                "$ref": "#/$defs/AnimeReference"
               },
               "episode": {
                 "type": "string",
@@ -766,7 +789,7 @@
             ],
             "properties": {
               "media": {
-                "$ref": "#/$defs/MediaReference"
+                "$ref": "#/$defs/AnimeReference"
               },
               "episode": {
                 "type": "string",

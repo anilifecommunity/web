@@ -1,10 +1,10 @@
 /**
  * Release smoke test. No dependencies; run against a deployed preview or local Worker.
  *
- *   node scripts/smoke.mjs https://anilife-web.adfreegames.workers.dev
+ *   node scripts/smoke.mjs https://anilife.cc
  */
 
-const base = (process.argv[2] || 'https://anilife-web.adfreegames.workers.dev').replace(/\/$/, '');
+const base = (process.argv[2] || 'https://anilife.cc').replace(/\/$/, '');
 let failures = 0;
 
 async function check(name, fn) {

@@ -127,11 +127,24 @@ class FakeUsageDatabase implements ReleaseIndexUsageDatabase {
 
 class FakeCache {
   deletes: string[] = [];
+  responses = new Map<string, Response>();
   fail = false;
+
+  async match(request: RequestInfo): Promise<Response | undefined> {
+    if (this.fail) throw new Error('cache failed');
+    return this.responses.get(String(request instanceof Request ? request.url : request))?.clone();
+  }
+
+  async put(request: RequestInfo, response: Response): Promise<void> {
+    if (this.fail) throw new Error('cache failed');
+    this.responses.set(String(request instanceof Request ? request.url : request), response.clone());
+  }
 
   async delete(request: RequestInfo): Promise<boolean> {
     if (this.fail) throw new Error('cache failed');
-    this.deletes.push(String(request instanceof Request ? request.url : request));
+    const key = String(request instanceof Request ? request.url : request);
+    this.deletes.push(key);
+    this.responses.delete(key);
     return true;
   }
 }
@@ -198,12 +211,14 @@ test('accepts an exact replay idempotently', async () => {
 
 test('hard-stops before R2 when the usage cap is reached or accounting is unavailable', async () => {
   const bucket = new FakeBucket();
+  const cache = new FakeCache();
   const usage = new FakeUsageDatabase();
   usage.limited = 'class_b';
   const readResponse = await getStableReleaseIndex(
     new Request('https://anilife.cc/downloads/index.json'),
     { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
-    NOW
+    NOW,
+    cache
   );
   assert.equal(readResponse.status, 503);
   assert.equal(bucket.reads, 0);
@@ -218,7 +233,8 @@ test('hard-stops before R2 when the usage cap is reached or accounting is unavai
   const unavailable = await getStableReleaseIndex(
     new Request('https://anilife.cc/downloads/index.json'),
     { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
-    NOW
+    NOW,
+    cache
   );
   assert.equal(unavailable.status, 503);
   assert.equal(bucket.reads, 1);
@@ -269,8 +285,28 @@ test('reports R2 write and cache invalidation failures without echoing the paylo
   assert.equal(cacheResponse.status, 503);
 });
 
+test('serves the published index when the local read cache is unavailable', async () => {
+  const bucket = new FakeBucket();
+  const usage = new FakeUsageDatabase();
+  assert.equal((await publish(bucket, new FakeCache(), body(), NOW, undefined, usage)).status, 200);
+  const cache = new FakeCache();
+  cache.fail = true;
+
+  const response = await getStableReleaseIndex(
+    new Request('https://anilife.cc/downloads/index.json'),
+    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
+    NOW,
+    cache
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(usage.classB, 2);
+  assert.equal(bucket.reads, 2);
+});
+
 test('serves byte-identical JSON with the body SHA-256 ETag and ignores query parameters', async () => {
   const bucket = new FakeBucket();
+  const cache = new FakeCache();
   const usage = new FakeUsageDatabase();
   const expected = body();
   assert.equal((await publish(bucket, new FakeCache(), expected, NOW, undefined, usage)).status, 200);
@@ -282,11 +318,36 @@ test('serves byte-identical JSON with the body SHA-256 ETag and ignores query pa
       RELEASE_INDEX_USAGE: usage,
       WEB_RELEASE_INDEX_HMAC_KEY: SECRET,
     },
-    NOW
+    NOW,
+    cache
   );
   assert.equal(response.status, 200);
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), expected);
   assert.match(response.headers.get('etag') ?? '', /^"[0-9a-f]{64}"$/);
   assert.equal(response.headers.get('content-type'), 'application/json; charset=utf-8');
-  assert.equal(response.headers.get('cache-control'), 'public, max-age=30, s-maxage=86400');
+  assert.equal(response.headers.get('cache-control'), 'public, max-age=30, s-maxage=300');
+
+  const reads = bucket.reads;
+  const classB = usage.classB;
+  const cached = await getStableReleaseIndex(
+    new Request('https://anilife.cc/downloads/index.json?second=1'),
+    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
+    NOW,
+    cache
+  );
+  assert.deepEqual(new Uint8Array(await cached.arrayBuffer()), expected);
+  assert.equal(bucket.reads, reads);
+  assert.equal(usage.classB, classB);
+
+  const notModified = await getStableReleaseIndex(
+    new Request('https://anilife.cc/downloads/index.json', {
+      headers: { 'If-None-Match': response.headers.get('etag') ?? '' },
+    }),
+    { RELEASE_INDEX_BUCKET: bucket as ReleaseIndexBucket, RELEASE_INDEX_USAGE: usage },
+    NOW,
+    cache
+  );
+  assert.equal(notModified.status, 304);
+  assert.equal(bucket.reads, reads);
+  assert.equal(usage.classB, classB);
 });

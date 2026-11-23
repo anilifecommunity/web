@@ -8,7 +8,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 ### Added
 
 - Published the machine-readable Anilife Cloud Sync v1 OpenAPI, strict JSON Schema, fixtures and
-  deterministic Android handoff bundle. No account or sync endpoint is live yet.
+  deterministic Android handoff bundle.
+- Added the fail-closed Cloud Sync account foundation with pinned Better Auth, Discord OAuth,
+  isolated D1 migrations and non-persistent provider tokens. Sync data routes and the client opt-in
+  remain disabled until their reviewed rollout slices are complete.
 
 ### Changed
 

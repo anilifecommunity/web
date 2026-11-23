@@ -31,7 +31,8 @@ player: native HLS/MP4, or a provider-owned cross-origin player
 - **Episode downloads are intentionally disabled.** The first-class `/downloads` route distributes
   the six signed Android/TV APKs; it never exposes or downloads episode media.
 - Local data (profiles, settings, history, library) lives in `localStorage` with an IndexedDB
-  mirror and a versioned migration. No Anilife account or central user database exists.
+  mirror and a versioned migration. Cloud Sync remains opt-in and disabled while its isolated
+  account/D1 foundation and local-first reconciliation client pass staged release gates.
 
 ## Quick start
 
@@ -89,6 +90,7 @@ rollback and the Turnstile/AniList setup.
 - `docs/PROVIDER_MATRIX.md` - dated provider evidence
 - `docs/SOURCES.md` - source and downstream host research
 - `docs/DISCORD.md` - Discord Activity and Rich Presence setup
+- `docs/CLOUD_SYNC.md` - the isolated account/sync boundary and rollout state
 - `CHANGELOG.md` - release history
 
 ## Licence

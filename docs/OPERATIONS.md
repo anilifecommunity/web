@@ -18,6 +18,8 @@ Set once per Worker:
 npx wrangler secret put TURNSTILE_SECRET
 npx wrangler secret put GATE_SIGNING_KEY
 npx wrangler secret put WATCH_TOKEN_KEY
+npx wrangler secret put BETTER_AUTH_SECRET
+npx wrangler secret put DISCORD_CLIENT_SECRET
 ```
 
 `GATE_SIGNING_KEY` should be at least 32 random bytes, base64url encoded. Rotating it invalidates
@@ -29,6 +31,29 @@ zero-downtime rotation, first set the old value as `WATCH_TOKEN_PREVIOUS_KEY`, r
 previous secret. Never put either value in a `VITE_*` variable, URL, log or browser store.
 
 Local development reads the same names from gitignored `.dev.vars`.
+
+`BETTER_AUTH_SECRET` is an independently generated value of at least 32 random bytes. It must not
+reuse a gate, watch or release-publisher key. `DISCORD_CLIENT_SECRET` is issued by Discord and
+cannot be replaced with a locally generated value. Cloud account sessions fail closed unless both
+secrets and the dedicated `ANILIFE_CLOUD_DB` binding exist.
+
+## Cloud Sync D1
+
+Cloud account data uses the dedicated `ANILIFE_CLOUD_DB` binding and
+`migrations/cloud-sync/`. It must never point at `RELEASE_INDEX_USAGE`.
+
+Before a remote migration, record a Time Travel bookmark, apply to the isolated staging database,
+run `PRAGMA foreign_key_check`, and only then repeat for production:
+
+```bash
+npx wrangler d1 time-travel info ANILIFE_CLOUD_DB --json
+npx wrangler d1 migrations apply ANILIFE_CLOUD_DB --remote
+npx wrangler d1 execute ANILIFE_CLOUD_DB --remote --command "PRAGMA foreign_key_check;"
+```
+
+Migration files are immutable after either environment records them. Corrections are new numbered
+migrations. A Worker rollback does not roll back D1; use the recorded bookmark only after reviewing
+the database-wide consequence.
 
 ## Cloudflare Turnstile
 

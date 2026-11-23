@@ -57,13 +57,19 @@ open-source project; there is no bug bounty.
   authorization code is exchanged by the Worker with a Wrangler secret when configured, or with a
   PKCE verifier for a Public Client; the client never receives a secret. `frame-ancestors` allows
   only Anilife, `discord.com` and `*.discordsays.com`. See [DISCORD.md](DISCORD.md).
+- Opt-in Anilife accounts use a separate Better Auth Discord OAuth flow under `/api/auth/*` and an
+  isolated D1 binding. The Worker requires the exact configured origin, secure HttpOnly host-only
+  cookies and all auth/database/provider secrets before enabling the route. Database hooks remove
+  provider access, refresh and ID tokens before persistence. Discord Activity authorization never
+  becomes an Anilife account session.
 
 ## Secrets
 
 - No secret belongs in source, the bundle, `VITE_*`, Git history, an issue or a log.
 - AniList uses the public implicit flow; there is no client secret.
-- Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET`, `GATE_SIGNING_KEY` and
-  `WATCH_TOKEN_KEY`. `WATCH_TOKEN_PREVIOUS_KEY` is used only during an intentional key rotation.
+- Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET`, `GATE_SIGNING_KEY`,
+  `WATCH_TOKEN_KEY`, `BETTER_AUTH_SECRET` and `DISCORD_CLIENT_SECRET`.
+  `WATCH_TOKEN_PREVIOUS_KEY` is used only during an intentional key rotation.
 - The historical AniList client secret that shipped in the old web source was revoked by the
   application owner on 2026-11-08. Removing a secret from HEAD is not a rotation; revoke it at the
   provider first, then remove it from history if appropriate.

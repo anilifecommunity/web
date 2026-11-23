@@ -25,6 +25,8 @@ import {
   publishStableReleaseIndex,
   type ReleaseIndexEnv,
 } from './releaseIndex';
+import { handleAuth } from './auth';
+import type { D1Database } from '@cloudflare/workers-types';
 
 export interface Env extends ReleaseIndexEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -39,6 +41,12 @@ export interface Env extends ReleaseIndexEnv {
   APP_ENV?: string;
   DISCORD_CLIENT_ID?: string;
   DISCORD_CLIENT_SECRET?: string;
+  /** Dedicated account/sync database. Never shares release-index state. */
+  ANILIFE_CLOUD_DB?: D1Database;
+  /** Better Auth signing/encryption secret. */
+  BETTER_AUTH_SECRET?: string;
+  /** Exact public origin used for OAuth redirects and trusted-origin checks. */
+  AUTH_BASE_URL?: string;
 }
 
 const DISCORD_CLIENT_ID = '1567279187893551185';
@@ -623,6 +631,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return navigationNotFound(request, env);
   }
 
+  if (path === '/api/auth' || path.startsWith('/api/auth/')) {
+    return handleAuth(request, env);
+  }
+
   const allowedMethod = API_METHODS.get(path);
   if (allowedMethod && request.method !== allowedMethod) return methodNotAllowed(allowedMethod);
 
@@ -697,6 +709,9 @@ function withSecurityHeaders(response: Response, request: Request, requestId: st
     headers.set('Cache-Control', 'no-store');
   }
   const path = new URL(request.url).pathname;
+  if (path === '/api/auth' || path.startsWith('/api/auth/') || path.startsWith('/api/v1/')) {
+    headers.set('Cache-Control', 'private, no-store');
+  }
   if (path.startsWith('/watch/') || path.startsWith('/activity/watch/')) {
     headers.set('Cache-Control', 'no-store');
   }
@@ -720,6 +735,8 @@ function routeClass(request: Request): string {
   if (path === '/api/resolve') return 'resolver';
   if (path.startsWith('/api/gate/')) return 'gate';
   if (path.startsWith('/api/discord/')) return 'discord';
+  if (path === '/api/auth' || path.startsWith('/api/auth/')) return 'cloud_auth';
+  if (path.startsWith('/api/v1/')) return 'cloud_sync';
   if (path.startsWith('/internal/releases/')) return 'release_publisher';
   if (path === '/downloads/index.json') return 'release_index';
   if (path.startsWith('/api/')) return 'api';

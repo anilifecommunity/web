@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anilife.cc/contracts/cloud-sync.v1.schema.json",
+  "title": "Anilife Cloud Sync v1",
+  "$defs": {
+    "Uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "Cursor": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "MediaReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "mediaKey", "aliases"],
+      "properties": {
+        "kind": { "enum": ["ANIME", "MANGA"] },
+        "mediaKey": { "type": "string", "pattern": "^al-[1-9][0-9]{0,9}$" },
+        "aliases": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["anilist"],
+          "properties": {
+            "anilist": { "type": "integer", "minimum": 1, "maximum": 9999999999 },
+            "mal": { "type": "integer", "minimum": 1, "maximum": 9999999999 }
+          }
+        }
+      }
+    },
+    "ProfileValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "avatarRef": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "accentColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "kidsMode": { "type": "boolean" }
+      }
+    },
+    "PortableSettingValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": {
+              "enum": [
+                "autoPlayNext", "autoSkipIntro", "skipFiller", "showSkipButton",
+                "subtitlesOnDub", "showSubtitlesByDefault", "hideAdultContent",
+                "displayRelatedManga", "blurSpoilers"
+              ]
+            },
+            "value": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "titleLanguage" },
+            "value": { "enum": ["english", "romaji", "native"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "defaultAudioMode" },
+            "value": { "enum": ["SUB", "DUB"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "enum": ["preferredSubLanguage", "secondChoiceSubtitles"] },
+            "value": { "type": "string", "minLength": 2, "maxLength": 32 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "defaultQuality" },
+            "value": { "enum": ["auto", "360p", "480p", "720p", "1080p"] }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "themePreset" },
+            "value": { "type": "string", "minLength": 1, "maxLength": 32 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "accentColor" },
+            "value": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "watchedThreshold" },
+            "value": { "type": "number", "minimum": 50, "maximum": 100 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "skipButtonLength" },
+            "value": { "type": "number", "minimum": 1, "maximum": 60 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "value"],
+          "properties": {
+            "key": { "const": "playbackSpeed" },
+            "value": { "type": "number", "minimum": 0.25, "maximum": 4 }
+          }
+        }
+      ]
+    },
+    "WatchlistValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["media", "status"],
+      "properties": {
+        "media": { "$ref": "#/$defs/MediaReference" },
+        "status": { "enum": ["Planning", "Watching", "Rewatching", "Paused", "Completed", "Dropped"] },
+        "progress": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "WatchedEpisodeValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["media", "episode", "watched"],
+      "properties": {
+        "media": { "$ref": "#/$defs/MediaReference" },
+        "episode": { "type": "string", "pattern": "^[1-9][0-9]{0,5}(?:\\.[0-9]{1,3})?$" },
+        "watched": { "type": "boolean" }
+      }
+    },
+    "ContinueProgressValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["media", "episode", "positionSeconds", "durationSeconds", "audioMode"],
+      "properties": {
+        "media": { "$ref": "#/$defs/MediaReference" },
+        "episode": { "type": "string", "pattern": "^[1-9][0-9]{0,5}(?:\\.[0-9]{1,3})?$" },
+        "positionSeconds": { "type": "number", "minimum": 0, "maximum": 86400 },
+        "durationSeconds": { "type": "number", "exclusiveMinimum": 0, "maximum": 86400 },
+        "audioMode": { "enum": ["SUB", "DUB"] }
+      }
+    },
+    "LinkedIdentityValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "externalSubject"],
+      "properties": {
+        "provider": { "enum": ["anilist", "mal"] },
+        "externalSubject": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 }
+      }
+    },
+    "EntityType": {
+      "enum": ["profile", "portable_setting", "watchlist", "watched_episode", "continue_progress", "linked_identity_metadata"]
+    },
+    "EntityValue": {
+      "oneOf": [
+        { "$ref": "#/$defs/ProfileValue" },
+        { "$ref": "#/$defs/PortableSettingValue" },
+        { "$ref": "#/$defs/WatchlistValue" },
+        { "$ref": "#/$defs/WatchedEpisodeValue" },
+        { "$ref": "#/$defs/ContinueProgressValue" },
+        { "$ref": "#/$defs/LinkedIdentityValue" }
+      ]
+    },
+    "Operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opId", "profileId", "entityType", "entityKey", "action", "baseRevision"],
+      "properties": {
+        "opId": { "$ref": "#/$defs/Uuid" },
+        "profileId": { "$ref": "#/$defs/Uuid" },
+        "entityType": { "$ref": "#/$defs/EntityType" },
+        "entityKey": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "action": { "enum": ["upsert", "delete"] },
+        "baseRevision": { "type": "integer", "minimum": 0 },
+        "value": { "$ref": "#/$defs/EntityValue" }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": { "action": { "const": "delete" } },
+              "not": { "required": ["value"] }
+            },
+            {
+              "required": ["value"],
+              "properties": { "action": { "const": "upsert" } }
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            { "properties": { "entityType": { "const": "profile" }, "entityKey": { "const": "profile" }, "value": { "$ref": "#/$defs/ProfileValue" } } },
+            { "properties": { "entityType": { "const": "portable_setting" }, "entityKey": { "pattern": "^setting:[A-Za-z][A-Za-z0-9]{1,63}$" }, "value": { "$ref": "#/$defs/PortableSettingValue" } } },
+            { "properties": { "entityType": { "const": "watchlist" }, "entityKey": { "pattern": "^(ANIME|MANGA):al-[1-9][0-9]{0,9}$" }, "value": { "$ref": "#/$defs/WatchlistValue" } } },
+            { "properties": { "entityType": { "const": "watched_episode" }, "entityKey": { "pattern": "^ANIME:al-[1-9][0-9]{0,9}:episode:[1-9][0-9]{0,5}(?:\\.[0-9]{1,3})?$" }, "value": { "$ref": "#/$defs/WatchedEpisodeValue" } } },
+            { "properties": { "entityType": { "const": "continue_progress" }, "entityKey": { "pattern": "^ANIME:al-[1-9][0-9]{0,9}$" }, "value": { "$ref": "#/$defs/ContinueProgressValue" } } },
+            { "properties": { "entityType": { "const": "linked_identity_metadata" }, "entityKey": { "pattern": "^identity:(anilist|mal)$" }, "value": { "$ref": "#/$defs/LinkedIdentityValue" } } }
+          ]
+        }
+      ]
+    },
+    "Change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profileId", "entityType", "entityKey", "action", "revision"],
+      "properties": {
+        "profileId": { "$ref": "#/$defs/Uuid" },
+        "entityType": { "$ref": "#/$defs/EntityType" },
+        "entityKey": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "action": { "enum": ["upsert", "delete"] },
+        "revision": { "type": "integer", "minimum": 1 },
+        "value": { "$ref": "#/$defs/EntityValue" }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": { "action": { "const": "delete" } },
+              "not": { "required": ["value"] }
+            },
+            {
+              "required": ["value"],
+              "properties": { "action": { "const": "upsert" } }
+            }
+          ]
+        },
+        {
+          "oneOf": [
+            { "properties": { "entityType": { "const": "profile" }, "entityKey": { "const": "profile" }, "value": { "$ref": "#/$defs/ProfileValue" } } },
+            { "properties": { "entityType": { "const": "portable_setting" }, "entityKey": { "pattern": "^setting:[A-Za-z][A-Za-z0-9]{1,63}$" }, "value": { "$ref": "#/$defs/PortableSettingValue" } } },
+            { "properties": { "entityType": { "const": "watchlist" }, "entityKey": { "pattern": "^(ANIME|MANGA):al-[1-9][0-9]{0,9}$" }, "value": { "$ref": "#/$defs/WatchlistValue" } } },
+            { "properties": { "entityType": { "const": "watched_episode" }, "entityKey": { "pattern": "^ANIME:al-[1-9][0-9]{0,9}:episode:[1-9][0-9]{0,5}(?:\\.[0-9]{1,3})?$" }, "value": { "$ref": "#/$defs/WatchedEpisodeValue" } } },
+            { "properties": { "entityType": { "const": "continue_progress" }, "entityKey": { "pattern": "^ANIME:al-[1-9][0-9]{0,9}$" }, "value": { "$ref": "#/$defs/ContinueProgressValue" } } },
+            { "properties": { "entityType": { "const": "linked_identity_metadata" }, "entityKey": { "pattern": "^identity:(anilist|mal)$" }, "value": { "$ref": "#/$defs/LinkedIdentityValue" } } }
+          ]
+        }
+      ]
+    },
+    "Capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxRequestBytes", "maxOps", "maxChanges", "maxResponseBytes"],
+      "properties": {
+        "maxRequestBytes": { "const": 131072 },
+        "maxOps": { "const": 50 },
+        "maxChanges": { "const": 250 },
+        "maxResponseBytes": { "const": 262144 }
+      }
+    },
+    "BootstrapResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "deviceId", "cursor", "changes", "hasMore", "serverTime", "capabilities"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "deviceId": { "$ref": "#/$defs/Uuid" },
+        "cursor": { "$ref": "#/$defs/Cursor" },
+        "changes": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/Change" } },
+        "hasMore": { "type": "boolean" },
+        "serverTime": { "type": "string", "format": "date-time" },
+        "capabilities": { "$ref": "#/$defs/Capabilities" }
+      }
+    },
+    "SyncRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "deviceId", "cursor", "ops"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "deviceId": { "$ref": "#/$defs/Uuid" },
+        "cursor": { "oneOf": [{ "$ref": "#/$defs/Cursor" }, { "type": "null" }] },
+        "ops": { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/Operation" } }
+      }
+    },
+    "SyncResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "acknowledged", "cursor", "changes", "hasMore", "serverTime"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "acknowledged": { "type": "array", "maxItems": 50, "uniqueItems": true, "items": { "$ref": "#/$defs/Uuid" } },
+        "cursor": { "$ref": "#/$defs/Cursor" },
+        "changes": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/Change" } },
+        "hasMore": { "type": "boolean" },
+        "serverTime": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ConflictResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "error", "requestId", "conflicts", "serverTime"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "error": { "const": "revision_conflict" },
+        "requestId": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "conflicts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["opId", "currentRevision"],
+            "properties": {
+              "opId": { "$ref": "#/$defs/Uuid" },
+              "currentRevision": { "type": "integer", "minimum": 1 },
+              "current": { "$ref": "#/$defs/Change" }
+            }
+          }
+        },
+        "serverTime": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CursorExpiredResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "error", "requestId", "bootstrapPath", "serverTime"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "error": { "const": "cursor_expired" },
+        "requestId": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "bootstrapPath": { "const": "/api/v1/bootstrap" },
+        "serverTime": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ExportResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "exportedAt", "cursor", "changes", "hasMore"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "exportedAt": { "type": "string", "format": "date-time" },
+        "cursor": { "$ref": "#/$defs/Cursor" },
+        "changes": { "type": "array", "maxItems": 250, "items": { "$ref": "#/$defs/Change" } },
+        "hasMore": { "type": "boolean" }
+      }
+    },
+    "DeviceRevokeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "deviceId"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "deviceId": { "$ref": "#/$defs/Uuid" }
+      }
+    },
+    "AccountDeleteRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "confirmation"],
+      "properties": {
+        "protocolVersion": { "const": 1 },
+        "confirmation": { "const": "DELETE" }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error", "requestId"],
+      "properties": {
+        "error": {
+          "enum": [
+            "invalid_request", "authentication_required", "forbidden", "revision_conflict",
+            "cursor_expired", "payload_too_large", "protocol_unsupported", "rate_limited",
+            "service_unavailable"
+          ]
+        },
+        "requestId": { "type": "string", "minLength": 8, "maxLength": 128 },
+        "retryAfterSeconds": { "type": "integer", "minimum": 1, "maximum": 86400 }
+      }
+    }
+  }
+}

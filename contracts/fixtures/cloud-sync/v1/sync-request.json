@@ -1,0 +1,27 @@
+{
+  "protocolVersion": 1,
+  "deviceId": "00000000-0000-4000-8000-000000000002",
+  "cursor": null,
+  "ops": [
+    {
+      "opId": "00000000-0000-4000-8000-000000000001",
+      "profileId": "00000000-0000-4000-8000-000000000003",
+      "entityType": "watchlist",
+      "entityKey": "ANIME:al-21",
+      "action": "upsert",
+      "baseRevision": 0,
+      "value": {
+        "media": {
+          "kind": "ANIME",
+          "mediaKey": "al-21",
+          "aliases": {
+            "anilist": 21,
+            "mal": 21
+          }
+        },
+        "status": "Watching",
+        "progress": 3
+      }
+    }
+  ]
+}

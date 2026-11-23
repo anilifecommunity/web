@@ -1,0 +1,30 @@
+{
+  "protocolVersion": 1,
+  "acknowledged": [
+    "00000000-0000-4000-8000-000000000001"
+  ],
+  "cursor": "cursor_0000000000000001",
+  "changes": [
+    {
+      "profileId": "00000000-0000-4000-8000-000000000003",
+      "entityType": "watchlist",
+      "entityKey": "ANIME:al-21",
+      "action": "upsert",
+      "revision": 1,
+      "value": {
+        "media": {
+          "kind": "ANIME",
+          "mediaKey": "al-21",
+          "aliases": {
+            "anilist": 21,
+            "mal": 21
+          }
+        },
+        "status": "Watching",
+        "progress": 3
+      }
+    }
+  ],
+  "hasMore": false,
+  "serverTime": "2026-11-23T18:00:00Z"
+}

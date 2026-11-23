@@ -1,0 +1,27 @@
+{
+  "protocolVersion": 1,
+  "deviceId": "00000000-0000-4000-8000-000000000002",
+  "cursor": "cursor_0000000000000001",
+  "changes": [
+    {
+      "profileId": "00000000-0000-4000-8000-000000000003",
+      "entityType": "profile",
+      "entityKey": "profile",
+      "action": "upsert",
+      "revision": 1,
+      "value": {
+        "name": "Profile 1",
+        "avatarRef": "builtin:green",
+        "kidsMode": false
+      }
+    }
+  ],
+  "hasMore": false,
+  "serverTime": "2026-11-23T18:00:00Z",
+  "capabilities": {
+    "maxRequestBytes": 131072,
+    "maxOps": 50,
+    "maxChanges": 250,
+    "maxResponseBytes": 262144
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "protocolVersion": 1,
+  "error": "revision_conflict",
+  "requestId": "request-00000001",
+  "conflicts": [
+    {
+      "opId": "00000000-0000-4000-8000-000000000001",
+      "currentRevision": 2,
+      "current": {
+        "profileId": "00000000-0000-4000-8000-000000000003",
+        "entityType": "watchlist",
+        "entityKey": "ANIME:al-21",
+        "action": "upsert",
+        "revision": 2,
+        "value": {
+          "media": {
+            "kind": "ANIME",
+            "mediaKey": "al-21",
+            "aliases": {
+              "anilist": 21
+            }
+          },
+          "status": "Paused",
+          "progress": 4
+        }
+      }
+    }
+  ],
+  "serverTime": "2026-11-23T18:00:00Z"
+}

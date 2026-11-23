@@ -52,6 +52,8 @@ import {
 import { isAnimeDubbed } from '../utils/mediaIndexApi';
 import { mediaIndexRelease, type MediaIndexDataState, type MediaIndexFailureCode } from '../utils/mediaIndexRelease';
 import type { AppErrorState } from '../utils/errorExperience';
+import { useCloudSync, type CloudSyncController } from '../cloudSync/useCloudSync';
+import type { LocalCloudSnapshot } from '../cloudSync/model';
 
 export interface VideoPlaybackTarget {
   anime: Anime;
@@ -139,6 +141,7 @@ interface AppContextType {
   logoutFromAniList: () => void;
   connectAniListUser: (username: string) => Promise<{ success: boolean; error?: string }>;
   syncAniList: () => Promise<void>;
+  cloudSync: CloudSyncController;
 
   
   liveCatalog: Anime[];
@@ -573,6 +576,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const cloudSnapshot = useMemo<LocalCloudSnapshot>(() => ({
+    profiles,
+    activeProfileId: activeProfile.id,
+    settings,
+    watchlist: Object.fromEntries(profiles.map((profile) => [
+      profile.id,
+      profile.id === activeProfile.id ? watchlist : loadWatchlist(profile.id),
+    ])),
+    history: Object.fromEntries(profiles.map((profile) => [
+      profile.id,
+      profile.id === activeProfile.id ? continueWatching : loadContinueWatching(profile.id),
+    ])),
+  }), [activeProfile.id, continueWatching, profiles, settings, watchlist]);
+
+  const applyCloudSnapshot = useCallback((next: LocalCloudSnapshot) => {
+    saveSettings(next.settings);
+    setSettingsState(next.settings);
+    saveProfiles(next.profiles);
+    setProfiles(next.profiles);
+    for (const profile of next.profiles) {
+      saveWatchlist(profile.id, next.watchlist[profile.id] ?? []);
+      saveContinueWatching(profile.id, next.history[profile.id] ?? []);
+    }
+    const selected = next.profiles.find((profile) => profile.id === activeProfile.id) ?? next.profiles[0];
+    if (selected) {
+      setActiveProfileState(selected);
+      saveActiveProfileId(selected.id);
+      setWatchlistState(next.watchlist[selected.id] ?? []);
+      setContinueWatchingState(next.history[selected.id] ?? []);
+    }
+  }, [activeProfile.id]);
+
+  const cloudSync = useCloudSync(cloudSnapshot, applyCloudSnapshot);
+
   const updateWatchProgress = useCallback((animeId: string, episodeNumber: number, currentTimeSec: number, durationSec: number, audioMode: 'SUB' | 'DUB') => {
     const currentTime = Math.max(0, Math.round(currentTimeSec));
     const duration = Math.max(0, Math.round(durationSec));
@@ -868,6 +905,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logoutFromAniList,
         connectAniListUser,
         syncAniList,
+        cloudSync,
         liveCatalog: visibleLiveCatalog,
         trendingAnime: visibleTrendingAnime,
         popularSeasonAnime: visiblePopularSeasonAnime,

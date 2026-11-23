@@ -37,6 +37,7 @@ import { applyBackup, buildBackupDocument, downloadBackup, parseBackup } from '.
 import { clearDiagnostics, downloadDiagnostics } from '../data/diagnostics';
 import { useDiscordStatus } from '../discord/useDiscordActivity';
 import { connectDiscordActivity, DISCORD_INSTALL_URL, isDiscordActivity } from '../discord/activity';
+import { CloudSyncPanel } from './CloudSyncPanel';
 
 export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -741,6 +742,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
           {}
           {activeSection === 'accounts' && (
             <div className="space-y-5 animate-fadeIn">
+              <CloudSyncPanel />
               {}
               <div className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800 space-y-4">
                 <div className="flex items-center justify-between">

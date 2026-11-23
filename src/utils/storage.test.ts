@@ -4,6 +4,8 @@ import 'fake-indexeddb/auto';
 import { DEFAULT_SETTINGS, deleteProfileStorage, loadActiveProfileId, loadSettings, mergeSettings, saveActiveProfileId, saveSettings, STORAGE_KEYS } from './storage';
 import { webServerOptions } from './providerOptions';
 import { CACHE_REFRESH_MARKER, runOneTimeCacheRefresh } from '../data/cacheRefresh';
+import '../cloudSync/model.test';
+import '../cloudSync/client.test';
 
 function memoryStorage(): Storage {
   const map = new Map<string, string>();

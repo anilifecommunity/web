@@ -10,7 +10,7 @@ import { STORAGE_KEYS } from './keys';
  */
 
 const DB_NAME = 'anilife';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const STORES = [
   'app_meta',
@@ -21,6 +21,7 @@ export const STORES = [
   'search_history',
   'diagnostics_local',
   'media_index',
+  'cloud_sync',
 ] as const;
 
 export type StoreName = (typeof STORES)[number];

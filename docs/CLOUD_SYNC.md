@@ -1,9 +1,8 @@
 # Cloud Sync
 
-Anilife Cloud Sync is an opt-in, local-first account feature under staged development. Guest
-profiles and all current local data continue to work without an Anilife account. The v1 protocol
-and Worker sync engine are implemented; the Web client does not enable cloud writes until its
-reconciliation UI and production gates are complete.
+Anilife Cloud Sync is an opt-in, local-first account feature. Guest profiles and all current local
+data continue to work without an Anilife account. The Web client enables cloud writes only after a
+Discord sign-in, a remote-data preview and an explicit non-destructive merge choice.
 
 ## Account boundary
 
@@ -42,6 +41,9 @@ Anilife does not substitute a generated or public fake secret. Production activa
 after the focused PR passes hosted checks, production migrations have a Time Travel bookmark, and
 the existing production Discord secret is available in the same Worker.
 
-The sync data routes are deployed for authenticated contract clients. The Web client opt-in remains
-disabled until its own reviewed slice lands; backend availability is not represented to users as a
-completed cloud backup.
+The sync data routes are deployed for authenticated contract clients. The Web client keeps a
+durable account-partitioned IndexedDB journal, batches ordinary edits, preserves failed operations,
+and exposes manual sync, disconnect, device revocation, portable export and remote deletion under
+Settings → Accounts & Sync. Profile PINs, provider choices, credentials and diagnostics remain
+local. A private R2 disaster-recovery snapshot is a separate operational layer and is not required
+for the user-facing D1 sync protocol.

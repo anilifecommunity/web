@@ -13,7 +13,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   isolated D1 migrations and non-persistent provider tokens.
 - Added the authenticated Cloud Sync v1 Worker engine with account-bound cursors, strict entity
   validation, idempotent operations, atomic optimistic concurrency, device revocation and account
-  deletion. The Web opt-in remains disabled until its reviewed client rollout is complete.
+  deletion.
+- Added the optional local-first Web Cloud Sync client with Discord sign-in, merge preview,
+  account-partitioned offline journaling, conflict choices, cross-tab coordination, portable export,
+  device revocation and remote-data deletion. Guest viewing remains local-only by default.
 
 ### Changed
 

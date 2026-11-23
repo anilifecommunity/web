@@ -31,9 +31,8 @@ player: native HLS/MP4, or a provider-owned cross-origin player
 - **Episode downloads are intentionally disabled.** The first-class `/downloads` route distributes
   the six signed Android/TV APKs; it never exposes or downloads episode media.
 - Local data (profiles, settings, history, library) lives in `localStorage` with an IndexedDB
-  mirror and a versioned migration. The isolated account/D1 Cloud Sync API is available for
-  reviewed clients; user-facing Cloud Sync remains opt-in and disabled until the local-first Web
-  reconciliation client passes its staged release gates.
+  mirror and a versioned migration. Optional Anilife Cloud Sync can be enabled from Settings after
+  Discord sign-in and a non-destructive merge preview; guest/local-only use remains the default.
 
 ## Quick start
 

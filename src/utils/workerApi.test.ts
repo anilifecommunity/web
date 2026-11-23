@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createWatchSession, loadWatchSession, WatchSessionError, type WatchSession } from './workerApi';
+import { createWatchSession, loadWatchSession, resolveEpisode, WatchSessionError, type WatchSession } from './workerApi';
 
 function memoryStorage(): Storage {
   const values = new Map<string, string>();
@@ -85,5 +85,26 @@ test('watch creation preserves the Worker reason for an expired browser verifica
     globalThis.fetch = originalFetch;
     Object.defineProperty(globalThis, 'localStorage', { value: originalLocal, configurable: true });
     Object.defineProperty(globalThis, 'sessionStorage', { value: originalSession, configurable: true });
+  }
+});
+
+test('resolver requests preserve the adult-content preference', async () => {
+  const originalFetch = globalThis.fetch;
+  const urls: string[] = [];
+  globalThis.fetch = async (input) => {
+    urls.push(String(input));
+    return new Response(JSON.stringify({ ok: false, error: 'provider_unavailable' }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  try {
+    await resolveEpisode({ aniListId: 21, episode: 1, audio: 'sub', hideAdult: true });
+    await resolveEpisode({ aniListId: 21, episode: 1, audio: 'sub', hideAdult: false });
+    assert.equal(new URL(urls[0], 'https://anilife.cc').searchParams.get('hideAdult'), '1');
+    assert.equal(new URL(urls[1], 'https://anilife.cc').searchParams.get('hideAdult'), '0');
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });

@@ -66,6 +66,33 @@ test('web picker hides providers that cannot work in a browser', () => {
   assert.ok(ids.includes('reanime'));
 });
 
+test('adult-only candidates stay hidden and cannot be attempted', () => {
+  const adult = PROVIDERS.filter((provider) => provider.capabilities.adultOnly);
+  assert.deepEqual(adult.map((provider) => provider.id), ['hanime', 'hentaihaven', 'hstream']);
+  assert.ok(adult.every((provider) => !providersForWeb(true).includes(provider)));
+  assert.ok(adult.every((provider) => !planAttempts({
+    selectedProvider: provider.id,
+    allowFallback: false,
+    hideAdult: true,
+  }).ok));
+});
+
+test('adult policy alone blocks an otherwise eligible adult provider', () => {
+  const adult = getProvider('hstream');
+  assert.ok(adult);
+  const originalStatus = adult.webStatus;
+  adult.webStatus = 'iframe';
+  try {
+    assert.equal(planAttempts({ selectedProvider: adult.id, allowFallback: false, hideAdult: true }).ok, false);
+    assert.deepEqual(
+      planAttempts({ selectedProvider: adult.id, allowFallback: false, hideAdult: false }),
+      { ok: true, order: ['hstream'] },
+    );
+  } finally {
+    adult.webStatus = originalStatus;
+  }
+});
+
 // ---------------------------------------------------------------- policy
 
 test('explicit selection is first and alone without fallback', () => {
@@ -289,7 +316,7 @@ test('caps the whole fallback walk instead of multiplying provider timeouts', as
     policy: { selectedProvider: A, allowFallback: true, preferredOrder: [A, B] },
     adapters,
     timeoutMs: 40,
-    totalTimeoutMs: 55,
+    totalTimeoutMs: 70,
   });
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'timeout');

@@ -13,6 +13,7 @@ export interface ResolveParams {
   fallback?: boolean;
   order?: string[];
   enabled?: string[];
+  hideAdult?: boolean;
   watchSession?: WatchSession;
 }
 
@@ -193,6 +194,7 @@ function toQuery(params: ResolveParams): string {
   if (params.fallback) query.set('fallback', '1');
   if (params.order && params.order.length > 0) query.set('order', params.order.join(','));
   if (params.enabled) query.set('enabled', params.enabled.join(','));
+  if (params.hideAdult !== undefined) query.set('hideAdult', params.hideAdult ? '1' : '0');
   return query.toString();
 }
 

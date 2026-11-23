@@ -56,8 +56,10 @@ function releaseFailure(availability: EpisodeAvailability): Response | null {
   );
 }
 
-function publicProviders(): unknown[] {
-  return PROVIDERS.map((provider) => ({
+function publicProviders(hideAdult = true): unknown[] {
+  return PROVIDERS.filter(
+    (provider) => !hideAdult || !provider.capabilities.adultOnly
+  ).map((provider) => ({
     id: provider.id,
     displayName: provider.displayName,
     catalogue: provider.catalogue,

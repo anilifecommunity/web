@@ -8,7 +8,7 @@ import {
   WatchStatus,
   ThemePresetName
 } from '../types/anime';
-import { getAnimeAniListId, SERVERS } from '../utils/animeData';
+import { getAnimeAniListId } from '../utils/animeData';
 import { createWatchSession, WatchSessionError, type WatchSession } from '../utils/workerApi';
 import {
   DEFAULT_PROFILES,
@@ -57,6 +57,7 @@ export interface VideoPlaybackTarget {
   episodeNumber: number;
   audioMode: 'SUB' | 'DUB';
   audioFallback?: boolean;
+  dubAvailability: boolean | null;
   serverId: string;
   watchSession: WatchSession;
 }
@@ -742,11 +743,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     const preferredAudioMode = audioMode || settings.defaultAudioMode || 'SUB';
-    const hasVerifiedDub = preferredAudioMode === 'DUB' ? await isAnimeDubbed(aniListId) : null;
-    const resolvedAudioMode = availableAudioMode(preferredAudioMode, hasVerifiedDub);
+    let hasVerifiedDub: boolean | null;
     let watchSession: WatchSession;
     try {
-      watchSession = await createWatchSession(aniListId, episodeNum);
+      [hasVerifiedDub, watchSession] = await Promise.all([
+        isAnimeDubbed(aniListId),
+        createWatchSession(aniListId, episodeNum),
+      ]);
     } catch (error) {
       if (error instanceof WatchSessionError && error.status === 401) {
         window.location.reload();
@@ -766,12 +769,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       return;
     }
+    const resolvedAudioMode = availableAudioMode(preferredAudioMode, hasVerifiedDub);
     setSelectedAnime(null);
     setActiveVideo({
       anime,
       episodeNumber: episodeNum,
       audioMode: resolvedAudioMode,
       audioFallback: resolvedAudioMode !== preferredAudioMode,
+      dubAvailability: hasVerifiedDub,
       serverId: settings.activeServer || 'zoko',
       watchSession,
     });

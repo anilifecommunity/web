@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { SERVERS } from '../utils/animeData';
+import { webServerOptions } from '../utils/providerOptions';
 import { X, Check } from 'lucide-react';
 
 interface Props {
@@ -9,12 +9,13 @@ interface Props {
 
 export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
   const { settings, updateSettings } = useApp();
+  const servers = webServerOptions(settings.hideAdultContent);
 
-  const enabledList = settings.enabledServers && settings.enabledServers.length > 0
-    ? settings.enabledServers
-    : SERVERS.map(s => s.id);
+  const configuredEnabled = (settings.enabledServers ?? [])
+    .filter((id) => servers.some((server) => server.id === id));
+  const enabledList = configuredEnabled.length > 0 ? configuredEnabled : servers.map(s => s.id);
 
-  const totalServers = SERVERS.length;
+  const totalServers = servers.length;
   const enabledCount = enabledList.length;
 
   const toggleServer = (serverId: string) => {
@@ -70,7 +71,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
 
         {}
         <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
-          {SERVERS.map((server, index) => {
+          {servers.map((server) => {
             const isChecked = enabledList.includes(server.id);
             return (
               <button
@@ -86,7 +87,7 @@ export const EnabledServersModal: React.FC<Props> = ({ onClose }) => {
                 }`}
               >
                 <span className="text-sm font-semibold text-white tracking-wide">
-                  Server {index + 1}
+                  {server.name}
                 </span>
 
                 <div className="flex items-center gap-3">

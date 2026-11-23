@@ -187,7 +187,7 @@ const ANIVEXA: ProviderDefinition[] = [
   anivexa('rift', { name: 'AnimeRift (Arabic)', language: 'Arabic' }),
   anivexa('hanime', { status: 'native-only', adultOnly: true }),
   anivexa('hentaihaven', { status: 'native-only', adultOnly: true }),
-  anivexa('hstream', { formats: ['dash'], adultOnly: true }),
+  anivexa('hstream', { status: 'unavailable', formats: ['dash'], adultOnly: true }),
 ];
 
 const OTHER: ProviderDefinition[] = [

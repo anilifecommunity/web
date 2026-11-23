@@ -79,3 +79,10 @@ export function availableAudioMode(
 ): 'SUB' | 'DUB' {
   return preferred === 'DUB' && hasVerifiedDub === false ? 'SUB' : preferred;
 }
+
+export function dubSelectionAvailable(
+  hasVerifiedDub: boolean | null,
+  hasDubProvider: boolean,
+): boolean {
+  return hasVerifiedDub !== false && hasDubProvider;
+}

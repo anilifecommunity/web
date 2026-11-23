@@ -8,6 +8,8 @@ import { isDiscordActivity } from '../discord/activity';
 import { loadWatchSession, removeWatchSession, validateWatchSession, watchSessionPath } from '../utils/workerApi';
 import { convertMediaIndexMediaToAnime } from '../utils/animeConversion';
 import { mediaIndexRelease } from '../utils/mediaIndexRelease';
+import { isAnimeDubbed } from '../utils/mediaIndexApi';
+import { availableAudioMode } from '../utils/playerUtils';
 
 function findLocalAnime(id: string, catalog: Anime[]): Anime | undefined {
   return catalog.find((anime) => anime.id === id);
@@ -86,10 +88,16 @@ export function useUrlRoute(): void {
             return;
           }
           app.rememberAnime(anime);
+          const preferredAudio = app.settings.defaultAudioMode ?? 'SUB';
+          const dubAvailability = await isAnimeDubbed(session.aniListId);
+          if (cancelled) return;
+          const audioMode = availableAudioMode(preferredAudio, dubAvailability);
           app.setActiveVideo({
             anime,
             episodeNumber: route.episode,
-            audioMode: app.settings.defaultAudioMode ?? 'SUB',
+            audioMode,
+            audioFallback: audioMode !== preferredAudio,
+            dubAvailability,
             serverId: app.settings.activeServer,
             watchSession: session,
           });

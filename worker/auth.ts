@@ -6,6 +6,10 @@ import { fail } from './http';
 const PRODUCTION_AUTH_BASE_URL = 'https://anilife.cc';
 const SESSION_SECONDS = 60 * 60 * 24 * 30;
 
+export function sessionCookieName(env: Env): string {
+  return authBaseUrl(env)?.startsWith('https://') ? '__Host-anilife-session' : 'anilife-session';
+}
+
 export function authConfigured(env: Env): boolean {
   return Boolean(
     env.ANILIFE_CLOUD_DB &&
@@ -78,8 +82,14 @@ export function createAuth(env: Env) {
       },
     },
     advanced: {
-      useSecureCookies: secure,
+      // Better Auth otherwise adds its own __Secure prefix, which would diverge from the v1 contract.
+      useSecureCookies: false,
       cookiePrefix: 'anilife-cloud',
+      cookies: {
+        session_token: {
+          name: sessionCookieName(env),
+        },
+      },
       defaultCookieAttributes: {
         httpOnly: true,
         secure,
@@ -89,6 +99,18 @@ export function createAuth(env: Env) {
     },
     telemetry: { enabled: false },
   });
+}
+
+export interface CloudSession {
+  userId: string;
+  sessionId: string;
+}
+
+export async function getCloudSession(request: Request, env: Env): Promise<CloudSession | null> {
+  const auth = createAuth(env);
+  if (!auth) return null;
+  const result = await auth.api.getSession({ headers: request.headers });
+  return result ? { userId: result.user.id, sessionId: result.session.id } : null;
 }
 
 export function handleAuth(request: Request, env: Env): Promise<Response> {

@@ -26,6 +26,7 @@ import {
   type ReleaseIndexEnv,
 } from './releaseIndex';
 import { handleAuth } from './auth';
+import { handleCloudSync } from './cloudSync';
 import type { D1Database } from '@cloudflare/workers-types';
 
 export interface Env extends ReleaseIndexEnv {
@@ -47,6 +48,8 @@ export interface Env extends ReleaseIndexEnv {
   BETTER_AUTH_SECRET?: string;
   /** Exact public origin used for OAuth redirects and trusted-origin checks. */
   AUTH_BASE_URL?: string;
+  /** Independent HMAC key for account-bound sync cursors and CSRF values. */
+  SYNC_CURSOR_KEY?: string;
 }
 
 const DISCORD_CLIENT_ID = '1567279187893551185';
@@ -598,7 +601,7 @@ async function navigationNotFound(request: Request, env: Env): Promise<Response>
   return new Response(request.method === 'HEAD' ? null : shell.body, { status: 404, headers });
 }
 
-async function handleRequest(request: Request, env: Env): Promise<Response> {
+async function handleRequest(request: Request, env: Env, requestId: string): Promise<Response> {
   const url = new URL(request.url);
 
   if (url.hostname === 'www.anilife.cc') {
@@ -633,6 +636,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   if (path === '/api/auth' || path.startsWith('/api/auth/')) {
     return handleAuth(request, env);
+  }
+
+  if (path.startsWith('/api/v1/')) {
+    return handleCloudSync(request, env, requestId);
   }
 
   const allowedMethod = API_METHODS.get(path);
@@ -747,7 +754,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const requestId = crypto.randomUUID();
     try {
-      return withSecurityHeaders(await handleRequest(request, env), request, requestId);
+      return withSecurityHeaders(await handleRequest(request, env, requestId), request, requestId);
     } catch (error) {
       // Never leak stack traces, upstream URLs or credentials to the caller.
       const upstream = error instanceof GuardError;

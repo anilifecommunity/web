@@ -42,6 +42,11 @@ secrets and the dedicated `ANILIFE_CLOUD_DB` binding exist.
 Cloud account data uses the dedicated `ANILIFE_CLOUD_DB` binding and
 `migrations/cloud-sync/`. It must never point at `RELEASE_INDEX_USAGE`.
 
+`SYNC_CURSOR_KEY` is a separate Wrangler secret for account-bound cursors and session-bound CSRF
+values. Generate independent random values for staging and production and never store them in a
+vars file. Rotating this key invalidates outstanding cursors and CSRF values, so schedule rotation
+as a documented client re-bootstrap window.
+
 Before a remote migration, record a Time Travel bookmark, apply to the isolated staging database,
 run `PRAGMA foreign_key_check`, and only then repeat for production:
 

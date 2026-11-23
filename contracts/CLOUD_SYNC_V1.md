@@ -1,7 +1,7 @@
 # Anilife Cloud Sync v1 contract
 
-Status: published protocol contract only. No production endpoint or account system exists until the
-backend and deployment slices pass their own gates.
+Status: published protocol contract with a reviewed Worker implementation. User-facing Cloud Sync
+remains unavailable until the local-first client and deployment gates pass.
 
 ## Local-first boundary
 

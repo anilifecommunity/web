@@ -62,13 +62,16 @@ open-source project; there is no bug bounty.
   cookies and all auth/database/provider secrets before enabling the route. Database hooks remove
   provider access, refresh and ID tokens before persistence. Discord Activity authorization never
   becomes an Anilife account session.
+- Private `/api/v1/*` sync routes derive the account only from that session, bind signed cursors and
+  double-submit CSRF values to it, reject unknown entity fields, and apply optimistic revisions in
+  the same D1 transaction as the item, tombstone, journal row and idempotency receipt.
 
 ## Secrets
 
 - No secret belongs in source, the bundle, `VITE_*`, Git history, an issue or a log.
 - AniList uses the public implicit flow; there is no client secret.
 - Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET`, `GATE_SIGNING_KEY`,
-  `WATCH_TOKEN_KEY`, `BETTER_AUTH_SECRET` and `DISCORD_CLIENT_SECRET`.
+  `WATCH_TOKEN_KEY`, `BETTER_AUTH_SECRET`, `SYNC_CURSOR_KEY` and `DISCORD_CLIENT_SECRET`.
   `WATCH_TOKEN_PREVIOUS_KEY` is used only during an intentional key rotation.
 - The historical AniList client secret that shipped in the old web source was revoked by the
   application owner on 2026-11-08. Removing a secret from HEAD is not a rotation; revoke it at the

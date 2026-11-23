@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { D1Database } from '@cloudflare/workers-types';
 import worker, { type Env } from './index';
-import { authBaseUrl, authConfigured } from './auth';
+import { authBaseUrl, authConfigured, sessionCookieName } from './auth';
 
 function env(overrides: Partial<Env> = {}): Env {
   return {
@@ -26,6 +26,11 @@ test('cloud auth fails closed unless every private binding is configured', async
   assert.equal(
     authBaseUrl(env({ APP_ENV: 'development', AUTH_BASE_URL: 'http://localhost:8787' })),
     'http://localhost:8787',
+  );
+  assert.equal(sessionCookieName(env({ AUTH_BASE_URL: 'https://anilife.cc' })), '__Host-anilife-session');
+  assert.equal(
+    sessionCookieName(env({ APP_ENV: 'development', AUTH_BASE_URL: 'http://localhost:8787' })),
+    'anilife-session',
   );
 
   const response = await worker.fetch(

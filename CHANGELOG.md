@@ -10,8 +10,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 - Published the machine-readable Anilife Cloud Sync v1 OpenAPI, strict JSON Schema, fixtures and
   deterministic Android handoff bundle.
 - Added the fail-closed Cloud Sync account foundation with pinned Better Auth, Discord OAuth,
-  isolated D1 migrations and non-persistent provider tokens. Sync data routes and the client opt-in
-  remain disabled until their reviewed rollout slices are complete.
+  isolated D1 migrations and non-persistent provider tokens.
+- Added the authenticated Cloud Sync v1 Worker engine with account-bound cursors, strict entity
+  validation, idempotent operations, atomic optimistic concurrency, device revocation and account
+  deletion. The Web opt-in remains disabled until its reviewed client rollout is complete.
 
 ### Changed
 

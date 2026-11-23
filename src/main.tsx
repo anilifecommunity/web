@@ -8,6 +8,7 @@ import {
 } from './data/idb';
 import { recordDiagnostic } from './data/diagnostics';
 import { runOneTimeCacheRefresh } from './data/cacheRefresh';
+import { AppErrorBoundary } from './components/ErrorExperience';
 
 const SERVICE_WORKER_VERSION = __ANILIFE_BUILD_ID__;
 
@@ -30,7 +31,7 @@ async function bootstrap(): Promise<void> {
     recordDiagnostic('DIAG-01', { stage: 'storage_bootstrap' });
   }
 
-  createRoot(document.getElementById('root')!).render(<App />);
+  createRoot(document.getElementById('root')!).render(<AppErrorBoundary><App /></AppErrorBoundary>);
 
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     const registerServiceWorker = () => {

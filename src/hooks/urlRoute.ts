@@ -7,7 +7,7 @@ export type Route =
   | { kind: 'watch'; reference: string; episode: number; tag: string }
   | { kind: 'settings' }
   | { kind: 'profiles' }
-  | { kind: 'home' };
+  | { kind: 'notFound'; path: string };
 
 export const TAB_PATHS: Record<Tab, string> = {
   home: '/',
@@ -31,20 +31,22 @@ export function parseRoute(pathname: string): Route {
     }
   }
   if (first === 'anime' && second) {
-    if (parts.length >= 4 && parts[2] === 'watch') {
+    if (parts.length === 4 && parts[2] === 'watch') {
       const episode = Number(fourth);
-      return { kind: 'legacyWatch', id: second, episode: Number.isFinite(episode) && episode > 0 ? episode : 1 };
+      if (Number.isSafeInteger(episode) && episode > 0) {
+        return { kind: 'legacyWatch', id: second, episode };
+      }
     }
-    return { kind: 'anime', id: second };
+    if (parts.length === 2) return { kind: 'anime', id: second };
   }
-  if (first === 'settings') return { kind: 'settings' };
-  if (first === 'profiles') return { kind: 'profiles' };
-  if (first === 'search' || first === 'discover') return { kind: 'tab', tab: 'search' };
-  if (first === 'schedule') return { kind: 'tab', tab: 'schedule' };
-  if (first === 'library' || first === 'mylist') return { kind: 'tab', tab: 'mylist' };
-  if (first === 'downloads') return { kind: 'tab', tab: 'downloads' };
-  if (first === 'home') return { kind: 'tab', tab: 'home' };
-  return { kind: 'home' };
+  if (parts.length === 1 && first === 'settings') return { kind: 'settings' };
+  if (parts.length === 1 && first === 'profiles') return { kind: 'profiles' };
+  if (parts.length === 1 && (first === 'search' || first === 'discover')) return { kind: 'tab', tab: 'search' };
+  if (parts.length === 1 && first === 'schedule') return { kind: 'tab', tab: 'schedule' };
+  if (parts.length === 1 && (first === 'library' || first === 'mylist')) return { kind: 'tab', tab: 'mylist' };
+  if (parts.length === 1 && first === 'downloads') return { kind: 'tab', tab: 'downloads' };
+  if (parts.length === 1 && first === 'home') return { kind: 'tab', tab: 'home' };
+  return { kind: 'notFound', path: pathname };
 }
 
 export function shouldPushRoute(currentPath: string, nextPath: string): boolean {

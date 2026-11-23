@@ -214,7 +214,11 @@ async function handleWatchCreate(request: Request, env: Env): Promise<Response> 
   if (!secret) return fail(503, 'watch_sessions_not_configured');
   const limited = hit(`watch:create:${clientKey(request)}`, 20, 60_000);
   if (!limited.allowed) {
-    return json({ ok: false, error: 'rate_limited' }, 429, { 'Retry-After': String(limited.retryAfterSec) });
+    return json(
+      { ok: false, error: 'rate_limited', retryAfterSec: limited.retryAfterSec },
+      429,
+      { 'Retry-After': String(limited.retryAfterSec) },
+    );
   }
   let body: Record<string, unknown>;
   try {
@@ -540,6 +544,52 @@ async function handleDiscordGate(request: Request, env: Env): Promise<Response> 
   );
 }
 
+const API_METHODS = new Map<string, string>([
+  ['/api/health', 'GET'],
+  ['/api/gate/status', 'GET'],
+  ['/api/gate/verify', 'POST'],
+  ['/api/gate/discord', 'POST'],
+  ['/api/discord/token', 'POST'],
+  ['/api/watch/session', 'POST'],
+  ['/api/watch/session/validate', 'POST'],
+  ['/api/providers', 'GET'],
+  ['/api/resolve', 'GET'],
+]);
+
+const STATIC_PATHS = new Set([
+  '/auth/callback',
+  '/auth/callback/',
+  '/auth/callback.html',
+  '/auth/callback.js',
+  '/manifest.webmanifest',
+  '/robots.txt',
+  '/sw.js',
+  '/theme-init.js',
+]);
+
+export function isAppNavigationPath(pathname: string): boolean {
+  let path = pathname;
+  if (path === '/activity') return true;
+  if (path.startsWith('/activity/')) path = path.slice('/activity'.length);
+  if (['/', '/home', '/discover', '/search', '/schedule', '/library', '/mylist', '/downloads', '/settings', '/profiles'].includes(path)) return true;
+  if (/^\/anime\/[^/]+(?:\/watch\/[1-9]\d*)?$/.test(path)) return true;
+  return /^\/watch\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/episode-[1-9]\d*-[0-9a-f]{12}$/i.test(path);
+}
+
+function methodNotAllowed(allow: string): Response {
+  return json({ ok: false, error: 'method_not_allowed' }, 405, { Allow: allow });
+}
+
+async function navigationNotFound(request: Request, env: Env): Promise<Response> {
+  const url = new URL('/index.html', request.url);
+  const shell = await env.ASSETS.fetch(new Request(url, { headers: { Accept: 'text/html' } }));
+  const headers = new Headers(shell.headers);
+  headers.set('Cache-Control', 'no-cache');
+  headers.set('Content-Type', 'text/html; charset=utf-8');
+  headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return new Response(request.method === 'HEAD' ? null : shell.body, { status: 404, headers });
+}
+
 async function handleRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
@@ -550,26 +600,33 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const path = url.pathname;
 
   if (path === '/downloads/index.json') {
-    if (request.method !== 'GET') return fail(405, 'method_not_allowed');
+    if (request.method !== 'GET') return methodNotAllowed('GET');
     return getStableReleaseIndex(request, env);
   }
 
   if (path === '/internal/releases/stable') {
-    if (request.method !== 'POST') return fail(405, 'method_not_allowed');
+    if (request.method !== 'POST') return methodNotAllowed('POST');
     return publishStableReleaseIndex(request, env);
   }
 
   if (!path.startsWith('/api/')) {
+    if (!['GET', 'HEAD'].includes(request.method)) return methodNotAllowed('GET, HEAD');
     // The OAuth return page is a static file, but the extensionless route would otherwise fall
     // through to the SPA shell and leave the token in the fragment unread.
     if (path === '/auth/callback' || path === '/auth/callback/') {
       const asset = new URL('/auth/callback.html', url.origin);
       return env.ASSETS.fetch(new Request(asset.toString(), request));
     }
-    return env.ASSETS.fetch(request);
+    if (isAppNavigationPath(path) || STATIC_PATHS.has(path) || path.startsWith('/assets/')) {
+      return env.ASSETS.fetch(request);
+    }
+    return navigationNotFound(request, env);
   }
 
-  if (path === '/api/health' && request.method === 'GET') {
+  const allowedMethod = API_METHODS.get(path);
+  if (allowedMethod && request.method !== allowedMethod) return methodNotAllowed(allowedMethod);
+
+  if (path === '/api/health') {
     return json({
       ok: true,
       service: 'anilife-web',
@@ -579,36 +636,36 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     });
   }
 
-  if (path === '/api/gate/status' && request.method === 'GET') {
+  if (path === '/api/gate/status') {
     return json({ ok: true, passed: await gatePassed(request, env) });
   }
 
-  if (path === '/api/gate/verify' && request.method === 'POST') {
+  if (path === '/api/gate/verify') {
     return handleGateVerify(request, env);
   }
 
-  if (path === '/api/gate/discord' && request.method === 'POST') {
+  if (path === '/api/gate/discord') {
     return handleDiscordGate(request, env);
   }
 
-  if (path === '/api/discord/token' && request.method === 'POST') {
+  if (path === '/api/discord/token') {
     return handleDiscordToken(request, env);
   }
 
-  if (path === '/api/watch/session' && request.method === 'POST') {
+  if (path === '/api/watch/session') {
     return handleWatchCreate(request, env);
   }
 
-  if (path === '/api/watch/session/validate' && request.method === 'POST') {
+  if (path === '/api/watch/session/validate') {
     return handleWatchValidate(request, env);
   }
 
-  if (path === '/api/providers' && request.method === 'GET') {
+  if (path === '/api/providers') {
     return json({ ok: true, providers: publicProviders(), downstreams: DOWNSTREAMS });
   }
 
 
-  if (path === '/api/resolve' && request.method === 'GET') {
+  if (path === '/api/resolve') {
     return handleResolve(request, env, url);
   }
 

@@ -5,6 +5,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-23
+
 ### Added
 
 - Added a checksum-verified Media Index fallback for home, browse, search, details, schedules,
@@ -15,6 +17,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   relationship labels and safe AniList links.
 - Expanded search across English, Romaji, native and alternative anime titles, plus verified anime
   relationships found through manga titles and aliases.
+- Added a shared, accessible error experience for missing pages, access failures, rate limits,
+  service outages, expired watch sessions and unreleased or unavailable episodes.
 
 ### Changed
 
@@ -26,6 +30,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   with one persistent Content setting controlling the related-manga shelf.
 - Added a one-time stale catalogue and app-shell cache refresh while preserving profiles, settings,
   watch progress and sign-in data.
+- Kept stable Server 1-4 numbering with Zoko first and removed unqualified adult candidates from
+  public provider diagnostics and playback choices.
 
 ### Fixed
 
@@ -49,6 +55,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   open in the player.
 - Fully remove a deleted profile's Library, Continue Watching and search data, and require the
   current local PIN before editing a PIN-protected profile.
+- Return genuine HTTP 404 pages for unknown routes, include correct `Allow` headers for unsupported
+  methods, and preserve server-supplied rate-limit cooldowns in retry controls.
+- Prevent a saved Dub preference from forcing Dub on titles verified as Sub-only, including after
+  reloading a protected watch route.
 
 ### Security and reliability
 
@@ -76,6 +86,10 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
   playback gate before reporting readiness, and removed inline-script permission from the CSP.
 - Applied a no-referrer policy to pages and embedded players, limited frame sources to active
   player origins, and reject cross-origin Discord token and gate requests.
+- Reduced public download-index origin work with a bounded five-minute shared cache while retaining
+  byte-identical responses, monotonic publishing and the D1-enforced 75 percent R2 hard stop.
+- Disabled public `workers.dev` and preview URLs, and moved immutable assets off the Worker request
+  path without weakening their security or cache headers.
 
 ## [0.1.2] - 2026-11-16
 
@@ -202,6 +216,7 @@ browser and PWA client at `https://anilife.cc`.
 - AniList does not issue refresh tokens; reauthentication is expected.
 - Episode downloads are disabled by product decision.
 
-[Unreleased]: https://github.com/anilifecommunity/web/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/anilifecommunity/web/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/anilifecommunity/web/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/anilifecommunity/web/releases/tag/v0.1.2
 [0.1.0]: https://github.com/anilifecommunity/web/releases/tag/v0.1.0

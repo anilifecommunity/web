@@ -43,6 +43,13 @@ test('legacy watch routes are distinguished for safe migration', () => {
   });
 });
 
+test('unknown and malformed paths stay distinct from home', () => {
+  assert.deepEqual(parseRoute('/missing-page'), { kind: 'notFound', path: '/missing-page' });
+  assert.deepEqual(parseRoute('/anime/154587/extra'), { kind: 'notFound', path: '/anime/154587/extra' });
+  assert.deepEqual(parseRoute('/anime/154587/watch/nope'), { kind: 'notFound', path: '/anime/154587/watch/nope' });
+  assert.deepEqual(parseRoute('/activity/missing-page'), { kind: 'notFound', path: '/activity/missing-page' });
+});
+
 test('episode changes create history while closing a watch route does not', () => {
   const first = '/watch/01a1dff1-a48d-71ff-8931-4f1c0ae8e860/episode-1-cf01ae4cd9ba';
   const second = '/watch/11a1dff1-a48d-71ff-8931-4f1c0ae8e860/episode-2-af01ae4cd9bb';

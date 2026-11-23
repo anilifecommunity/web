@@ -6,6 +6,8 @@ const MAX_BODY_BYTES = 64 * 1024;
 const MAX_CLOCK_SKEW_SECONDS = 300;
 const MAX_CLASS_A_PER_31_DAYS = 750_000;
 const MAX_CLASS_B_PER_31_DAYS = 7_500_000;
+// shortcut: publisher invalidation is PoP-local; add cache-tag purge if release propagation must be immediate.
+const PUBLIC_CACHE_CONTROL = 'public, max-age=30, s-maxage=300';
 const HEX_64 = /^[0-9a-f]{64}$/;
 const HEX_128 = /^[0-9a-f]{128}$/;
 
@@ -74,6 +76,8 @@ export interface ReleaseIndexBucket {
 }
 
 export interface ReleaseIndexCache {
+  match(request: Request): Promise<Response | undefined>;
+  put(request: Request, response: Response): Promise<void>;
   delete(request: Request): Promise<boolean>;
 }
 
@@ -346,9 +350,29 @@ export async function publishStableReleaseIndex(
 export async function getStableReleaseIndex(
   request: Request,
   env: ReleaseIndexEnv,
-  nowSeconds = Math.floor(Date.now() / 1000)
+  nowSeconds = Math.floor(Date.now() / 1000),
+  cache: ReleaseIndexCache = (caches as CacheStorage & { default: ReleaseIndexCache }).default
 ): Promise<Response> {
   if (!env.RELEASE_INDEX_BUCKET) return fail(503, 'release_index_not_configured');
+
+  const publicUrl = new URL('/downloads/index.json', request.url);
+  const cacheKey = new Request(publicUrl);
+  try {
+    const cached = await cache.match(cacheKey);
+    if (cached) {
+      const etag = cached.headers.get('ETag');
+      if (etag && request.headers.get('If-None-Match') === etag) {
+        return new Response(null, {
+          status: 304,
+          headers: { ETag: etag, 'Cache-Control': PUBLIC_CACHE_CONTROL },
+        });
+      }
+      return cached;
+    }
+  } catch {
+    // A local cache outage must not hide the published index.
+  }
+
   const readLimit = await requireR2Operation(env, 'class_b', nowSeconds);
   if (readLimit) return readLimit;
   let stored: Awaited<ReturnType<typeof readStoredIndex>>;
@@ -363,14 +387,20 @@ export async function getStableReleaseIndex(
   if (request.headers.get('If-None-Match') === etag) {
     return new Response(null, {
       status: 304,
-      headers: { ETag: etag, 'Cache-Control': 'public, max-age=30, s-maxage=86400' },
+      headers: { ETag: etag, 'Cache-Control': PUBLIC_CACHE_CONTROL },
     });
   }
-  return new Response(stored.body, {
+  const response = new Response(stored.body, {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'public, max-age=30, s-maxage=86400',
+      'Cache-Control': PUBLIC_CACHE_CONTROL,
       ETag: etag,
     },
   });
+  try {
+    await cache.put(cacheKey, response.clone());
+  } catch {
+    // The response remains available; a later request can repopulate this PoP.
+  }
+  return response;
 }

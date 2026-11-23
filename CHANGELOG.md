@@ -5,6 +5,11 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+### Changed
+
+- Corrected public architecture, operations, parity, provider and release documentation to match
+  the deployed 0.1.3 routes, source eligibility and disabled preview surface.
+
 ## [0.1.3] - 2026-11-23
 
 ### Added

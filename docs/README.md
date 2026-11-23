@@ -4,7 +4,7 @@
 | --- | --- |
 | [OPERATIONS.md](OPERATIONS.md) | Secrets, Cloudflare deploy, rollback, Turnstile, AniList OAuth |
 | [RELEASE.md](RELEASE.md) | Release gates and known limitations |
-| [PROVIDERS.md](PROVIDERS.md) | The 42 provider entries and their real web status |
+| [PROVIDERS.md](PROVIDERS.md) | The four eligible sources and current exclusion evidence |
 | [PROVIDER_MATRIX.md](PROVIDER_MATRIX.md) | Dated evidence per provider |
 | [SOURCES.md](SOURCES.md) | Source, embed index and player host research |
 | [ANDROID_PARITY.md](ANDROID_PARITY.md) | Android-to-web parity plan and feature surface |

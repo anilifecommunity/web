@@ -1,50 +1,45 @@
 # Release gates
 
-Current release: **0.1.0** (2026-11-13), aligned with Anilife Android/TV 0.1.0.
-Production: `https://anilife.cc`; preview:
-`https://anilife-web.adfreegames.workers.dev`.
+Current Web release: **0.1.3** (2026-11-23). Production: `https://anilife.cc`.
+Public `workers.dev` and preview URLs are disabled.
 
-| Gate | Status | Notes |
+| Gate | Status | Evidence |
 | --- | --- | --- |
-| Hosted-derivative licence/rights verified | DONE | MIT-0 in `LICENSE`; third-party media remains runtime-only |
-| Feature matrix with browser limitations | DONE | `PROVIDERS.md`, repository parity notes |
-| Arbitrary URL proxy removed, SSRF fails closed | DONE | Smoke test and guard tests |
-| Exposed credentials rotated | DONE | Old AniList client secret revoked by the owner; removed from HEAD |
-| No secrets in repo, bundle, logs | DONE | Public ids only; Worker secrets via Wrangler |
-| No third-party stream relayed without rights | DONE | Embed-only playback; no relay exists |
-| Source statuses reflect real evidence | DONE | Only Reanime promoted; others documented |
-| Shared contracts tested both platforms | PARTIAL | TypeScript suite green; Android untouched by design |
-| Backup wire v1 imports and round-trips | DONE | Android sealed-credential golden vector passes |
-| Legacy localStorage migrated without loss | DONE | IndexedDB mirror/hydration tests; legacy keys retained |
-| Android app id/signing unchanged | DONE | Android repository was not modified |
-| AniList auth safe, exact callback | DONE | Implicit flow; `https://anilife.cc/auth/callback.html` registered |
-| Production UI semantics and real URLs | DONE | Deep links, back/forward, keyboard focus ring |
-| Browser player tested with authorised media | PARTIAL | Embed playback verified in Chromium; native HLS/MP4 untested |
-| Automatic source fallback | DONE | Enabled order sent to Worker; failed server falls through; disabled servers are never queried |
-| VidSrc fallback | PARTIAL | AniZip->TMDB mapping and iframe verified; media startup needs a user test; Reanime stays first |
-| VidLink and 2Embed servers | PARTIAL | Separate switchable servers; VidLink loaded a video element, 2Embed exposes the player embed; user playback test pending |
-| Search discover filters | DONE | Format, year, score and sort; URL-serializable; stale-safe debounced AniList search |
-| Manual server switch | DONE | Automatic fallback stays default; the player's Servers drawer switches among enabled anonymous servers |
-| Single-profile mode | DONE | Settings > Accounts & Sync can hide the profile picker and open the last active profile |
-| About disclaimer | DONE | About states that Anilife hosts no media and only indexes public sources |
-| Source and downstream research | DONE | `SOURCES.md`; `/api/providers` exposes read-only downstream statuses |
-| Discord Rich Presence | PARTIAL | Embedded App SDK, token exchange, activity gate and presence implemented; needs Activity portal setup and a valid secret or Public Client |
-| Privacy correct, diagnostics local, toggles OFF | DONE | `PRIVACY.md`, `SECURITY.md`, no upload endpoint |
-| Preview isolation, noindex, no beta host | DONE | `X-Robots-Tag` on workers.dev; no beta subdomain |
-| Build/deploy/rollback works | DONE | Wrangler deploy; rollback steps in `OPERATIONS.md` |
-| Accessibility/performance review | DONE | Lighthouse on `anilife.cc`: accessibility 100, best practices 100, SEO 100 |
-| CI, CodeQL and Dependabot | DONE | CI and advanced CodeQL pass on `main`; Dependabot opens update PRs |
-| Dependency review | DONE | Dependency graph enabled; workflow passes on dependency PRs |
-| Dependabot updates | DONE | Five update PRs reviewed and merged 2026-11-08 (CI, CodeQL, dependency review green) |
-| Secret scanning, push protection, private reporting | DONE | Enabled and verified 2026-11-08 |
-| Manual approval before `anilife.cc` | DONE | Approved 2026-11-08; production hosts attached |
+| Rights and licence boundary | DONE | MIT-0 source; third-party metadata/artwork/media stay runtime references |
+| Fixed-origin Worker and SSRF refusal | DONE | Guard tests and production smoke; no caller-supplied upstream URL |
+| Secrets outside source/bundle/logs | DONE | Wrangler secrets; public build identifiers only |
+| Verified metadata fallback | DONE | Signed/hashed Media Index release chain, IndexedDB last-known-good and rollback |
+| Release and audio truth | DONE | Exact episode proof; Dub never forced on verified Sub-only titles |
+| Browser provider eligibility | DONE | Four dated browser-verified sources; failed/unverified/adult-only candidates inactive |
+| Stable anonymous source UI | DONE | Server 1-4, Zoko first, saved default preserved, bounded fallback |
+| Profile/settings/data integrity | DONE | Visible-setting contract, backup/import, profile deletion and progress tests |
+| Multilingual search and related manga | DONE | English/Romaji/native/aliases, verified manga relations and safe AniList links |
+| Secure watch routes | DONE | Browser-bound authorization, copied/tampered denial and public share links |
+| Anti-embedding and Discord isolation | DONE | Ordinary `frame-ancestors 'none'`/DENY; dedicated Activity exception |
+| HTTP/error behavior | DONE | Real secured 404, JSON API errors, 405 `Allow`, typed retry/error UI |
+| Signed Android/TV downloads | DONE | `/downloads`; exact stable 0.1.3 sequence-6 six-APK index |
+| Cost boundary | DONE | Static assets bypass Worker; cached index; D1-enforced 75% R2 hard stop |
+| CI and security review | DONE | CI, dependency review and both CodeQL gates passed on release PRs |
+| Production deploy/rollback | DONE | Worker deployment/version history and `wrangler rollback` procedure |
+| Real browser/device matrix | OWNER-RUN | Brave/phone/Safari/raw-player interaction is delegated to the owner |
+| Zone WAF/rate-limit rule | EXTERNAL | Code protection is live; zone write requires an admin-scoped credential/dashboard session |
+
+## Release procedure
+
+1. Start from current `main` on a focused `sd/*` branch.
+2. Run `npm run lint`, `npm test`, `npm run build`, Wrangler dry-run and local Worker smoke.
+3. Open a focused PR; require CI, dependency review, CodeQL and zero actionable review threads.
+4. Merge, rebuild the exact merge commit, deploy it, and run production smoke.
+5. Verify `/downloads/index.json` remains JSON with the exact six signed artifacts.
+6. Only then create the immutable tag and GitHub release. Roll back the Worker version on failure.
 
 ## Known limitations
 
-- Episode downloads are disabled by product decision.
-- Embedded sources cannot report playback time; progress is manual.
-- Reanime is the only end-to-end verified player. VidSrc, VidLink and 2Embed are separate
-  page-level verified embeds; their actual media startup still needs a user test. Most Android
-  sources are blocked by headers, bot checks or datacenter-IP filtering.
-- Native HLS/MP4 playback is implemented but has no verified source yet.
+- Playback depends on independent third-party providers and browser compatibility.
+- Raw provider players can show their own ads or pop-ups; Anilife does not proxy or modify them.
+- No adult-only candidate currently passes the complete browser eligibility contract, so none is
+  enabled as filler. General eligible sources may still carry adult titles when the viewer permits it.
+- Episode downloads are disabled. `/downloads` distributes signed Android/TV application packages.
 - AniList does not issue refresh tokens; reauthentication is expected.
+- Branded edge Custom Errors are not configured in the current deployment; failures outside Worker
+  control may still use Cloudflare's default page.

@@ -18,7 +18,7 @@ open-source project; there is no bug bounty.
 - Vulnerabilities in third-party provider sites, players or CDNs. Report those to the provider.
 - Content rights or takedown requests. Contact the maintainer privately.
 - Issues that require modifying the Android app; that repository has its own policy.
-- Reports from scanning a preview deployment that do not reproduce on `anilife.cc`.
+- Reports about a hostname not operated by Anilife that do not reproduce on `anilife.cc`.
 
 ## Model
 
@@ -50,7 +50,7 @@ open-source project; there is no bug bounty.
   `X-Frame-Options: DENY` are applied to ordinary responses. Ordinary pages use
   `frame-ancestors 'none'`; the dedicated `/activity` route alone allows verified Discord
   ancestors and omits the conflicting legacy header. Protected watch routes use `no-referrer`.
-  Preview hosts are `noindex`.
+  Public `workers.dev` and preview URLs are disabled.
 - Provider media plays in a cross-origin iframe. The app does not host, proxy or expose a
   downloadable episode URL, and episode downloads are disabled by product decision.
 - Discord Rich Presence uses the official Embedded App SDK only inside a Discord Activity. The

@@ -4,10 +4,11 @@ The browser/PWA client for Anilife. It shares the Anilife product semantics and 
 catalogue with the Android app, but uses browser conventions: real URLs, IndexedDB, a PWA shell
 and a small Cloudflare Worker for metadata mediation.
 
-Current release: **0.1.0** (2026-11-13), aligned with Anilife Android/TV 0.1.0.
+Current release: **0.1.3** (2026-11-23). The signed Android/TV download index also publishes
+stable **0.1.3** with six ABI/form-factor artifacts.
 
 - Production: `https://anilife.cc` (`www` redirects to the apex)
-- Preview: `https://anilife-web.adfreegames.workers.dev`
+- Public `workers.dev` and preview URLs are disabled; production uses the two custom domains only.
 - Reference app (read-only): `anilifecommunity/android-and-tv`
 
 ## Architecture
@@ -15,20 +16,20 @@ Current release: **0.1.0** (2026-11-13), aligned with Anilife Android/TV 0.1.0.
 ```
 AniList / media-index  ->  metadata + episode lists     (browser or Worker)
         |
-provider registry (42 servers, honest status per source)
+provider registry (44 candidates, four browser-eligible sources)
         |
 resolver (Worker) -> normalized PlaybackOffer v1 (streams or embed)
         |
-player: native HLS/MP4, or a provider player in a sandboxed iframe
+player: native HLS/MP4, or a provider-owned cross-origin player
 ```
 
 - The Worker is a **control plane**: it resolves provider metadata from fixed origins. It is not a
   media proxy and accepts no caller-supplied URL.
-- Playback uses automatic fallback across the enabled sources. Reanime returns a Flixcloud player
-  page; VidSrc, VidLink and 2Embed are separate embed fallbacks. The player also has an optional
-  manual Servers drawer.
-- **Episode downloads are intentionally disabled.** There is no Downloads tab, no download action
-  in the detail page or player, and `/downloads` redirects home.
+- Playback uses automatic fallback across four browser-verified sources. The UI keeps their
+  identities private as stable Server 1-4, with Zoko first; the optional Servers drawer exposes only
+  those anonymous choices.
+- **Episode downloads are intentionally disabled.** The first-class `/downloads` route distributes
+  the six signed Android/TV APKs; it never exposes or downloads episode media.
 - Local data (profiles, settings, history, library) lives in `localStorage` with an IndexedDB
   mirror and a versioned migration. No Anilife account or central user database exists.
 
@@ -71,13 +72,14 @@ export CLOUDFLARE_ACCOUNT_ID=...
 npm run deploy:worker
 ```
 
-`wrangler.jsonc` serves the Vite build through Workers Static Assets and runs the Worker first so
-security headers apply to every response. Preview hosts ending in `.workers.dev` are sent
-`X-Robots-Tag: noindex`. See `OPERATIONS.md` for secrets, rollback and the Turnstile/AniList setup.
+`wrangler.jsonc` serves the Vite build through Workers Static Assets. HTML, APIs, protected routes
+and errors run through the Worker; immutable same-origin assets bypass Worker execution and receive
+their static security/cache headers from `public/_headers`. See `OPERATIONS.md` for secrets,
+rollback and the Turnstile/AniList setup.
 
 ## Documentation
 
-- `docs/PROVIDERS.md` - the 42 provider entries and their real web status
+- `docs/PROVIDERS.md` - the four eligible sources and current exclusion evidence
 - `docs/OPERATIONS.md` - secrets, deploy, rollback, OAuth and Turnstile
 - `docs/RELEASE.md` - release gates and known limitations
 - `docs/SECURITY.md` - security model and reporting

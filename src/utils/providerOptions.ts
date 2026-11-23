@@ -1,6 +1,8 @@
 import { getProvider, isAttemptable, PROVIDERS } from '../resolver';
 import type { ServerOption } from '../types/anime';
 
+const STABLE_SERVER_ORDER = ['zoko', 'reanime', 'animeembed', 'vidlink'];
+
 export function isImplementedProvider(id: string): boolean {
   return getProvider(id)?.implemented === true;
 }
@@ -45,7 +47,12 @@ export function webServerOptions(hideAdult = false): ServerOption[] {
   return PROVIDERS.filter(
     (provider) => isAttemptable(provider) && (!hideAdult || !provider.capabilities.adultOnly)
   )
-    .sort((a, b) => Number(Boolean(b.implemented)) - Number(Boolean(a.implemented)))
+    .sort((a, b) => {
+      const aRank = STABLE_SERVER_ORDER.indexOf(a.id);
+      const bRank = STABLE_SERVER_ORDER.indexOf(b.id);
+      return (aRank < 0 ? Number.MAX_SAFE_INTEGER : aRank)
+        - (bRank < 0 ? Number.MAX_SAFE_INTEGER : bRank);
+    })
     .map((provider, index) => toServerOption(provider.id, index));
 }
 

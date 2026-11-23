@@ -35,6 +35,7 @@ await check('provider catalogue has at least 40 entries', async () => {
   const data = await response.json();
   assert(Array.isArray(data.providers), 'providers missing');
   assert(data.providers.length >= 40, `only ${data.providers.length}`);
+  assert(data.providers.every((item) => item.capabilities?.adultOnly !== true), 'adult provider leaked');
   assert(Array.isArray(data.downstreams), 'downstreams missing');
   assert(
     data.downstreams.some((item) => item.id === 'flixcloud' && item.status === 'in-use'),

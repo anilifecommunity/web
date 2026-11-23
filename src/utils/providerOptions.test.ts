@@ -4,6 +4,7 @@ import type { Anime } from '../types/anime';
 import { getAnimeAniListId } from './animeData';
 import { enabledServerIds, orderServerOptions, resolveServerOrder, serverFallbackNotice, webServerOptions } from './providerOptions';
 import { DOWNSTREAMS } from '../resolver';
+import { getProvider } from '../resolver';
 
 function sample(id: string, aniListId?: number): Anime {
   return { id, anilistId: aniListId } as unknown as Anime;
@@ -29,6 +30,30 @@ test('an absent server list enables every attemptable server', () => {
   assert.deepEqual(options.map((option) => option.name), ['Server 1', 'Server 2', 'Server 3', 'Server 4']);
   assert.deepEqual(enabledServerIds(undefined), all);
   assert.deepEqual(enabledServerIds([]), all);
+});
+
+test('an eligible adult server is appended and disappears completely when hidden', () => {
+  const adult = getProvider('hstream');
+  assert.ok(adult);
+  const originalStatus = adult.webStatus;
+  adult.webStatus = 'iframe';
+  try {
+    assert.deepEqual(
+      webServerOptions(false).map((option) => [option.id, option.name]),
+      [
+        ['zoko', 'Server 1'],
+        ['reanime', 'Server 2'],
+        ['animeembed', 'Server 3'],
+        ['vidlink', 'Server 4'],
+        ['hstream', 'Server 5'],
+      ],
+    );
+    assert.deepEqual(webServerOptions(true).map((option) => option.id), [
+      'zoko', 'reanime', 'animeembed', 'vidlink',
+    ]);
+  } finally {
+    adult.webStatus = originalStatus;
+  }
 });
 
 test('an explicit enable list is preserved without re-adding disabled servers', () => {

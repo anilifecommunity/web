@@ -33,13 +33,14 @@ import {
 } from '../utils/providerOptions';
 import { resolveEpisode } from '../utils/workerApi';
 import { displayAnimeTitle } from '../utils/animePreferences';
-import { fallbackAudioMode } from '../utils/playerUtils';
+import { dubSelectionAvailable, fallbackAudioMode } from '../utils/playerUtils';
 
 interface Props {
   anime: Anime;
   initialEpisodeNumber: number;
   initialAudioMode?: 'SUB' | 'DUB';
   initialAudioFallback?: boolean;
+  initialDubAvailability?: boolean | null;
   initialServerId?: string;
   watchSession: VideoPlaybackTarget['watchSession'];
   onClose: () => void;
@@ -52,6 +53,7 @@ export const VideoPlayer: React.FC<Props> = ({
   initialEpisodeNumber,
   initialAudioMode = 'SUB',
   initialAudioFallback = false,
+  initialDubAvailability = null,
   initialServerId,
   watchSession,
   onClose,
@@ -156,7 +158,10 @@ export const VideoPlayer: React.FC<Props> = ({
   const activeServerLabel = activeServer.name || 'Server';
   const numericAniListId = getAnimeAniListId(anime);
   const objectFitClass = screenSize === 'Fit' ? 'object-contain' : screenSize === 'Crop' ? 'object-cover' : 'object-fill';
-  const canDub = switchableServers.some((server) => server.supportsDub);
+  const canDub = dubSelectionAvailable(
+    initialDubAvailability,
+    switchableServers.some((server) => server.supportsDub),
+  );
   const notAiredError = /has not aired|not confirmed as available/i.test(error);
   const displayTitle = displayAnimeTitle(anime, settings.titleLanguage);
 
@@ -260,6 +265,7 @@ export const VideoPlayer: React.FC<Props> = ({
         order: resolveServerOrder(serverOptions, activeServer.id, enabledIds),
         enabled: enabledIds,
         fallback: true,
+        hideAdult: settings.hideAdultContent,
         watchSession,
       }, abort.signal);
       if (cancelled) return;
@@ -318,6 +324,7 @@ export const VideoPlayer: React.FC<Props> = ({
     selectedSubLanguage,
     serverNonce,
     serverOptions,
+    settings.hideAdultContent,
     watchSession,
   ]);
 

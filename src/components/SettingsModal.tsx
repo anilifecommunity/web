@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AppSettings, ThemePresetName } from '../types/anime';
-import { SERVERS } from '../utils/animeData';
+import { webServerOptions } from '../utils/providerOptions';
 import { STORAGE_KEYS, THEME_PRESETS } from '../utils/storage';
 import {
   ArrowLeft,
@@ -78,7 +78,8 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   }, [onClose]);
 
   const presetsList = Object.keys(THEME_PRESETS) as ThemePresetName[];
-  const serverIds = SERVERS.map((server) => server.id);
+  const servers = webServerOptions(settings.hideAdultContent);
+  const serverIds = servers.map((server) => server.id);
   const configuredPriority = (settings.serverPriority ?? []).filter((id) => serverIds.includes(id));
   const priorityIds = configuredPriority.length > 0 ? configuredPriority : serverIds;
   const enabledIds =
@@ -627,7 +628,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   </div>
                   <div className="text-base font-bold text-white mt-0.5">Enabled servers</div>
                   <div className="text-xs text-zinc-400 mt-0.5">
-                    {enabledIds.length} of {SERVERS.length} on
+                    {enabledIds.length} of {servers.length} on
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -657,7 +658,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
 
               <div className="space-y-2">
                 {priorityIds.map((serverId, idx) => {
-                  const server = SERVERS.find(s => s.id === serverId);
+                  const server = servers.find(s => s.id === serverId);
                   if (!server) return null;
                   const isEnabled = enabledIds.includes(serverId);
                   const isDefault = settings.activeServer === serverId;

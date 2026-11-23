@@ -8,6 +8,7 @@ import {
   clampSpeed,
   fallbackAudioMode,
   availableAudioMode,
+  dubSelectionAvailable,
 } from './playerUtils';
 
 test('formatTime correctly formats seconds', () => {
@@ -53,4 +54,8 @@ test('verified title audio keeps dub preference unless the catalogue says it is 
   assert.equal(availableAudioMode('DUB', false), 'SUB');
   assert.equal(availableAudioMode('DUB', null), 'DUB');
   assert.equal(availableAudioMode('SUB', false), 'SUB');
+  assert.equal(dubSelectionAvailable(false, true), false);
+  assert.equal(dubSelectionAvailable(true, true), true);
+  assert.equal(dubSelectionAvailable(null, true), true);
+  assert.equal(dubSelectionAvailable(true, false), false);
 });

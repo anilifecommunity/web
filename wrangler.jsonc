@@ -5,7 +5,8 @@
   "compatibility_date": "2026-11-01",
   "vars": {
     "APP_ENV": "production",
-    "DISCORD_CLIENT_ID": "1567279187893551185"
+    "DISCORD_CLIENT_ID": "1567279187893551185",
+    "AUTH_BASE_URL": "https://anilife.cc"
   },
   "workers_dev": false,
   "preview_urls": false,
@@ -25,6 +26,12 @@
       "binding": "RELEASE_INDEX_USAGE",
       "database_name": "anilife-release-index-usage",
       "database_id": "ab0cee67-1147-43d1-adf5-6123f5d1fa81"
+    },
+    {
+      "binding": "ANILIFE_CLOUD_DB",
+      "database_name": "anilife-cloud-sync",
+      "database_id": "8b72ce9e-895d-4d38-bb47-07ea776d91de",
+      "migrations_dir": "migrations/cloud-sync"
     }
   ],
   "assets": {

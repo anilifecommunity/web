@@ -5,6 +5,7 @@ import { RequestBodyError, readRequestJsonCapped } from './guards';
 import { json, parseInteger } from './http';
 import { hit } from './rateLimit';
 import type { Env } from './index';
+import { deleteRecoverySnapshot, recordCloudMetric, writeRecoverySnapshot } from './cloudRecovery';
 
 const PROTOCOL_VERSION = 1;
 const MAX_REQUEST_BYTES = 128 * 1024;
@@ -508,6 +509,7 @@ async function handleExport(
 
 async function handleSync(
   request: Request,
+  env: Env,
   requestId: string,
   session: CloudSession,
   db: D1Database,
@@ -525,6 +527,7 @@ async function handleSync(
   const operations = body.ops.map(parseSyncOperation);
   if (operations.some((operation) => !operation)) return error(422, 'invalid_request', requestId);
   const valid = operations as SyncOperation[];
+  await recordCloudMetric(db, 'sync_requests');
   if (new Set(valid.map((operation) => operation.opId)).size !== valid.length) {
     return error(422, 'invalid_request', requestId);
   }
@@ -543,6 +546,12 @@ async function handleSync(
   }
   const acknowledged = new Set(existing.keys());
   const pending = hashed.filter((operation) => !acknowledged.has(operation.opId));
+  if (pending.length && env.CLOUD_SYNC_WRITES_ENABLED !== 'true') {
+    await recordCloudMetric(db, 'sync_errors');
+    return json({ error: 'sync_writes_disabled', requestId, retryAfterSeconds: 300 }, 503, {
+      'Retry-After': '300',
+    });
+  }
   const knownDevice = await db.prepare(
     'SELECT revoked_at FROM sync_devices WHERE account_id = ?1 AND device_id = ?2',
   ).bind(session.userId, body.deviceId).first<{ revoked_at: number | null }>();
@@ -550,7 +559,10 @@ async function handleSync(
     return error(403, 'forbidden', requestId);
   }
   const stale = await conflicts(db, session.userId, pending, acknowledged);
-  if (stale.length) return conflictResponse(requestId, stale);
+  if (stale.length) {
+    await recordCloudMetric(db, 'sync_conflicts');
+    return conflictResponse(requestId, stale);
+  }
   if (pending.length) {
     try {
       await db.batch(receiptStatements(db, session.userId, body.deviceId, pending, Date.now()));
@@ -558,10 +570,18 @@ async function handleSync(
       const after = await receipts(db, session.userId, pending);
       if (after.size !== pending.length || pending.some((operation) => after.get(operation.opId)?.operation_hash !== operation.hash)) {
         const raced = await conflicts(db, session.userId, pending, new Set(after.keys()));
-        if (raced.length) return conflictResponse(requestId, raced);
+        if (raced.length) {
+          await recordCloudMetric(db, 'sync_conflicts');
+          return conflictResponse(requestId, raced);
+        }
+        await recordCloudMetric(db, 'sync_errors');
         return error(409, 'revision_conflict', requestId);
       }
     }
+    await recordCloudMetric(db, 'sync_operations', pending.length);
+    await writeRecoverySnapshot(env, session.userId).catch(async () => {
+      await recordCloudMetric(db, 'recovery_errors');
+    });
   }
   const result = await readPage(db, key, session.userId, sequence, DEFAULT_PAGE_SIZE, {
     protocolVersion: 1,
@@ -592,6 +612,9 @@ async function handleDelete(request: Request, env: Env, requestId: string, sessi
   if (body.protocolVersion !== PROTOCOL_VERSION) return protocolError(requestId);
   if (!exact(body, ['protocolVersion', 'confirmation']) || body.confirmation !== 'DELETE') {
     return error(422, 'invalid_request', requestId);
+  }
+  if (!(await deleteRecoverySnapshot(env, session.userId))) {
+    return error(503, 'recovery_unavailable', requestId);
   }
   await db.prepare('DELETE FROM "user" WHERE id = ?1').bind(session.userId).run();
   const response = new Response(null, { status: 204, headers: { 'Cache-Control': 'private, no-store' } });
@@ -634,7 +657,7 @@ export async function handleCloudSync(
   }
   if (path === '/api/v1/bootstrap') return handleBootstrap(request, env, requestId, session, db, key);
   if (path === '/api/v1/export') return handleExport(request, requestId, session, db, key);
-  if (path === '/api/v1/sync') return handleSync(request, requestId, session, db, key);
+  if (path === '/api/v1/sync') return handleSync(request, env, requestId, session, db, key);
   if (path === '/api/v1/devices/revoke') return handleRevoke(request, requestId, session, db);
   return handleDelete(request, env, requestId, session, db);
 }

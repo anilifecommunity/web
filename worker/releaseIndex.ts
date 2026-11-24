@@ -4,7 +4,7 @@ import { RequestBodyError, readRequestBytesCapped } from './guards';
 const INDEX_KEY = 'releases/stable.json';
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_CLOCK_SKEW_SECONDS = 300;
-const MAX_CLASS_A_PER_31_DAYS = 750_000;
+const MAX_CLASS_A_PER_31_DAYS = 740_000;
 const MAX_CLASS_B_PER_31_DAYS = 7_500_000;
 // shortcut: publisher invalidation is PoP-local; add cache-tag purge if release propagation must be immediate.
 const PUBLIC_CACHE_CONTROL = 'public, max-age=30, s-maxage=300';

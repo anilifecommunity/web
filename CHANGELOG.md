@@ -17,6 +17,9 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 - Added the optional local-first Web Cloud Sync client with Discord sign-in, merge preview,
   account-partitioned offline journaling, conflict choices, cross-tab coordination, portable export,
   device revocation and remote-data deletion. Guest viewing remains local-only by default.
+- Added private weekly-on-change Cloud Sync recovery snapshots with opaque server-derived object
+  names, integrity metadata, account-purge handling, aggregate operational metrics and a truthful
+  emergency write switch that leaves local client journals intact.
 
 ### Changed
 

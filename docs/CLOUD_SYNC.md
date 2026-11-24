@@ -45,5 +45,17 @@ The sync data routes are deployed for authenticated contract clients. The Web cl
 durable account-partitioned IndexedDB journal, batches ordinary edits, preserves failed operations,
 and exposes manual sync, disconnect, device revocation, portable export and remote deletion under
 Settings → Accounts & Sync. Profile PINs, provider choices, credentials and diagnostics remain
-local. A private R2 disaster-recovery snapshot is a separate operational layer and is not required
-for the user-facing D1 sync protocol.
+local.
+
+## Recovery boundary
+
+D1 remains the primary sync store. After a real change, the Worker may replace one private recovery
+object for that account no more than weekly; failed attempts are limited to once daily. The object
+name is an HMAC-derived server value, the bucket has no public URL or custom domain, and account
+deletion removes the object before deleting D1 state. Snapshots are capped at 1 MiB and carry a
+SHA-256 integrity value. They are encrypted in transit and by Cloudflare at rest, but are not
+end-to-end encrypted; only a separately user-passphrase-sealed export could make that claim.
+
+The emergency `CLOUD_SYNC_WRITES_ENABLED` switch rejects new mutations with a retry window while
+bootstrap/export remain available. Web clients retain the durable local outbox and do not report
+those writes as synced.

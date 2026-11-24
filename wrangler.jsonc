@@ -5,6 +5,7 @@
   "compatibility_date": "2026-11-01",
   "vars": {
     "APP_ENV": "production",
+    "CLOUD_SYNC_WRITES_ENABLED": "true",
     "DISCORD_CLIENT_ID": "1567279187893551185",
     "AUTH_BASE_URL": "https://anilife.cc"
   },
@@ -19,7 +20,8 @@
     "traces": { "enabled": true, "head_sampling_rate": 0.01 }
   },
   "r2_buckets": [
-    { "binding": "RELEASE_INDEX_BUCKET", "bucket_name": "anilife-release-index" }
+    { "binding": "RELEASE_INDEX_BUCKET", "bucket_name": "anilife-release-index" },
+    { "binding": "CLOUD_RECOVERY_BUCKET", "bucket_name": "anilife-cloud-recovery" }
   ],
   "d1_databases": [
     {

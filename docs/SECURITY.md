@@ -71,7 +71,8 @@ open-source project; there is no bug bounty.
 - No secret belongs in source, the bundle, `VITE_*`, Git history, an issue or a log.
 - AniList uses the public implicit flow; there is no client secret.
 - Runtime secrets are Wrangler secrets: `TURNSTILE_SECRET`, `GATE_SIGNING_KEY`,
-  `WATCH_TOKEN_KEY`, `BETTER_AUTH_SECRET`, `SYNC_CURSOR_KEY` and `DISCORD_CLIENT_SECRET`.
+  `WATCH_TOKEN_KEY`, `BETTER_AUTH_SECRET`, `SYNC_CURSOR_KEY`, `CLOUD_RECOVERY_KEY` and
+  `DISCORD_CLIENT_SECRET`.
   `WATCH_TOKEN_PREVIOUS_KEY` is used only during an intentional key rotation.
 - The historical AniList client secret that shipped in the old web source was revoked by the
   application owner on 2026-11-08. Removing a secret from HEAD is not a rotation; revoke it at the

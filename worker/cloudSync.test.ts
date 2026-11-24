@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
 import test from 'node:test';
-import type { D1Database, D1PreparedStatement, D1Result } from '@cloudflare/workers-types';
+import type { D1Database, D1PreparedStatement, D1Result, R2Bucket } from '@cloudflare/workers-types';
 import { createSyncCursor, handleCloudSync, parseSyncOperation, readSyncCursor } from './cloudSync';
 import type { Env } from './index';
 
@@ -33,6 +33,7 @@ class Statement {
 
 class Database {
   readonly sqlite = new DatabaseSync(':memory:');
+  readonly bucket = new Bucket();
   prepare(query: string): D1PreparedStatement {
     return new Statement(this.sqlite.prepare(query)) as unknown as D1PreparedStatement;
   }
@@ -50,9 +51,26 @@ class Database {
   }
 }
 
+class Bucket {
+  readonly objects = new Map<string, { body: Uint8Array; customMetadata?: Record<string, string> }>();
+  puts = 0;
+  failPut = false;
+
+  async put(key: string, value: Uint8Array, options?: { customMetadata?: Record<string, string> }) {
+    if (this.failPut) throw new Error('r2 unavailable');
+    this.puts += 1;
+    this.objects.set(key, { body: new Uint8Array(value), customMetadata: options?.customMetadata });
+    return { key };
+  }
+
+  async delete(key: string) {
+    this.objects.delete(key);
+  }
+}
+
 async function database(): Promise<Database> {
   const db = new Database();
-  for (const name of ['0001_auth.sql', '0002_sync_core.sql', '0003_provider_identity_unique.sql', '0004_atomic_sync.sql']) {
+  for (const name of ['0001_auth.sql', '0002_sync_core.sql', '0003_provider_identity_unique.sql', '0004_atomic_sync.sql', '0005_recovery_operations.sql']) {
     db.sqlite.exec(await readFile(new URL(`../migrations/cloud-sync/${name}`, import.meta.url), 'utf8'));
   }
   db.sqlite.prepare(`INSERT INTO "user" (id, name, email, emailVerified, createdAt, updatedAt)
@@ -60,12 +78,16 @@ async function database(): Promise<Database> {
   return db;
 }
 
-function env(db: Database): Env {
+function env(db: Database, overrides: Partial<Env> = {}): Env {
   return {
     ANILIFE_CLOUD_DB: db as unknown as D1Database,
     SYNC_CURSOR_KEY: KEY,
+    CLOUD_RECOVERY_BUCKET: db.bucket as unknown as R2Bucket,
+    CLOUD_RECOVERY_KEY: 'r'.repeat(48),
+    CLOUD_SYNC_WRITES_ENABLED: 'true',
     AUTH_BASE_URL: 'https://anilife.cc',
     ASSETS: { fetch: async () => new Response('asset') },
+    ...overrides,
   } as unknown as Env;
 }
 
@@ -139,8 +161,49 @@ test('a sync batch commits atomically and exact retries are idempotent', async (
   assert.equal(body.acknowledged.length, 10);
   assert.equal(body.changes.length, 10);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS count FROM sync_items').get()?.count, 10);
+  assert.equal(db.bucket.puts, 1);
+  const [key, stored] = [...db.bucket.objects.entries()][0];
+  assert.equal(key.includes(ACCOUNT), false);
+  assert.equal(new TextDecoder().decode(stored.body).includes(ACCOUNT), false);
+  const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', stored.body.buffer as ArrayBuffer))]
+    .map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  assert.equal(stored.customMetadata?.sha256, hash);
   assert.equal((await sync(db, ops, csrf)).status, 200);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS count FROM sync_changes').get()?.count, 10);
+  assert.equal(db.bucket.puts, 1);
+});
+
+test('the emergency write switch leaves new operations queued without changing D1', async () => {
+  const db = await database();
+  const { csrf } = await bootstrap(db);
+  const response = await handleCloudSync(new Request('https://anilife.cc/api/v1/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: 'https://anilife.cc', 'X-Anilife-CSRF': csrf, Cookie: `__Host-anilife-csrf=${csrf}` },
+    body: JSON.stringify({ protocolVersion: 1, deviceId: DEVICE, cursor: null, ops: [operation(1)] }),
+  }), env(db, { CLOUD_SYNC_WRITES_ENABLED: 'false' }), 'request-disabled-1', SESSION);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get('Retry-After'), '300');
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS count FROM sync_items').get()?.count, 0);
+});
+
+test('recovery stops at its reserved Class A budget without failing primary sync', async () => {
+  const db = await database();
+  const { csrf } = await bootstrap(db);
+  assert.equal((await sync(db, [operation(1)], csrf)).status, 200);
+  db.sqlite.prepare('UPDATE sync_accounts SET recovery_snapshot_at = NULL, recovery_attempt_at = NULL').run();
+  db.sqlite.prepare(`UPDATE cloud_sync_metrics SET recovery_class_a = 10000`).run();
+  assert.equal((await sync(db, [operation(2)], csrf)).status, 200);
+  assert.equal(db.bucket.puts, 1);
+  assert.equal(db.sqlite.prepare('SELECT recovery_errors FROM cloud_sync_metrics').get()?.recovery_errors, 1);
+});
+
+test('an R2 outage never rolls back or misreports the primary D1 commit', async () => {
+  const db = await database();
+  db.bucket.failPut = true;
+  const { csrf } = await bootstrap(db);
+  assert.equal((await sync(db, [operation(1)], csrf)).status, 200);
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS count FROM sync_items').get()?.count, 1);
+  assert.equal(db.sqlite.prepare('SELECT recovery_errors FROM cloud_sync_metrics').get()?.recovery_errors, 1);
 });
 
 test('one stale operation rejects the whole batch without dropping another edit', async () => {
@@ -199,6 +262,7 @@ test('account deletion is scoped to the authenticated user and cascades sync dat
   const db = await database();
   const { csrf } = await bootstrap(db);
   assert.equal((await sync(db, [operation(1)], csrf)).status, 200);
+  assert.equal(db.bucket.objects.size, 1);
   const response = await handleCloudSync(new Request('https://anilife.cc/api/v1/account', {
     method: 'DELETE', headers: { 'Content-Type': 'application/json', Origin: 'https://anilife.cc', 'X-Anilife-CSRF': csrf, Cookie: `__Host-anilife-csrf=${csrf}` },
     body: JSON.stringify({ protocolVersion: 1, confirmation: 'DELETE' }),
@@ -206,4 +270,5 @@ test('account deletion is scoped to the authenticated user and cascades sync dat
   assert.equal(response.status, 204);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS count FROM "user"').get()?.count, 0);
   assert.equal(db.sqlite.prepare('SELECT COUNT(*) AS count FROM sync_items').get()?.count, 0);
+  assert.equal(db.bucket.objects.size, 0);
 });

@@ -1,6 +1,6 @@
 # CI and GitHub security
 
-Status as of 2026-11-08. "Configured in Git" means the repository file exists. "GitHub setting"
+Status as of 2026-11-24. "Configured in Git" means the repository file exists. "GitHub setting"
 means a repository setting outside Git. "Verified" means checked through the GitHub API.
 
 ## Workflow matrix
@@ -43,8 +43,8 @@ Node 24 matches the local toolchain and Vite 8's supported range.
 | Secret scanning | No file needed | Enabled | Yes | None |
 | Secret scanning push protection | No file needed | Enabled | Yes | None |
 | Private vulnerability reporting | No file needed | Enabled | Yes | None |
-| Ruleset for `main` | Template only | No rulesets | Yes | Import template |
-| Branch protection | Not used | Not protected | Yes | Use a ruleset |
+| Ruleset for `main` | Template retained | Active `main-protection` ruleset | Yes | None |
+| Branch protection | Repository ruleset | PRs, resolved threads and three hosted checks required | Yes | None |
 | Actions default token | Not applicable | Read-only | Yes | None |
 | Require SHA-pinned actions | Not applicable | Enabled | Yes | None |
 | Production environment | Not used | No environments | Yes | Optional |
@@ -60,15 +60,10 @@ only if a future audit needs to confirm:
 3. Dependabot alerts, Dependabot security updates, secret scanning, push protection and private
    vulnerability reporting stay on.
 
-Open `https://github.com/anilifecommunity/web/settings/rules`:
-
-1. New ruleset, target `main`, import `docs/ruleset-main.json` (or POST it with
-   `gh api repos/anilifecommunity/web/rulesets -X POST --input docs/ruleset-main.json`).
-2. Confirm the required check names after the first CI, CodeQL and dependency-review runs. The
-   template uses the job names `Lint, test, build and smoke`, `Analyze javascript-typescript` and
-   `Dependency review`.
-3. Add yourself as a bypass actor if you work alone, or raise approvals to one once a second
-   maintainer exists.
+The active `main-protection` ruleset was created from `docs/ruleset-main.json` on 2026-11-24. It
+requires `Lint, test, build and smoke`, `Analyze javascript-typescript` and `Dependency review`,
+plus resolved review threads. It blocks deletion and non-fast-forward updates. The zero-approval
+policy reflects the current single-maintainer repository; raise it when a second maintainer exists.
 
 Optional: create a `production` environment with required reviewers before any deployment workflow
 is added. Production deployment is currently manual Wrangler and is not part of CI.
@@ -81,7 +76,7 @@ For alerts, use **Watch > Custom > Security alerts**. Do not add a third-party s
 - `npm audit --audit-level=high`: 0 vulnerabilities. The Discord SDK's zod range is overridden to
   patched zod 4.6.7; the SDK module and mock were load-tested with the override.
 - `npm run lint`: pass (app and Worker TypeScript).
-- `npm test`: 71 tests pass.
+- `npm test`: 243 tests pass.
 - `npm run build`: pass.
 - Local Wrangler smoke: all checks pass with the gate disabled, using an unavailable provider.
 - Workflow YAML parsed successfully.

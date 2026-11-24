@@ -4,7 +4,7 @@ The browser/PWA client for Anilife. It shares the Anilife product semantics and 
 catalogue with the Android app, but uses browser conventions: real URLs, IndexedDB, a PWA shell
 and a small Cloudflare Worker for metadata mediation.
 
-Current release: **0.1.3** (2026-11-23). The signed Android/TV download index also publishes
+Current release: **0.1.4** (2026-11-24). The signed Android/TV download index independently publishes
 stable **0.1.3** with six ABI/form-factor artifacts.
 
 - Production: `https://anilife.cc` (`www` redirects to the apex)

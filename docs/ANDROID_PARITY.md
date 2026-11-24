@@ -6,7 +6,7 @@ layouts or Android-only device controls.
 
 ## Shared product contracts
 
-| Contract | Web 0.1.3 behavior |
+| Contract | Web 0.1.4 behavior |
 | --- | --- |
 | Identity | AniList ID remains stable across routes, lists, progress, Media Index and manga relations. |
 | Library | AniList list state and local playback history merge without regressing local progress; Continue Watching and Rewatching are first-class views. |

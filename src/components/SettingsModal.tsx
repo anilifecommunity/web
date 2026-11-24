@@ -1052,7 +1052,7 @@ export const SettingsModal: React.FC<{ onClose: () => void }> = ({ onClose }) =>
                   />
                   <div>
                     <h3 className="text-base font-black text-white tracking-wide">Anilife</h3>
-                    <p className="text-xs text-[var(--anilife-accent)]">Version 0.1.3</p>
+                    <p className="text-xs text-[var(--anilife-accent)]">Version 0.1.4</p>
                   </div>
                 </div>
 

@@ -118,7 +118,7 @@ function validSetting(value: unknown): value is JsonObject {
   if (value.key === 'themePreset') return text(value.value, 1, 32);
   if (value.key === 'accentColor') return typeof value.value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value.value);
   if (value.key === 'watchedThreshold') return finite(value.value, 50, 100);
-  if (value.key === 'skipButtonLength') return finite(value.value, 1, 60);
+  if (value.key === 'skipButtonLength') return finite(value.value, 5, 180);
   return value.key === 'playbackSpeed' && finite(value.value, 0.25, 4);
 }
 

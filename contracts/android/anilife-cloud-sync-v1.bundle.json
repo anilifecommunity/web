@@ -426,7 +426,7 @@
     },
     {
       "path": "contracts/cloud-sync.v1.schema.json",
-      "sha256": "33b3b44d247346525daefe34c18acaa8219d9381a0e3f98d61f9c06fa450d99e",
+      "sha256": "666ff6e6df9f5d4842ab0aa7d332c89e274c879307e4bf926d1beba5d82fc6b4",
       "content": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "https://anilife.cc/contracts/cloud-sync.v1.schema.json",
@@ -698,8 +698,8 @@
                   },
                   "value": {
                     "type": "number",
-                    "minimum": 1,
-                    "maximum": 60
+                    "minimum": 5,
+                    "maximum": 180
                   }
                 }
               },
@@ -1601,7 +1601,7 @@
     },
     {
       "path": "contracts/fixtures/cloud-sync/v1/sync-request.json",
-      "sha256": "37137541f2eb2d3650681d7cae2da074d6a49d90ce4c3fca7015b19a75fe994c",
+      "sha256": "70b3cac374fe6cc6043770dd1b07407bb8f26fb30191658bcd215fdb94c80f4e",
       "content": {
         "protocolVersion": 1,
         "deviceId": "00000000-0000-4000-8000-000000000002",
@@ -1625,6 +1625,18 @@
               },
               "status": "Watching",
               "progress": 3
+            }
+          },
+          {
+            "opId": "00000000-0000-4000-8000-000000000004",
+            "profileId": "00000000-0000-4000-8000-000000000003",
+            "entityType": "portable_setting",
+            "entityKey": "setting:skipButtonLength",
+            "action": "upsert",
+            "baseRevision": 0,
+            "value": {
+              "key": "skipButtonLength",
+              "value": 85
             }
           }
         ]

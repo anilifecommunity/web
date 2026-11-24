@@ -142,6 +142,18 @@ test('operation validation rejects unknown fields, mismatched media and oversize
   assert.equal(parseSyncOperation({ ...operation(), value: { ...operation().value, padding: 'x'.repeat(11_000) } }), null);
 });
 
+test('operation validation accepts the 85-second web skip-button default', () => {
+  assert.ok(parseSyncOperation({
+    opId: '00000000-0000-4000-8000-000000000004',
+    profileId: PROFILE,
+    entityType: 'portable_setting',
+    entityKey: 'setting:skipButtonLength',
+    action: 'upsert',
+    baseRevision: 0,
+    value: { key: 'skipButtonLength', value: 85 },
+  }));
+});
+
 test('bootstrap is read-only, bounded and issues session-bound browser values', async () => {
   const db = await database();
   const result = await bootstrap(db);

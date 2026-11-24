@@ -22,6 +22,18 @@
         "status": "Watching",
         "progress": 3
       }
+    },
+    {
+      "opId": "00000000-0000-4000-8000-000000000004",
+      "profileId": "00000000-0000-4000-8000-000000000003",
+      "entityType": "portable_setting",
+      "entityKey": "setting:skipButtonLength",
+      "action": "upsert",
+      "baseRevision": 0,
+      "value": {
+        "key": "skipButtonLength",
+        "value": 85
+      }
     }
   ]
 }

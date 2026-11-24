@@ -13,12 +13,14 @@ test('cloud sync migrations build an isolated, referentially sound schema', asyn
   db.exec(await migration('0002_sync_core.sql'));
   db.exec(await migration('0003_provider_identity_unique.sql'));
   db.exec(await migration('0004_atomic_sync.sql'));
+  db.exec(await migration('0005_recovery_operations.sql'));
 
   const tables = db.prepare(
     "SELECT name FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
   ).all().map((row) => String(row.name));
   assert.deepEqual(tables, [
     'account',
+    'cloud_sync_metrics',
     'session',
     'sync_accounts',
     'sync_changes',

@@ -189,7 +189,7 @@ test('publishes a valid index and invalidates the public cache', async () => {
   assert.deepEqual(cache.deletes, ['https://anilife.cc/downloads/index.json']);
   assert.equal(bucket.metadata.sequence, '5');
   assert.deepEqual([usage.classA, usage.classB], [1, 1]);
-  assert.deepEqual(usage.limits, [7_500_000, 750_000]);
+  assert.deepEqual(usage.limits, [7_500_000, 740_000]);
 });
 
 test('rejects bad HMAC and expired or future timestamps', async () => {

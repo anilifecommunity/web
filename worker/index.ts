@@ -27,7 +27,7 @@ import {
 } from './releaseIndex';
 import { handleAuth } from './auth';
 import { handleCloudSync } from './cloudSync';
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 
 export interface Env extends ReleaseIndexEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
@@ -50,6 +50,12 @@ export interface Env extends ReleaseIndexEnv {
   AUTH_BASE_URL?: string;
   /** Independent HMAC key for account-bound sync cursors and CSRF values. */
   SYNC_CURSOR_KEY?: string;
+  /** Private recovery bucket. It has no public route or caller-selected object key. */
+  CLOUD_RECOVERY_BUCKET?: R2Bucket;
+  /** Independent HMAC key used only to derive opaque recovery object names. */
+  CLOUD_RECOVERY_KEY?: string;
+  /** Emergency switch. Reads/exports remain available while clients retain queued writes. */
+  CLOUD_SYNC_WRITES_ENABLED?: string;
 }
 
 const DISCORD_CLIENT_ID = '1567279187893551185';

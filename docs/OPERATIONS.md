@@ -20,6 +20,7 @@ npx wrangler secret put GATE_SIGNING_KEY
 npx wrangler secret put WATCH_TOKEN_KEY
 npx wrangler secret put BETTER_AUTH_SECRET
 npx wrangler secret put DISCORD_CLIENT_SECRET
+npx wrangler secret put CLOUD_RECOVERY_KEY
 ```
 
 `GATE_SIGNING_KEY` should be at least 32 random bytes, base64url encoded. Rotating it invalidates
@@ -46,6 +47,11 @@ Cloud account data uses the dedicated `ANILIFE_CLOUD_DB` binding and
 values. Generate independent random values for staging and production and never store them in a
 vars file. Rotating this key invalidates outstanding cursors and CSRF values, so schedule rotation
 as a documented client re-bootstrap window.
+
+`CLOUD_RECOVERY_KEY` is another independent random value of at least 32 bytes. It derives opaque
+private R2 object names and must not reuse any session, cursor, gate, watch or publisher key. The
+`CLOUD_RECOVERY_BUCKET` binding points at `anilife-cloud-recovery` in production and the isolated
+staging bucket in staging. Neither bucket may have an `r2.dev` URL or custom domain.
 
 Before a remote migration, record a Time Travel bookmark, apply to the isolated staging database,
 run `PRAGMA foreign_key_check`, and only then repeat for production:
@@ -124,6 +130,19 @@ redacted codes only.
 A light Worker plus static assets normally fits the free or low tier. Provider embeds load media
 from their own hosts, so bandwidth is not billed to this Worker. Do not add a media relay without a
 separate cost and rights review.
+
+Cloud-controlled R2 operations hard-stop below 75% of the currently published free allowance:
+release publishing is allocated at most 740,000 Class A operations per rolling 31 days and private
+recovery at most 10,000, totaling 750,000 of Cloudflare's 1,000,000 free Class A operations. Public
+release reads remain capped at 7,500,000 of the 10,000,000 free Class B operations. Recovery storage
+is capped at 7 GB, leaving at least 0.5 GB of the 7.5 GB budget for the tiny release object. These
+application caps are deliberately lower than the account plan and fail closed if accounting is
+unavailable. Recheck the official R2 pricing page before changing them:
+https://developers.cloudflare.com/r2/pricing/
+
+`CLOUD_SYNC_WRITES_ENABLED=false` is the emergency kill switch. It leaves private reads and export
+available but returns a retryable 503 for new writes so clients keep their local outbox. It must
+never be described as a successful sync.
 
 ## Provider checks
 

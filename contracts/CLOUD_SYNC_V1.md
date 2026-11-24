@@ -1,7 +1,7 @@
 # Anilife Cloud Sync v1 contract
 
-Status: published protocol contract with a reviewed Worker implementation. User-facing Cloud Sync
-remains unavailable until the local-first client and deployment gates pass.
+Status: published protocol contract with a reviewed Worker implementation and opt-in local-first
+Web client deployed in production.
 
 ## Local-first boundary
 

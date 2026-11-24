@@ -5,6 +5,8 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-11-24
+
 ### Added
 
 - Published the machine-readable Anilife Cloud Sync v1 OpenAPI, strict JSON Schema, fixtures and
@@ -24,7 +26,14 @@ This file records user-visible changes to Anilife Web. Dates use UTC. A version 
 ### Changed
 
 - Corrected public architecture, operations, parity, provider and release documentation to match
-  the deployed 0.1.3 routes, source eligibility and disabled preview surface.
+  the deployed production routes, source eligibility and disabled preview surface.
+
+### Security & Privacy
+
+- Added an active Cloudflare zone rate limit for verification, protected watch-session and resolver
+  abuse while leaving public browsing, downloads and Cloud Sync outside the rule.
+- Protected `main` with pull requests, resolved review threads, CI, CodeQL and dependency review;
+  branch deletion and force-push are blocked.
 
 ## [0.1.3] - 2026-11-23
 
@@ -237,7 +246,8 @@ browser and PWA client at `https://anilife.cc`.
 - AniList does not issue refresh tokens; reauthentication is expected.
 - Episode downloads are disabled by product decision.
 
-[Unreleased]: https://github.com/anilifecommunity/web/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/anilifecommunity/web/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/anilifecommunity/web/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/anilifecommunity/web/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/anilifecommunity/web/releases/tag/v0.1.2
 [0.1.0]: https://github.com/anilifecommunity/web/releases/tag/v0.1.0

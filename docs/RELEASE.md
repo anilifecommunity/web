@@ -1,6 +1,6 @@
 # Release gates
 
-Current Web release: **0.1.3** (2026-11-23). Production: `https://anilife.cc`.
+Current Web release: **0.1.4** (2026-11-24). Production: `https://anilife.cc`.
 Public `workers.dev` and preview URLs are disabled.
 
 | Gate | Status | Evidence |
@@ -20,9 +20,10 @@ Public `workers.dev` and preview URLs are disabled.
 | Signed Android/TV downloads | DONE | `/downloads`; exact stable 0.1.3 sequence-6 six-APK index |
 | Cost boundary | DONE | Static assets bypass Worker; cached index; D1-enforced 75% R2 hard stop |
 | CI and security review | DONE | CI, dependency review and both CodeQL gates passed on release PRs |
+| Protected `main` | DONE | Active repository ruleset requires PRs, resolved threads and all hosted checks |
 | Production deploy/rollback | DONE | Worker deployment/version history and `wrangler rollback` procedure |
 | Real browser/device matrix | OWNER-RUN | Brave/phone/Safari/raw-player interaction is delegated to the owner |
-| Zone WAF/rate-limit rule | EXTERNAL | Code protection is live; zone write requires an admin-scoped credential/dashboard session |
+| Zone WAF/rate-limit rule | DONE | Active 20 requests/10 seconds per-IP rule covers verification, watch-session and resolver APIs |
 
 ## Release procedure
 

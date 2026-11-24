@@ -20,6 +20,7 @@ npx wrangler secret put GATE_SIGNING_KEY
 npx wrangler secret put WATCH_TOKEN_KEY
 npx wrangler secret put BETTER_AUTH_SECRET
 npx wrangler secret put DISCORD_CLIENT_SECRET
+npx wrangler secret put SYNC_CURSOR_KEY
 npx wrangler secret put CLOUD_RECOVERY_KEY
 ```
 
@@ -75,6 +76,15 @@ the database-wide consequence.
   Deployed Workers carry `APP_ENV=production` from `wrangler.jsonc`; in that mode a missing secret
   makes `/api/resolve` fail closed with 503. Local development and CI start Wrangler with
   `--var APP_ENV:test`.
+
+## Cloudflare zone rate limit
+
+The Free-plan rate-limit slot protects `POST /api/gate/verify`, `POST /api/gate/discord`,
+`POST /api/watch/session`, `POST /api/watch/session/validate` and `GET /api/resolve`. It blocks an
+IP for 10 seconds after more than 20 matching requests in 10 seconds. Worker limits remain tighter
+and route-specific. Public pages, metadata, downloads, Discord Activity reads and Cloud Sync are
+outside this edge rule. Update or remove the rule in the Cloudflare zone before changing these API
+paths; do not copy it into a Worker counter.
 
 ## AniList OAuth
 

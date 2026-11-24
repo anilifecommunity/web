@@ -19,7 +19,7 @@ export const MIN_PASSPHRASE_LENGTH = 8;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 const MAX_SOURCE_BYTES = 8 * 1024 * 1024;
-const APP_VERSION = 'web-0.1.3';
+const APP_VERSION = 'web-0.1.4';
 
 export interface SealedCredentials {
   kdf: string;

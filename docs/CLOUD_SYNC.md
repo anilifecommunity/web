@@ -35,11 +35,10 @@ PINs, cookies, OAuth tokens, playback URLs, diagnostics or an arbitrary settings
 
 ## Deployment state
 
-The schema and fail-closed auth route are deployed to the isolated staging Worker/database. The
-staging Discord callback still requires a provider-issued credential and allowlisted redirect URI;
-Anilife does not substitute a generated or public fake secret. Production activation occurs only
-after the focused PR passes hosted checks, production migrations have a Time Travel bookmark, and
-the existing production Discord secret is available in the same Worker.
+The schema, fail-closed auth route, sync engine, Web client and private recovery path are deployed in
+production. Staging remains isolated and still requires a provider-issued Discord credential plus
+an allowlisted redirect URI for a real OAuth callback; Anilife does not substitute a generated,
+production-copied or public fake secret.
 
 The sync data routes are deployed for authenticated contract clients. The Web client keeps a
 durable account-partitioned IndexedDB journal, batches ordinary edits, preserves failed operations,
